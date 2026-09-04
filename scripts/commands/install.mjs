@@ -64,8 +64,8 @@ export default async function run({ cwd, flags, env = process.env }) {
   const manifestPath = resolve(root, TOOLKIT_DIR, "install.json");
   const previous = readJson(manifestPath, { created: [] }) ?? { created: [] };
   const created = new Set([...(previous.created ?? []), ...changed.filter((action) => action.kind === "create" && ["CLAUDE.md", "AGENTS.md", ".gitignore"].includes(action.path)).map((action) => action.path)]);
-  const manifest = { version, created: [...created].sort() };
-  if (JSON.stringify({ version: previous.version, created: previous.created ?? [] }) !== JSON.stringify(manifest)) writeJson(manifestPath, manifest);
+  const manifest = { version, created: [...created].sort(), source: { dir: source.dir, url: originUrl(source.dir) } };
+  if (JSON.stringify({ version: previous.version, created: previous.created ?? [], source: previous.source ?? null }) !== JSON.stringify(manifest)) writeJson(manifestPath, manifest);
   return ok({
     operator: describeInstall(plan, changed),
     agent: [
@@ -259,6 +259,14 @@ export function withClaudeHooks(settings) {
     next.hooks[event] = [...existing.filter((entry) => !JSON.stringify(entry).includes(`${TOOLKIT_DIR}/hooks/`)), ...ours];
   }
   return next;
+}
+
+function originUrl(dir) {
+  try {
+    return output("git", ["-C", dir, "remote", "get-url", "origin"], { allowFailure: true }) || null;
+  } catch {
+    return null;
+  }
 }
 
 function renderTemplate(text, values) {

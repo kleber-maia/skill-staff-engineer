@@ -3,6 +3,7 @@ import { head } from "../lib/git.mjs";
 import { ok } from "../lib/output.mjs";
 import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
 import { readSession, sessionConcernFiles } from "../lib/session.mjs";
+import { typicalDurations } from "../lib/timings.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
 
 export const description = "Show the current session, brief, and verification receipt.";
@@ -22,6 +23,7 @@ export default async function run({ cwd }) {
     session: session ?? null,
     concernFiles: active ? sessionConcernFiles(active, cwd) : [],
     receipt: receipt ? { ...receipt, current: config ? receiptMatches(receipt, cwd, config, "working") : false } : null,
+    typicalDurations: typicalDurations(cwd).byMode,
   };
   return ok({ operator: describe(data), agent: nextStep(data), data });
 }

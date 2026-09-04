@@ -10,6 +10,7 @@ import { failed, ok, refused, tooling } from "../lib/output.mjs";
 import { classify } from "../lib/paths.mjs";
 import { codeTreeFingerprint, RECEIPT_VERSION, writeReceipt } from "../lib/receipt.mjs";
 import { assertMayRunChecks, CLI, readSession, sessionConcernFiles } from "../lib/session.mjs";
+import { estimateSentence, recordTimings, slownessWarnings, typicalDurations } from "../lib/timings.mjs";
 
 export const description = "Run the configured checks. fast: format, lint, typecheck, tests. full: plus build and end-to-end; writes the receipt.";
 export const usage = "verify --mode fast|full";
@@ -53,6 +54,9 @@ export default async function run({ cwd, flags, env = process.env }) {
       if (!result.ok) break; // stop at the first failure; the report focuses on it
     }
     const durationMs = Date.now() - startedAt;
+    const typical = typicalDurations(cwd);
+    recordTimings(cwd, mode, results, durationMs);
+    const slow = slownessWarnings(results, typical);
     const logPath = writeLog(verifyDir, mode, results);
     pruneLogs(verifyDir);
     const failure = results.find((entry) => entry.status === "failed");
@@ -69,12 +73,12 @@ export default async function run({ cwd, flags, env = process.env }) {
     }
 
     const fingerprint = codeTreeFingerprint(cwd, config, "working");
-    const receipt = { version: RECEIPT_VERSION, mode, status: "passed", at: new Date().toISOString(), headCommit: head(cwd), codeTree: fingerprint.digest, codeFiles: fingerprint.files, gates: strip(results), durationMs, log: logPath };
+    const receipt = { version: RECEIPT_VERSION, mode, status: "passed", at: new Date().toISOString(), headCommit: head(cwd), codeTree: fingerprint.digest, codeFiles: fingerprint.files, gates: strip(results), durationMs, log: logPath, slow };
     writeReceipt(cwd, receipt);
     const ran = results.filter((entry) => entry.status === "passed").length;
     return ok({
       operator: `All checks passed (${ran} check${ran === 1 ? "" : "s"}, ${formatDuration(durationMs)}).`,
-      agent: `${summary}\n${mode === "full" ? "Receipt written; docs edits keep it valid, code edits require one more full check." : "Fast check only; run --mode full once on the final staged batch."}`,
+      agent: [summary, ...slow.map((warning) => `Slower than usual: ${warning}`), estimateSentence(typical, mode) ?? "", mode === "full" ? "Receipt written; docs edits keep it valid, code edits require one more full check." : "Fast check only; run --mode full once on the final staged batch."].filter(Boolean).join("\n"),
       data: receipt,
     });
   } finally {

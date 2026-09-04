@@ -1,6 +1,6 @@
 {
   "name": "staff-engineer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Make your coding agent work like a staff engineer: interview before building, preview before tests, gated lifecycle, plain-language handoffs. Stack-agnostic, zero dependencies.",
   "author": {
     "name": "Kleber Maia"

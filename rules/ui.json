@@ -1,0 +1,14 @@
+{
+  "componentExtensions": [".tsx", ".jsx", ".vue", ".svelte", ".astro", ".html", ".htm"],
+  "styleExtensions": [".css", ".scss", ".sass", ".less"],
+  "rules": [
+    { "id": "ui-browser-dialog", "severity": "block", "appliesTo": "components", "pattern": "(^|[^.\\w])(window\\.)?(alert|confirm|prompt)\\s*\\(", "message": "Browser alert/confirm/prompt dialogs are not allowed. Use inline, specific messages and the project's dialog component." },
+    { "id": "ui-raw-color", "severity": "block", "appliesTo": "components", "pattern": "(#[0-9a-fA-F]{3,8}\\b|\\b(rgb|hsl|oklch|hwb)a?\\()", "message": "Raw colors in components bypass the theme. Use the project's color tokens." },
+    { "id": "ui-raw-color-css", "severity": "warn", "appliesTo": "styles", "pattern": "^(?!\\s*--[\\w-]+\\s*:).*(#[0-9a-fA-F]{3,8}\\b|\\b(rgb|hsl|oklch|hwb)a?\\()", "message": "Raw color outside a token definition. Define it as a token once and reference it." },
+    { "id": "ui-arbitrary-size", "severity": "block", "appliesTo": "components", "pattern": "\\b(text|leading|tracking|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|w|h|gap|space-x|space-y)-\\[\\d+(\\.\\d+)?(px|rem|em)\\]", "message": "Arbitrary pixel sizes break the type and spacing scale. Use the project's scale." },
+    { "id": "ui-inline-font-size", "severity": "warn", "appliesTo": "components", "pattern": "font-?[sS]ize\\s*[:=]\\s*['\"]?\\d+(px|pt)", "message": "Inline font sizes bypass the type scale." },
+    { "id": "ui-important", "severity": "warn", "appliesTo": "all", "pattern": "!important", "message": "!important hides a specificity problem. Fix the cascade instead." },
+    { "id": "ui-native-select", "severity": "warn", "appliesTo": "components", "pattern": "<select\\b", "message": "Native select controls rarely match the product's finish. Prefer the project's picker component when one exists." },
+    { "id": "ui-copy-cliche", "severity": "warn", "appliesTo": "components", "flags": "i", "pattern": "\\b(seamless(ly)?|unleash|next-gen|game-changer|effortless(ly)?|supercharge|delve|elevate your)\\b", "message": "Marketing cliche in product copy. Say plainly what the person gets." }
+  ]
+}

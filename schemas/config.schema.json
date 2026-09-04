@@ -3,35 +3,87 @@
   "$id": "https://raw.githubusercontent.com/<owner>/skill-staff-engineer/main/schemas/config.schema.json",
   "title": "staff-engineer project configuration",
   "type": "object",
-  "required": ["version"],
+  "required": [
+    "version"
+  ],
   "properties": {
-    "$schema": { "type": "string" },
-    "version": { "const": 1 },
-    "toolkitVersion": { "type": "string" },
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "toolkitVersion": {
+      "type": "string"
+    },
     "operator": {
       "type": "object",
       "properties": {
-        "mode": { "enum": ["non-technical", "technical"], "description": "Controls how the agent phrases operator-facing messages. Gates are identical in both modes." },
-        "previewPublicUrl": { "type": "string", "description": "Optional address to show the operator instead of a localhost URL." }
+        "mode": {
+          "enum": [
+            "non-technical",
+            "technical"
+          ],
+          "description": "Controls how the agent phrases operator-facing messages. Gates are identical in both modes."
+        },
+        "previewPublicUrl": {
+          "type": "string",
+          "description": "Optional address to show the operator instead of a localhost URL."
+        }
       }
     },
-    "languages": { "type": "array", "items": { "type": "string" } },
-    "packageManager": { "type": ["string", "null"] },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "packageManager": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "gates": {
       "type": "object",
       "description": "Object = run it. null = not applicable (confirmed). Missing = unknown; doctor asks the operator.",
-      "propertyNames": { "enum": ["install", "format", "lint", "typecheck", "test", "e2e", "build"] },
+      "propertyNames": {
+        "enum": [
+          "install",
+          "format",
+          "lint",
+          "typecheck",
+          "test",
+          "e2e",
+          "build"
+        ]
+      },
       "additionalProperties": {
         "oneOf": [
-          { "type": "null" },
+          {
+            "type": "null"
+          },
           {
             "type": "object",
-            "required": ["cmd"],
+            "required": [
+              "cmd"
+            ],
             "properties": {
-              "cmd": { "type": "string", "minLength": 1 },
-              "fix": { "type": "string" },
-              "affected": { "type": "string", "description": "Command run with {files} replaced by the concern's changed files." },
-              "timeoutMs": { "type": "integer", "minimum": 1000 }
+              "cmd": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fix": {
+                "type": "string"
+              },
+              "affected": {
+                "type": "string",
+                "description": "Command run with {files} replaced by the concern's changed files."
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 1000
+              }
             }
           }
         ]
@@ -39,39 +91,199 @@
     },
     "preview": {
       "type": "object",
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "properties": {
-        "kind": { "enum": ["web", "command", "manual"] },
-        "cmd": { "type": "string" },
-        "url": { "type": "string" },
-        "readyPattern": { "type": "string" },
-        "timeoutMs": { "type": "integer" },
-        "instructions": { "type": "string", "description": "For kind=manual: how the operator sees the result." }
+        "kind": {
+          "enum": [
+            "web",
+            "command",
+            "manual"
+          ]
+        },
+        "cmd": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "readyPattern": {
+          "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
+        },
+        "instructions": {
+          "type": "string",
+          "description": "For kind=manual: how the operator sees the result."
+        },
+        "screenshots": {
+          "enum": [
+            "auto",
+            true,
+            false
+          ],
+          "description": "Capture desktop and mobile screenshots at preview time when Playwright is installed in the project."
+        },
+        "screenshotPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Paths (relative to preview.url) to capture. Default ['/']."
+        }
       }
     },
     "paths": {
       "type": "object",
       "properties": {
-        "source": { "type": "array", "items": { "type": "string" } },
-        "tests": { "type": "array", "items": { "type": "string" } },
-        "docs": { "type": "array", "items": { "type": "string" } },
-        "generated": { "type": "array", "items": { "type": "string" } },
-        "protected": { "type": "array", "items": { "type": "string" } },
-        "neverStage": { "type": "array", "items": { "type": "string" } },
-        "allowDebug": { "type": "array", "items": { "type": "string" } }
+        "source": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "docs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "generated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "protected": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "neverStage": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowDebug": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "rules": {
       "type": "object",
       "properties": {
-        "maxAddedLinesPerFile": { "type": "integer", "minimum": 1 },
-        "requireTestPerSourceChange": { "type": "boolean" },
-        "requireDocsImpact": { "type": "boolean" },
-        "maxConcernCategories": { "type": "integer", "minimum": 1 },
-        "requireSession": { "enum": ["warn", "block", "off"] },
-        "disable": { "type": "array", "items": { "type": "string" } }
+        "maxAddedLinesPerFile": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requireTestPerSourceChange": {
+          "type": "boolean"
+        },
+        "requireDocsImpact": {
+          "type": "boolean"
+        },
+        "maxConcernCategories": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requireSession": {
+          "enum": [
+            "warn",
+            "block",
+            "off"
+          ]
+        },
+        "disable": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ui": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "enum": [
+                "auto",
+                true,
+                false,
+                "off"
+              ]
+            }
+          },
+          "description": "UI finish rules for user-facing file types (rules/ui.json)."
+        },
+        "importAliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Import prefix to path prefix, e.g. {\"@/\": \"src/\"}."
+        },
+        "boundaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "files",
+              "forbid"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "forbid": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "allow": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "sameArea": {
+                "type": "boolean"
+              },
+              "severity": {
+                "enum": [
+                  "block",
+                  "warn"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Architecture boundary rules checked on newly added imports."
+        }
       }
     },
-    "exceptionsFile": { "type": "string" }
+    "exceptionsFile": {
+      "type": "string"
+    }
   }
 }

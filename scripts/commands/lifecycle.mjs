@@ -11,7 +11,10 @@ import { classify, isNeverStage, isProtected } from "../lib/paths.mjs";
 import { applyLineRules } from "../lib/rules.mjs";
 import { readSession } from "../lib/session.mjs";
 import { assetPath } from "../lib/toolkit.mjs";
+import { checkBoundaries } from "../lib/boundaries.mjs";
+import { applyUiRules } from "../lib/ui-rules.mjs";
 import { validateWaiver } from "../lib/waivers.mjs";
+import { readContext, staleSkills } from "./context.mjs";
 
 export const description = "Check the staged batch for debug code, suppressions, unfinished work, oversized files, missing docs or tests, and unsafe paths.";
 export const usage = "lifecycle [--json]";
@@ -63,8 +66,11 @@ export function runLifecycle(cwd, config, env = process.env) {
     }
   }
 
-  // Added-line rules per language.
-  findings.push(...applyLineRules(config, parseUnifiedDiff(stagedDiff(cwd)), { exceptions }));
+  // Added-line rules per language, UI finish rules, and architecture boundaries.
+  const parsed = parseUnifiedDiff(stagedDiff(cwd));
+  findings.push(...applyLineRules(config, parsed, { exceptions }));
+  findings.push(...applyUiRules(config, parsed, { exceptions }));
+  findings.push(...checkBoundaries(cwd, config, parsed, { exceptions }));
 
   // Partial staging relative to the session baseline.
   const session = readSession(cwd);
@@ -90,6 +96,17 @@ export function runLifecycle(cwd, config, env = process.env) {
   if (touchesSource && config.rules.requireTestPerSourceChange && !kinds.includes("tests")) {
     const waiver = validateWaiver(env.STAFF_ENGINEER_TEST_WAIVER, "STAFF_ENGINEER_TEST_WAIVER");
     if (!waiver.ok) findings.push({ rule: "test-coverage", severity: "block", file: "", line: 0, message: `Source changed without a changed or added test in the same batch. Add one, or set STAFF_ENGINEER_TEST_WAIVER="one-line reason". ${waiver.error ?? ""}`.trim() });
+  }
+
+  // Task-context packet: stale skills block; scope growth warns.
+  const packet = readContext(cwd);
+  if (packet) {
+    for (const skill of staleSkills(cwd, packet)) {
+      findings.push({ rule: "stale-skill", severity: "block", file: skill.path, line: 0, message: `The ${skill.name} skill changed after the context packet was built. Re-read it and rerun context.` });
+    }
+    const known = new Set([...(packet.files ?? []), ...(packet.dependencies ?? [])]);
+    const grew = staged.filter((file) => classify(config, file) === "source" && !known.has(file));
+    if (grew.length) findings.push({ rule: "scope-grew", severity: "warn", file: grew.join(", "), line: 0, message: "Source files outside the context packet changed. Rerun context so the guidance covers them." });
   }
 
   // Stale exceptions.

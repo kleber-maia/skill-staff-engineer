@@ -1,0 +1,15 @@
+diff --git a/src/features/billing/Invoice.tsx b/src/features/billing/Invoice.tsx
+--- a/src/features/billing/Invoice.tsx
++++ b/src/features/billing/Invoice.tsx
+@@ -10,0 +11,6 @@
++  if (!window.confirm("Delete?")) return;
++  const style = { color: "#ff0000", fontSize: "13px" };
++  return <div className="text-[13px] p-4">Unleash seamless invoicing</div>;
++  <select><option>x</option></select>
+diff --git a/src/styles/theme.css b/src/styles/theme.css
+--- a/src/styles/theme.css
++++ b/src/styles/theme.css
+@@ -1,0 +2,3 @@
++  --color-accent: #3366ff;
++  color: #333333;
++  margin: 0 !important;
