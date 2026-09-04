@@ -64,6 +64,29 @@ reminders.
 | Rules live in a prompt and decay | Rules live in scripts and hooks that refuse out-of-order steps, on every task, forever |
 | Setup is per project and per agent | One install: skills for every agent, a Claude Code plugin, and a vendored CLI that upgrades in place |
 
+## Right things, right order
+
+Discipline looks slower. It is the fastest way to finish, and the toolkit's order is not arbitrary:
+every step is placed where it prevents the most expensive kind of rework.
+
+- **Three questions before code** cost a minute. A wrong guess costs a rebuild, a second review, and
+  the trust lost in between.
+- **A preview before tests** makes change requests cheap. There is nothing to un-test yet, so "move
+  that button" is a small edit, not an afternoon of rewriting assertions.
+- **One concern per commit** keeps debugging scoped and reverts surgical. You never untangle three
+  fixes to undo one.
+- **A gate before the full check** means the expensive test suite runs once, on a batch already
+  known to be clean. The receipt then makes reruns "to be safe" unnecessary, and the toolkit refuses
+  to do them.
+- **A context packet instead of a repository crawl** points the agent at the files, docs, and tests
+  that matter, so it stops re-reading the codebase on every task.
+- **A plain-language handoff** lets you decide in one read, instead of a back-and-forth about what
+  was actually done.
+
+The result is fewer rebuilds, fewer wasted test runs, shorter debugging loops, and far less context
+spent re-discovering the same facts. That is time, tokens, and frustration you keep, on every single
+task, without asking the agent to be more careful.
+
 ## Who it is for
 
 - **Founders and operators without an engineering background** who run their product through an
