@@ -217,7 +217,8 @@ claude plugin install staff-engineer@staff-engineer
 # inside a project:  /staff-engineer:install
 ```
 
-### What lands in your project
+<details>
+<summary><strong>What lands in your project</strong></summary>
 
 ```
 .staff-engineer/        vendored CLI, rules, templates, config.json, exceptions.json
@@ -228,37 +229,15 @@ CLAUDE.md               "@AGENTS.md" (created only if missing)
 ```
 
 Detection fills `config.json` for Node, Python, Go, Rust, Ruby, Java/Kotlin, Swift, PHP,
-Makefiles, and static sites; anything it cannot infer becomes a plain-language question. Session
-state, receipts, screenshots, and logs live under `.git/staff-engineer/`, never in history.
-Rerunning `install` upgrades only toolkit-owned files; `install --uninstall` removes them.
+Makefiles, and static sites; anything it cannot infer becomes a plain-language question the agent
+asks you. Session state, receipts, screenshots, and logs live under `.git/staff-engineer/`, never in
+history. Rerunning `install` upgrades only toolkit-owned files; `install --uninstall` removes them.
 
-## Reference
+For the curious: [docs/lifecycle.md](docs/lifecycle.md) walks through every step and what it
+refuses, [docs/design.md](docs/design.md) explains why, and [docs/faq.md](docs/faq.md) answers the
+usual questions. `npm test` runs the toolkit's own tests.
 
-All commands are `node .staff-engineer/cli.mjs <command>` and accept `--json`, returning
-`{ ok, code, data, operator, agent, errors }`: one plain sentence for the operator, one next-step
-hint for the agent.
-
-| Command | Purpose | Refuses when |
-|---|---|---|
-| `begin "<concern>"` | Open one work session | another concern is open |
-| `brief --outcome --accept …` | Record outcome, acceptance checks, non-goals, surfaces | no outcome or no acceptance check |
-| `context <files…>` | Skills by phase, related docs and tests, imported dependencies | |
-| `preview` | Present the result; read the checks back; screenshots when Playwright is present | no brief; web preview not reachable |
-| `revise` | Return to implementation after feedback | |
-| `finalize` | Record acceptance and unlock finishing | no preview presented; `STAFF_ENGINEER_PREVIEW_APPROVED=1` missing |
-| `lifecycle` | Gate the staged batch | any blocking finding |
-| `verify --mode fast\|full` | Run the configured checks; full writes the receipt | tests before feedback; unconfigured gates |
-| `handoff` | Prefilled plain-language approval request | |
-| `ship "<message>"` | One guarded commit with trailers | `STAFF_ENGINEER_CHANGE_APPROVED=1` missing; gate findings; stale receipt; too many areas |
-| `status`, `abort`, `doctor`, `config`, `exception`, `update` | Housekeeping | |
-
-Configuration lives in `.staff-engineer/config.json`: gates (`install`, `format`, `lint`,
-`typecheck`, `test`, `e2e`, `build`), preview (`web`, `command`, or `manual`), path globs, rule
-settings, boundary rules, and `operator.mode` (`non-technical` or `technical`, same gates either
-way). See [docs/lifecycle.md](docs/lifecycle.md), [docs/design.md](docs/design.md), and
-[docs/faq.md](docs/faq.md).
-
-Development: `npm test` runs the unit tests and the repository lint.
+</details>
 
 ## License
 
