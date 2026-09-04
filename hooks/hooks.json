@@ -1,0 +1,33 @@
+{
+  "description": "staff-engineer guardrails: session context, dangerous-command and protected-path guards, tests-wait-for-feedback, stop reminders. Every hook fails open and does nothing in projects without a .staff-engineer/ install.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-start.mjs\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/pre-tool-use.mjs\"", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/pre-tool-use.mjs\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/stop.mjs\"", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}

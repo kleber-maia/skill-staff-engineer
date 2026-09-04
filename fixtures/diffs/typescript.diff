@@ -1,0 +1,19 @@
+diff --git a/src/service.ts b/src/service.ts
+new file mode 100644
+--- /dev/null
++++ b/src/service.ts
+@@ -0,0 +1,6 @@
++export function load(input: any) {
++  console.log("loading", input);
++  // TODO: handle errors
++  // eslint-disable-next-line no-unused-vars
++  const unused = 1;
++  debugger;
++}
+diff --git a/tests/service.test.ts b/tests/service.test.ts
+new file mode 100644
+--- /dev/null
++++ b/tests/service.test.ts
+@@ -0,0 +1,2 @@
++console.log("tests may log");
++test("x", () => {});

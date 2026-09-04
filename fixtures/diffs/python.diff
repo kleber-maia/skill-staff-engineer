@@ -1,0 +1,8 @@
+diff --git a/app/service.py b/app/service.py
+--- a/app/service.py
++++ b/app/service.py
+@@ -10,0 +11,4 @@
++def load(data):
++    print(data)
++    breakpoint()
++    return data  # type: ignore

@@ -1,0 +1,11 @@
+{
+  "name": "staff-engineer",
+  "version": "0.1.0",
+  "description": "Make your coding agent work like a staff engineer: interview before building, preview before tests, gated lifecycle, plain-language handoffs. Stack-agnostic, zero dependencies.",
+  "author": {
+    "name": "Kleber Maia"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/<owner>/skill-staff-engineer",
+  "keywords": ["workflow", "quality", "guardrails", "skills", "staff-engineer"]
+}
