@@ -64,7 +64,7 @@ Point your agent at this repository and say **"install staff-engineer into this 
 follows [AGENTS.md](AGENTS.md). Or run it yourself:
 
 ```bash
-git clone https://github.com/<owner>/skill-staff-engineer ~/staff-engineer
+git clone https://github.com/kleber-maia/skill-staff-engineer ~/staff-engineer
 cd your-project
 node ~/staff-engineer/scripts/cli.mjs install --target . --dry-run   # review the plan
 node ~/staff-engineer/scripts/cli.mjs install --target . --yes
@@ -74,7 +74,7 @@ node .staff-engineer/cli.mjs doctor                                   # answer i
 Claude Code users can add the plugin for slash commands, subagents, and hooks:
 
 ```bash
-claude plugin marketplace add <owner>/skill-staff-engineer
+claude plugin marketplace add kleber-maia/skill-staff-engineer
 claude plugin install staff-engineer@staff-engineer
 # inside a project:  /staff-engineer:install
 ```

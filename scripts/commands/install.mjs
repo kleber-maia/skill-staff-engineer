@@ -227,7 +227,7 @@ function pushBlockAction(actions, root, file, content, style) {
 
 export function configFromDetection(detected, version) {
   const config = defaultConfig();
-  config.$schema = "https://raw.githubusercontent.com/<owner>/skill-staff-engineer/main/schemas/config.schema.json";
+  config.$schema = "https://raw.githubusercontent.com/kleber-maia/skill-staff-engineer/main/schemas/config.schema.json";
   config.toolkitVersion = version;
   config.languages = detected.languages;
   config.packageManager = detected.packageManager;
