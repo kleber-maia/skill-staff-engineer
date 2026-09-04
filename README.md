@@ -158,27 +158,42 @@ Every arrow is enforced by a script, not just described in a prompt:
 - **Save.** `handoff` prints the approval request. `ship` refuses without your "ship it", without a
   passing gate, without a matching receipt, or with too many unrelated areas in one batch.
 
-## What you get
+## Once installed, you just talk
 
-**Ten skills** (plain Markdown, readable by any agent): `staff-engineer` (the contract),
-`grill-me`, `solid`, `simplify`, `ui-quality`, `architecture-boundaries`, `data-safety`,
-`spec-and-plan`, `handoff`, `install`.
+There is nothing to learn and nothing to invoke. You describe what you want, in your own words. The
+agent already knows what comes next: when to ask, when to build, when to show you, when to stop and
+wait, when to test, when to clean up, and when to ask for your approval. You never type a command,
+name a skill, or think about a software lifecycle.
 
-**A gate that knows your language.** Debug output, suppressions, loose types, and unfinished
-markers for JavaScript/TypeScript, Python, Go, Rust, Ruby, Java/Kotlin, Swift, PHP, C#, and shell.
-UI rules for browser dialogs, raw colors, arbitrary sizes, and marketing cliches. Import boundary
-rules you configure. Every rule can be disabled or given a permanent, justified exception.
+Your words carry the meaning they would with a person. "Change this" means keep working. "Looks
+good" means finish it properly. "Ship it" means save. Anything else is treated as feedback, never as
+permission. If you walk away and come back a week later, the agent picks up exactly where the two of
+you left off, because the state lives in the project, not in a chat window.
 
-**A verification wrapper** that runs *your* commands, stops at the first failure with a focused
-`file:line` report, keeps a timing ledger, warns when a check runs slower than usual, and never
-retries "to be safe".
+Engineers get the same thing from the other side: an agent that never commits behind their back,
+never leaves debug output, never mixes concerns, and always shows its work.
 
-**A Claude Code plugin** with a slash command for every step, subagents for the four simplify
-lenses plus a read-only explorer and a verifier, and hooks that inject session state at start, deny
-dangerous commands (force pushes, hard resets, recursive deletes, piping downloads into a shell),
-protect secrets, block tests before feedback, and block raw commits while a concern is open.
+<details>
+<summary><strong>Under the hood</strong> (you do not need to read this)</summary>
 
-**Zero dependencies.** Node.js 20+ and git are all a project needs. Nothing is installed from npm.
+- **Ten skills** the agent reads on its own: the operating contract, the interview, SOLID, the
+  four-lens cleanup review, UI finish, architecture boundaries, data safety, spec and plan, the
+  handoff, and the installer.
+- **A staged-diff gate** for debug output, suppressions, loose types, and unfinished markers in
+  JavaScript/TypeScript, Python, Go, Rust, Ruby, Java/Kotlin, Swift, PHP, C#, and shell; UI rules for
+  browser dialogs, raw colors, arbitrary sizes, and marketing cliches; configurable import boundary
+  rules; docs and test coverage per batch. Every rule can be disabled or given a justified exception.
+- **A verification wrapper** that runs your project's own commands, stops at the first failure with
+  a focused `file:line` report, keeps a timing ledger, and writes a receipt so the full check runs
+  once per batch.
+- **A session state machine** in `.git/staff-engineer/` that refuses out-of-order steps and protects
+  work that was already pending when a concern began.
+- **A Claude Code plugin** with a slash command per step, subagents for the four simplify lenses plus
+  an explorer and a verifier, and hooks that inject session state at start, deny dangerous commands,
+  protect secrets, block tests before feedback, and block raw commits while a concern is open.
+- **Zero dependencies.** Node.js 20+ and git are all a project needs.
+
+</details>
 
 ## Install
 
