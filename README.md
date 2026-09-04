@@ -6,30 +6,12 @@ SOLID while it codes, shows a working preview before it writes tests, cleans up 
 four-lens review, runs your project's own checks through a gate, and asks for approval in plain
 language before it saves.
 
-```mermaid
-flowchart LR
-  subgraph agree [Agree]
-    direction LR
-    begin["begin<br/><small>one concern</small>"] --> grill["grill-me<br/><small>interview</small>"] --> brief["brief<br/><small>outcome + checks</small>"]
-  end
-  subgraph build [Build]
-    direction LR
-    code["first pass<br/><small>SOLID</small>"] --> preview["preview"] --> feedback{"operator<br/>feedback"}
-    feedback -- "change this" --> code
-  end
-  subgraph finish [Finish]
-    direction LR
-    tests["tests"] --> simplify["simplify<br/><small>4 lenses</small>"] --> docs["docs"] --> gate["lifecycle gate<br/>+ verify"]
-  end
-  subgraph save [Save]
-    direction LR
-    handoff["handoff"] --> approve{"ship it?"} -- yes --> ship["ship<br/><small>one commit</small>"]
-  end
-  brief --> code
-  feedback -- "looks good" --> tests
-  gate --> handoff
-  approve -- hold --> tests
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/lifecycle-dark.svg">
+    <img alt="The staff-engineer lifecycle: agree (begin, grill-me, brief), build (first working pass, preview, operator feedback), finish (tests, simplify, docs, lifecycle gate and verify), save (handoff, ship it approval, one guarded commit)" src="docs/lifecycle-light.svg" width="460">
+  </picture>
+</p>
 
 Every arrow is enforced by a script, not just described in a prompt. Tests cannot run before
 the operator accepts a preview. Nothing can be saved without a passing gate, a matching
