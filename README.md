@@ -26,8 +26,8 @@ keeping changes small and separate, leaving code cleaner than it was found, and 
 to check before saying "this is safe to ship."
 
 staff-engineer packages that judgment as skills the agent reads and scripts the agent cannot skip.
-The model still writes the code. The toolkit supplies the discipline that turns 80 percent into
-software you can run a business on.
+The model still writes the code. The toolkit supplies the discipline that carries you from 80
+percent to the 100 percent you thought you could not reach without hiring an engineer.
 
 ## What the missing 20 percent looks like
 
