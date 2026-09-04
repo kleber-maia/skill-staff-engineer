@@ -31,7 +31,13 @@ It is never committed, needs no `.gitignore` entry, survives branch switches, an
 Symlinks need special handling on Windows and some agents resolve them inconsistently. Copies
 stamped with `.staff-engineer-owned` are simple and upgrade cleanly.
 
+## Optional capabilities
+
+Preview screenshots use the project's own Playwright install when present and are skipped
+otherwise. UI rules apply only to user-facing file types. Boundary rules apply only when the
+project configures them, and only to newly added imports, so legacy debt never blocks a batch.
+
 ## Non-goals (for now)
 
-Deployment orchestration, screenshots, timing ledgers, task-context packets, UI-quality lint, and
-architecture-boundary checks are planned for later versions and intentionally absent from v0.1.
+Deployment orchestration, skill evaluation suites, and multi-repository configuration are
+planned for later versions and intentionally absent.

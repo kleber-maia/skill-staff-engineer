@@ -23,6 +23,8 @@ export const COMMANDS = {
   ship: { module: "./commands/ship.mjs" },
   abort: { module: "./commands/abort.mjs" },
   exception: { module: "./commands/exception.mjs" },
+  context: { module: "./commands/context.mjs" },
+  update: { module: "./commands/update.mjs" },
   hook: { module: "./commands/hook.mjs" },
 };
 
@@ -69,9 +71,11 @@ Setup
   install [--target <dir>] [--dry-run] [--yes] [--reconfigure] [--replace-existing-skills] [--with-claude-hooks] [--init-git] [--uninstall]
   doctor [--which]                    Check the installation and list questions for the operator
   config get|set|unset <dotpath> [value]
+  update [--from <path|git-url>]      Upgrade the vendored toolkit
 
 Lifecycle (one concern at a time)
   begin "<short concern>"             Open exactly one work session
+  context <planned files...>          Build the task-context packet (skills, docs, tests, dependencies)
   brief --outcome "..." --accept "..." [--accept "..."] [--non-goal "..."] [--surface "..."]
   preview                             Present the working result; reads the acceptance checks back
   revise                              Return to implementation after feedback

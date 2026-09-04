@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { validateBoundaryRules } from "./boundaries.mjs";
 import { readJson, writeJson } from "./fs-safe.mjs";
 import { tooling } from "./output.mjs";
 
@@ -19,7 +20,7 @@ export function defaultConfig() {
     languages: [],
     packageManager: null,
     gates: {},
-    preview: { kind: "manual" },
+    preview: { kind: "manual", screenshots: "auto", screenshotPaths: ["/"] },
     paths: {
       source: [],
       tests: ["**/*.test.*", "**/*.spec.*", "**/*_test.*", "tests/**", "test/**", "__tests__/**", "spec/**"],
@@ -36,6 +37,9 @@ export function defaultConfig() {
       maxConcernCategories: 2,
       requireSession: "warn",
       disable: [],
+      ui: { enabled: "auto" },
+      boundaries: [],
+      importAliases: { "@/": "src/", "~/": "src/" },
     },
     exceptionsFile: `${TOOLKIT_DIR}/exceptions.json`,
   };
@@ -99,6 +103,8 @@ export function validateConfig(config) {
   if (!["warn", "block", "off"].includes(config.rules?.requireSession)) errors.push("rules.requireSession must be warn, block, or off");
   if (!Number.isInteger(config.rules?.maxAddedLinesPerFile) || config.rules.maxAddedLinesPerFile < 1) errors.push("rules.maxAddedLinesPerFile must be a positive integer");
   if (!Number.isInteger(config.rules?.maxConcernCategories) || config.rules.maxConcernCategories < 1) errors.push("rules.maxConcernCategories must be a positive integer");
+  if (config.rules?.boundaries !== undefined) errors.push(...validateBoundaryRules(config.rules.boundaries));
+  if (config.preview?.screenshotPaths !== undefined && !Array.isArray(config.preview.screenshotPaths)) errors.push("preview.screenshotPaths must be an array of paths");
   return errors;
 }
 

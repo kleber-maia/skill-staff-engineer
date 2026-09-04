@@ -4,7 +4,8 @@ This project uses the **staff-engineer** toolkit. Scripts enforce the agreement;
 not enough. Before changing anything, read `.agents/skills/staff-engineer/SKILL.md`.
 
 - Work on **one concern at a time**: `node .staff-engineer/cli.mjs begin "Short concern"`.
-- Agree the outcome with the operator first (`grill-me` skill), record it with `brief`.
+- Agree the outcome with the operator first (`grill-me` skill), record it with `brief`, then run
+  `context <planned files>` and read its packet before editing.
 - Build the smallest working first pass, then `preview` and **stop for feedback**. No tests,
   review, simplification, docs, or verification before the operator accepts the preview.
 - After clear acceptance: `STAFF_ENGINEER_PREVIEW_APPROVED=1 node .staff-engineer/cli.mjs finalize`,

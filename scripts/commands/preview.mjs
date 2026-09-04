@@ -1,7 +1,10 @@
 import { isNonTechnical, loadConfig } from "../lib/config.mjs";
 import { runShell } from "../lib/exec.mjs";
 import { failed, ok, refused } from "../lib/output.mjs";
+import { stateDir } from "../lib/git.mjs";
+import { captureScreenshots, shouldCapture } from "../lib/screenshots.mjs";
 import { CLI, markAwaitingFeedback, requireBrief, requireOpenSession, sessionConcernFiles, writeSession } from "../lib/session.mjs";
+import { join } from "node:path";
 
 export const description = "Present the working result to the operator and read the acceptance checks back.";
 export const usage = "preview [--json]";
@@ -15,6 +18,9 @@ export default async function run({ cwd }) {
   const files = sessionConcernFiles(session, cwd);
   const updated = markAwaitingFeedback(session, files);
   writeSession(cwd, updated);
+  const shots = preview.kind === "web" && shouldCapture(config)
+    ? captureScreenshots(cwd, { url: preview.url, paths: preview.screenshotPaths ?? ["/"], outDir: join(stateDir(cwd), "preview", `round-${updated.reviewRound}`) })
+    : { skipped: true, files: [] };
 
   const checks = brief.acceptance.map((item, index) => `${index + 1}. ${item}`).join("\n");
   const operator = [
@@ -32,9 +38,11 @@ export default async function run({ cwd }) {
       `Change requests: run ${CLI} revise, update, then preview again.`,
       `Clear acceptance: STAFF_ENGINEER_PREVIEW_APPROVED=1 ${CLI} finalize`,
       where.agent ?? "",
+      shots.files.length ? `Screenshots (look at them before presenting; share them when the harness allows):\n${shots.files.map((file) => `- ${file}`).join("\n")}` : "",
+      shots.skipped === false && !shots.ok ? `Screenshots failed (preview still presented): ${shots.reason}` : "",
       isNonTechnical(config) ? "Keep the message free of file names, commands, and tool output." : "",
     ].filter(Boolean).join("\n"),
-    data: { round: updated.reviewRound, files, preview: where, brief },
+    data: { round: updated.reviewRound, files, preview: where, brief, screenshots: shots.files },
   });
 }
 

@@ -34,7 +34,7 @@ exist. Everything is invoked from the project root as
 | Phase | Skill |
 | --- | --- |
 | Before building | `grill-me` (then `brief`); `spec-and-plan` for large concerns |
-| While building | `solid` |
+| While building | `solid`; `ui-quality` for anything a person sees; `architecture-boundaries` when adding modules or cross-area imports |
 | After acceptance only | `simplify` |
 | At the end | `handoff` |
 | Whenever data, secrets, or destructive actions are involved | `data-safety` |
@@ -49,7 +49,11 @@ exist. Everything is invoked from the project root as
    If `status` shows a session already open, finish or abort it first.
 4. Run `grill-me` unless the request is trivially clear, then record the brief:
    `node .staff-engineer/cli.mjs brief --outcome "..." --accept "..." [--accept "..."] [--non-goal "..."] [--surface "..."]`.
-5. For large work (more than two areas, new data shapes, or more than a day), write
+5. Before editing, run `node .staff-engineer/cli.mjs context <planned files>` and read
+   its packet: the skills for this change, the docs and tests that describe the
+   files, and the local modules they import. Rerun it if the scope or the imports
+   grow; the lifecycle gate refuses when a listed skill changed after the packet.
+6. For large work (more than two areas, new data shapes, or more than a day), write
    the spec and plan with `spec-and-plan` and get agreement before building.
 
 ## Work with feedback

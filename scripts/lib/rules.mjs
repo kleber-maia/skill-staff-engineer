@@ -36,7 +36,7 @@ export function applyLineRules(config, parsedDiff, { table = loadLanguageRules()
       if (!rule.languages.includes("*") && (!language || !rule.languages.includes(language))) continue;
       if (rule.id.startsWith("debug-") && allowDebug) continue;
       if (isExcepted(exceptions, rule.id, entry.file)) continue;
-      const regexp = new RegExp(rule.pattern);
+      const regexp = new RegExp(rule.pattern, rule.flags ?? "");
       for (const { line, text } of entry.added) {
         if (regexp.test(text)) {
           findings.push({ rule: rule.id, severity: rule.severity, file: entry.file, line, text: text.trim().slice(0, 160), message: rule.message });

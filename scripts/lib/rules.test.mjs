@@ -10,7 +10,7 @@ import { FIXTURES } from "./test-helpers.mjs";
 
 const diffsDir = join(FIXTURES, "diffs");
 
-for (const file of readdirSync(diffsDir).filter((name) => name.endsWith(".diff"))) {
+for (const file of readdirSync(diffsDir).filter((name) => name.endsWith(".diff") && name !== "ui.diff")) {
   const language = file.replace(/\.diff$/, "");
   test(`language rules: ${language}`, () => {
     const config = defaultConfig();
