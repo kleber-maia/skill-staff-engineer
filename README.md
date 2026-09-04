@@ -1,4 +1,6 @@
-# staff-engineer
+# Staff Engineer for AI Agents
+
+![Staff Engineer for AI Agents hero](docs/hero.png)
 
 **Turn your AI coding agent into a staff engineer you can trust with your product.**
 
