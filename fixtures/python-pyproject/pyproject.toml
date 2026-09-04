@@ -1,0 +1,13 @@
+[project]
+name = "fixture-python"
+version = "0.0.0"
+dependencies = ["fastapi"]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "mypy"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.mypy]
+strict = true

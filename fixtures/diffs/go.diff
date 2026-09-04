@@ -1,0 +1,11 @@
+diff --git a/cmd/server/main.go b/cmd/server/main.go
+--- a/cmd/server/main.go
++++ b/cmd/server/main.go
+@@ -3,0 +4,2 @@
++	fmt.Println("debug in cmd is allowed")
++	x := 1 //nolint
+diff --git a/internal/store/store.go b/internal/store/store.go
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -3,0 +4,1 @@
++	fmt.Printf("value %v", v)

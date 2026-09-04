@@ -1,0 +1,59 @@
+{
+  "extensions": {
+    "javascript": [".js", ".mjs", ".cjs", ".jsx", ".vue", ".svelte"],
+    "typescript": [".ts", ".tsx", ".mts", ".cts"],
+    "python": [".py"],
+    "go": [".go"],
+    "rust": [".rs"],
+    "ruby": [".rb", ".rake"],
+    "java": [".java"],
+    "kotlin": [".kt", ".kts"],
+    "swift": [".swift"],
+    "php": [".php"],
+    "csharp": [".cs"],
+    "shell": [".sh", ".bash", ".zsh"]
+  },
+  "rules": [
+    { "id": "debug-console", "severity": "block", "languages": ["javascript", "typescript"], "pattern": "\\bconsole\\.(log|debug|trace)\\s*\\(", "message": "Remove debug logging before saving." },
+    { "id": "debug-debugger", "severity": "block", "languages": ["javascript", "typescript"], "pattern": "^\\s*debugger\\b", "message": "Remove the debugger statement." },
+    { "id": "suppression-eslint", "severity": "block", "languages": ["javascript", "typescript"], "pattern": "eslint-disable", "message": "Remove the lint suppression or fix the underlying design." },
+    { "id": "suppression-ts", "severity": "block", "languages": ["typescript"], "pattern": "@ts-(ignore|expect-error|nocheck)", "message": "Remove the type-check suppression; add a narrow type instead." },
+    { "id": "loose-any", "severity": "block", "languages": ["typescript"], "pattern": "(:\\s*any\\b|\\bas\\s+any\\b|<any>)", "message": "Avoid weakening types with any; add a narrow type or schema." },
+
+    { "id": "debug-print", "severity": "block", "languages": ["python"], "pattern": "^\\s*print\\s*\\(", "message": "Remove debug print before saving (use logging if output is intended)." },
+    { "id": "debug-breakpoint", "severity": "block", "languages": ["python"], "pattern": "(\\bbreakpoint\\s*\\(|pdb\\.set_trace|\\bic\\s*\\()", "message": "Remove the debugger breakpoint." },
+    { "id": "suppression-python", "severity": "block", "languages": ["python"], "pattern": "#\\s*(noqa|type:\\s*ignore)", "message": "Remove the suppression or fix the underlying issue." },
+    { "id": "loose-any-python", "severity": "warn", "languages": ["python"], "pattern": "\\bAny\\b", "message": "Prefer a precise type over Any." },
+
+    { "id": "debug-fmt-print", "severity": "block", "languages": ["go"], "pattern": "\\bfmt\\.Print(ln|f)?\\s*\\(", "message": "Remove debug printing (use the logger if output is intended)." },
+    { "id": "debug-spew", "severity": "block", "languages": ["go"], "pattern": "\\bspew\\.Dump\\s*\\(", "message": "Remove the debug dump." },
+    { "id": "suppression-nolint", "severity": "block", "languages": ["go"], "pattern": "//\\s*nolint", "message": "Remove the lint suppression or fix the underlying issue." },
+
+    { "id": "debug-dbg", "severity": "block", "languages": ["rust"], "pattern": "\\bdbg!\\s*\\(", "message": "Remove the dbg! macro." },
+    { "id": "debug-println", "severity": "warn", "languages": ["rust"], "pattern": "\\bprintln!\\s*\\(", "message": "Check that this println! is intended output, not debugging." },
+    { "id": "suppression-allow", "severity": "block", "languages": ["rust"], "pattern": "#\\[allow\\(", "message": "Remove the lint allowance or fix the underlying issue." },
+    { "id": "loose-unwrap", "severity": "warn", "languages": ["rust"], "pattern": "\\.unwrap\\(\\)", "message": "Prefer explicit error handling over unwrap()." },
+
+    { "id": "debug-pry", "severity": "block", "languages": ["ruby"], "pattern": "(binding\\.pry|\\bbyebug\\b|binding\\.irb)", "message": "Remove the debugger call." },
+    { "id": "debug-puts", "severity": "warn", "languages": ["ruby"], "pattern": "^\\s*(puts|pp|p)\\s", "message": "Check that this output is intended, not debugging." },
+    { "id": "suppression-rubocop", "severity": "block", "languages": ["ruby"], "pattern": "rubocop:disable", "message": "Remove the lint suppression or fix the underlying issue." },
+
+    { "id": "debug-sysout", "severity": "block", "languages": ["java", "kotlin"], "pattern": "System\\.(out|err)\\.print", "message": "Remove console printing (use the logger if output is intended)." },
+    { "id": "debug-stacktrace", "severity": "block", "languages": ["java", "kotlin"], "pattern": "\\.printStackTrace\\s*\\(", "message": "Handle or log the exception instead of printing the stack trace." },
+    { "id": "suppression-java", "severity": "block", "languages": ["java", "kotlin"], "pattern": "@SuppressWarnings|@Suppress\\(", "message": "Remove the warning suppression or fix the underlying issue." },
+
+    { "id": "debug-swift-print", "severity": "block", "languages": ["swift"], "pattern": "^\\s*(print|dump)\\s*\\(", "message": "Remove debug printing." },
+    { "id": "suppression-swiftlint", "severity": "block", "languages": ["swift"], "pattern": "swiftlint:disable", "message": "Remove the lint suppression or fix the underlying issue." },
+    { "id": "loose-force-cast", "severity": "warn", "languages": ["swift"], "pattern": "\\bas!\\s", "message": "Avoid force casts; handle the failure case." },
+
+    { "id": "debug-php", "severity": "block", "languages": ["php"], "pattern": "\\b(var_dump|dd|print_r|dump)\\s*\\(", "message": "Remove debug output." },
+    { "id": "suppression-phpstan", "severity": "block", "languages": ["php"], "pattern": "@phpstan-ignore", "message": "Remove the analysis suppression or fix the underlying issue." },
+
+    { "id": "debug-csharp", "severity": "block", "languages": ["csharp"], "pattern": "Console\\.Write(Line)?\\s*\\(", "message": "Remove console printing (use the logger if output is intended)." },
+    { "id": "suppression-pragma", "severity": "block", "languages": ["csharp"], "pattern": "#pragma warning disable", "message": "Remove the warning suppression or fix the underlying issue." },
+
+    { "id": "debug-set-x", "severity": "warn", "languages": ["shell"], "pattern": "^\\s*set\\s+-x", "message": "Remove shell tracing before saving." },
+
+    { "id": "unfinished-marker", "severity": "block", "languages": ["*"], "pattern": "\\b(TODO|FIXME|HACK|XXX)\\b", "message": "Resolve unfinished-work markers before saving." }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "broadHelperNames": ["utils", "util", "helpers", "helper", "common", "misc", "shared", "lib"],
+  "categoryBuckets": {
+    "docs": ["**/*.md", "docs/**"],
+    "tests": ["**/*.test.*", "**/*.spec.*", "tests/**", "test/**", "__tests__/**", "spec/**"],
+    "config": ["*.json", "*.yaml", "*.yml", "*.toml", "*.ini", ".*rc", "*.config.*", ".github/**", ".staff-engineer/**", ".agents/**", "AGENTS.md", "CLAUDE.md"]
+  }
+}

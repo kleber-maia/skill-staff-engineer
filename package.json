@@ -1,0 +1,41 @@
+{
+  "name": "staff-engineer",
+  "version": "0.1.0",
+  "description": "Skills, scripts, and guardrails that make AI coding agents work like a staff engineer for technical and non-technical people. Harness-neutral, stack-agnostic, zero dependencies.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "staff-engineer": "scripts/cli.mjs"
+  },
+  "files": [
+    "scripts",
+    "skills",
+    "commands",
+    "agents",
+    "hooks",
+    "rules",
+    "schemas",
+    "templates",
+    ".claude-plugin",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test \"scripts/**/*.test.mjs\" && node scripts/lint-toolkit.mjs",
+    "lint": "node scripts/lint-toolkit.mjs"
+  },
+  "keywords": [
+    "ai-agents",
+    "claude-code",
+    "agent-skills",
+    "guardrails",
+    "software-quality",
+    "codex",
+    "cursor"
+  ]
+}

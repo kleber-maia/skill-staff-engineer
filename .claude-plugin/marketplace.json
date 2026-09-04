@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "staff-engineer",
+  "description": "Skills, scripts, and guardrails that make AI coding agents work like a staff engineer.",
+  "owner": {
+    "name": "Kleber Maia"
+  },
+  "plugins": [
+    {
+      "name": "staff-engineer",
+      "description": "Make your coding agent work like a staff engineer: interview before building, preview before tests, gated lifecycle, plain-language handoffs. Stack-agnostic, zero dependencies.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
