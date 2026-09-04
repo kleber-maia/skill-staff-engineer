@@ -5,27 +5,43 @@
 A drop-in toolkit for Claude Code, Codex, Cursor, Gemini CLI, and any other coding agent. It makes the
 agent interview you before building, show you a working result before writing tests, follow SOLID
 while it codes, clean up after itself, run your project's own checks through a gate, and ask for
-your approval in plain language before anything is saved. Works with any language or framework.
-No dependencies. Installed by the agent itself in one instruction.
+your approval in plain language before anything is saved. The model writes the code; the toolkit
+supplies the engineering judgment. Works with any language or framework. No dependencies. Installed
+by the agent itself in one instruction.
 
 ```text
 "install staff-engineer into this project"
 ```
 
-## The problem
+## The last 20 percent
 
-Coding agents are fast and eager. Left alone, they behave like a talented junior on their first
-week:
+Anyone who has built something with an agent has felt it. A great model in a great harness gets you
+to **80 percent of great software** astonishingly fast. Then the other 20 percent shows up: the edge
+case nobody asked about, the fix that quietly broke a different screen, the change you cannot judge
+because you cannot read the diff, the codebase that slowly becomes something no one dares to touch.
 
-- **They start typing before they understand.** Ambiguity gets resolved by guessing, and you
+That 20 percent is why software engineers still exist. It was never about typing faster. It is
+judgment: asking before building, refusing to call something done before it is seen working,
+keeping changes small and separate, leaving code cleaner than it was found, and knowing exactly what
+to check before saying "this is safe to ship."
+
+staff-engineer packages that judgment as skills the agent reads and scripts the agent cannot skip.
+The model still writes the code. The toolkit supplies the discipline that turns 80 percent into
+software you can run a business on.
+
+## What the missing 20 percent looks like
+
+Left alone, even the best coding agent behaves like a talented junior on their first week:
+
+- **It starts typing before it understands.** Ambiguity gets resolved by guessing, and you
   discover the wrong guess after the code is written.
-- **They call it done when the tests pass.** You never saw it work. Tests written before you looked
+- **It calls it done when the tests pass.** You never saw it work. Tests written before you looked
   at the result cement the wrong behavior and make every change request expensive.
-- **They leave a mess.** Debug output, `TODO`s, suppressed warnings, weakened types, a new
+- **It leaves a mess.** Debug output, `TODO`s, suppressed warnings, weakened types, a new
   `utils.ts` nobody owns, a 600-line file, and three unrelated fixes swept into one commit.
-- **They speak engineer.** "I refactored the service layer and rebased onto main." If you are not
+- **It speaks engineer.** "I refactored the service layer and rebased onto main." If you are not
   an engineer, you cannot judge whether that is good news.
-- **They forget the rules.** Instructions in a prompt fade as the conversation grows. The tenth
+- **It forgets the rules.** Instructions in a prompt fade as the conversation grows. The tenth
   task is done sloppier than the first.
 - **Every project starts from zero.** The careful setup you built for one repository does not
   travel to the next one, or to a different agent.
