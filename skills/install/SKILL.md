@@ -32,7 +32,7 @@ Pick the path that matches how you have the toolkit:
   ```
 
 - **From the Claude plugin:** run `/staff-engineer:install` inside the project.
-- **From npm:** `npx github:<owner>/skill-staff-engineer install` inside the project.
+- **From npm:** `npx github:kleber-maia/skill-staff-engineer install` inside the project.
 
 The installer writes the skills, `.staff-engineer/` (CLI, config, templates), and a
 short section in the project's agent instructions file. It does not touch anything

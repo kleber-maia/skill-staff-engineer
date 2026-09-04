@@ -18,7 +18,7 @@ npm.
 ## Install steps
 
 1. Locate the toolkit. If you are reading this inside a clone, `<toolkit>` is this directory.
-   Otherwise clone it: `git clone https://github.com/<owner>/skill-staff-engineer <toolkit>`.
+   Otherwise clone it: `git clone https://github.com/kleber-maia/skill-staff-engineer <toolkit>`.
    (Claude Code users can instead add it as a plugin; see the README.)
 2. From the operator's project directory, run a dry run and read the plan:
    ```bash
