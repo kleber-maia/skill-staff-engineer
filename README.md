@@ -4,7 +4,7 @@
 
 **Turn your AI coding agent into a staff engineer you can trust with your product.**
 
-A drop-in toolkit for Claude Code, Codex, Cursor, Gemini CLI, and any other coding agent. It makes the
+A drop-in toolkit for Claude Code, Codex, Kimi, Pi, OpenCode, Cursor, and any other coding agent. It makes the
 agent interview you before building, show you a working result before writing tests, follow SOLID
 while it codes, clean up after itself, run your project's own checks through a gate, and ask for
 your approval in plain language before anything is saved. The model writes the code; the toolkit
@@ -12,7 +12,7 @@ supplies the engineering judgment. Works with any language or framework. No depe
 by the agent itself in one instruction.
 
 ```text
-"install staff-engineer into this project"
+"install https://github.com/kleber-maia/skill-staff-engineer into this project"
 ```
 
 ## The last 20 percent
@@ -199,7 +199,7 @@ never leaves debug output, never mixes concerns, and always shows its work.
 
 ## Install
 
-Point your agent at this repository and say **"install staff-engineer into this project"**. The
+Point your agent at this repository and say **"install https://github.com/kleber-maia/skill-staff-engineer into this project"**. The
 agent follows [AGENTS.md](AGENTS.md): dry run, install, then a short question loop to confirm how
 your project is checked and started. Or do it yourself:
 

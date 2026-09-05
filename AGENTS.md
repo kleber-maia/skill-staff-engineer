@@ -2,7 +2,7 @@
 
 You are an AI coding agent reading this repository because someone asked you to **install
 staff-engineer into their project**. This file tells you exactly what to do. It works for any
-agent (Claude Code, Codex, Cursor, Gemini CLI, and others) and any tech stack.
+agent (Claude Code, Codex, Kimi, Pi, OpenCode, Cursor, and others) and any tech stack.
 
 ## What this is
 
