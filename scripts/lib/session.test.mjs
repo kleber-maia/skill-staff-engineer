@@ -1,7 +1,7 @@
 // Drives the whole lifecycle through the CLI in a temporary repository.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { cleanup, commitAll, git, installInto, makeTempRepo, runCli, writeFiles } from "./test-helpers.mjs";
@@ -110,6 +110,111 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     assert.equal(result.code, 0, "a new concern can start after ship");
     result = await runCli(["abort", "--json"], { cwd: dir });
     assert.equal(result.code, 0);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("pre-acceptance previews reject empty work and source mixed with tests, while tooling tests remain valid", async () => {
+  const dir = await setup();
+  try {
+    await runCli(["begin", "Preview ordering"], { cwd: dir });
+    await runCli(["brief", "--outcome", "The demo shows a preview in the required order.", "--accept", "Run the demo and inspect the result"], { cwd: dir });
+    let result = await runCli(["preview", "--json"], { cwd: dir });
+    assert.equal(result.code, 1);
+    assert.match(result.json.operator, /no working result/i);
+
+    appendFileSync(join(dir, "src/math.mjs"), "export const twice = (n) => n * 2;\n");
+    appendFileSync(join(dir, "tests/math.test.mjs"), "// premature product test\n");
+    result = await runCli(["preview", "--json"], { cwd: dir });
+    assert.equal(result.code, 1);
+    assert.match(result.json.operator, /tests must wait/i);
+
+    writeFileSync(join(dir, "tests/math.test.mjs"), PROJECT["tests/math.test.mjs"]);
+    result = await runCli(["preview", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr);
+    await runCli(["revise"], { cwd: dir });
+    appendFileSync(join(dir, "tests/math.test.mjs"), "// still premature after revise\n");
+    result = await runCli(["preview", "--json"], { cwd: dir });
+    assert.equal(result.code, 1);
+    assert.match(result.json.operator, /tests must wait/i);
+  } finally {
+    cleanup(dir);
+  }
+
+  const toolingDir = await setup();
+  try {
+    await runCli(["begin", "Tooling preview"], { cwd: toolingDir });
+    await runCli(["brief", "--outcome", "The project tooling reports its status.", "--accept", "Run the tooling check and see success"], { cwd: toolingDir });
+    writeFiles(toolingDir, {
+      "scripts/tool.mjs": "export const status = 'ok';\n",
+      "scripts/tool.test.mjs": "// tooling behavior is the preview\n",
+    });
+    const result = await runCli(["preview", "--json"], { cwd: toolingDir });
+    assert.equal(result.code, 0, result.stderr);
+  } finally {
+    cleanup(toolingDir);
+  }
+});
+
+test("blocking sessions require finalization and current context covering documentable scope", async () => {
+  const dir = await setup();
+  try {
+    await runCli(["config", "set", "rules.requireSession", "block"], { cwd: dir });
+    commitAll(dir, "Require sessions");
+    await runCli(["begin", "Harden lifecycle"], { cwd: dir });
+    await runCli(["brief", "--outcome", "Lifecycle rejects work that skipped review or context.", "--accept", "Run lifecycle and see the guarded result"], { cwd: dir });
+    await runCli(["context", "src/math.mjs"], { cwd: dir });
+    appendFileSync(join(dir, "src/math.mjs"), "export const square = (n) => n * n;\n");
+    git(dir, "add", "src/math.mjs");
+
+    let result = await runCli(["lifecycle", "--json"], { cwd: dir });
+    assert.equal(result.code, 3);
+    assert.ok(result.json.data.blocking.some((finding) => finding.rule === "session-phase"));
+
+    await runCli(["preview"], { cwd: dir });
+    await runCli(["finalize"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    appendFileSync(join(dir, "tests/math.test.mjs"), "// square coverage\n");
+    appendFileSync(join(dir, "README.md"), "- square\n");
+    git(dir, "add", "-A");
+    rmSync(join(dir, ".git", "staff-engineer", "context.json"));
+
+    result = await runCli(["lifecycle", "--json"], { cwd: dir });
+    assert.equal(result.code, 3);
+    assert.ok(result.json.data.blocking.some((finding) => finding.rule === "context-required"));
+
+    await runCli(["context", "src/math.mjs"], { cwd: dir });
+    writeFiles(dir, { "scripts/check.mjs": "export const check = true;\n" });
+    git(dir, "add", "scripts/check.mjs");
+    result = await runCli(["lifecycle", "--json"], { cwd: dir });
+    assert.equal(result.code, 3);
+    assert.ok(result.json.data.blocking.some((finding) => finding.rule === "context-coverage"));
+
+    await runCli(["context", "src/math.mjs", "scripts/check.mjs"], { cwd: dir });
+    result = await runCli(["lifecycle", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, JSON.stringify(result.json?.errors));
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("documentable tooling paths require docs without triggering source-test pairing", async () => {
+  const dir = await setup();
+  try {
+    await runCli(["config", "set", "rules.requireSession", "off"], { cwd: dir });
+    commitAll(dir, "Configure standalone gate");
+    writeFiles(dir, { "scripts/check.mjs": "export const check = true;\n" });
+    git(dir, "add", "scripts/check.mjs");
+    let result = await runCli(["lifecycle", "--json"], { cwd: dir });
+    assert.equal(result.code, 3);
+    const rules = result.json.data.blocking.map((finding) => finding.rule);
+    assert.ok(rules.includes("docs-impact"));
+    assert.ok(!rules.includes("test-coverage"));
+
+    appendFileSync(join(dir, "README.md"), "Tooling check.\n");
+    git(dir, "add", "README.md");
+    result = await runCli(["lifecycle", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, JSON.stringify(result.json?.errors));
   } finally {
     cleanup(dir);
   }

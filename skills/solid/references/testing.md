@@ -22,15 +22,17 @@ Exact critical warnings or compatibility text may be real contracts; incidental 
 and absence of obsolete links usually are not. Negative checks must exercise a
 reachable current state and prove the replacement behavior.
 
-The lifecycle gate blocks two narrow patterns in staged JavaScript/TypeScript tests:
+The lifecycle gate blocks two narrow patterns in JavaScript/TypeScript tests:
 
 - `test-class-equality`: direct positive `expect(...).toHaveAttribute('class', value)`.
 - `test-theme-no-op`: direct positive `expect(...).toHaveClass(/dark|light/)`
   (or the reversed alternation).
 
-The zero-dependency scanner handles nested calls and multiline assertions, skips
-comments and quoted examples, and reports only assertions touching added lines.
-It reads the git index, not unstaged edits. Test paths come from `paths.tests`;
+The zero-dependency scanner handles nested calls and multiline assertions and skips
+comments and quoted examples. The upgrade-safe `rules.testQuality.scope: "changed"`
+default reports only assertions touching added lines; `"all"` scans every test in
+the git index for projects that keep a clean whole-tree baseline. Both modes read
+the git index, not unstaged edits. Test paths come from `paths.tests`;
 generated and toolkit paths are excluded. Existing `rules.disable` and justified
 per-path exceptions apply to both rule IDs. Semantic attribute checks, class-presence
 checks, and negated assertions are not blocked.

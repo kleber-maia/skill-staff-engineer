@@ -88,3 +88,25 @@ test("detects an argument-only edit inside an existing multiline assertion", () 
     cleanup(dir);
   }
 });
+
+test("all scope scans unchanged staged tests while changed scope remains upgrade-safe", () => {
+  const dir = makeTempRepo({
+    files: {
+      "src/view.ts": "export const view = true;\n",
+      "tests/legacy.spec.ts": `${weak}\n`,
+    },
+  });
+  try {
+    writeFiles(dir, { "src/view.ts": "export const view = false;\n" });
+    git(dir, "add", ".");
+    const config = defaultConfig();
+    const parsed = parseUnifiedDiff(stagedDiff(dir));
+    assert.deepEqual(checkTestQuality(dir, config, parsed), []);
+    config.rules.testQuality.scope = "all";
+    assert.deepEqual(checkTestQuality(dir, config, parsed).map(({ rule, file }) => ({ rule, file })), [
+      { rule: "test-theme-no-op", file: "tests/legacy.spec.ts" },
+    ]);
+  } finally {
+    cleanup(dir);
+  }
+});

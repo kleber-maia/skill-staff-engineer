@@ -58,10 +58,16 @@ through the items.
   node .staff-engineer/cli.mjs config set preview.kind web       # web | command | manual
   node .staff-engineer/cli.mjs config set preview.url "<url>"
   node .staff-engineer/cli.mjs config set operator.mode non-technical
+  node .staff-engineer/cli.mjs config set rules.testQuality.scope all
+  node .staff-engineer/cli.mjs config set paths.documentable '["scripts/**","package.json","*.config.*"]'
   ```
 
   Gate names: `install`, `format`, `lint`, `typecheck`, `test`, `e2e`, `build`.
   Setting a gate to `null` means "this project has no such step"; be honest about it.
+- Keep the upgrade-safe `rules.testQuality.scope` default (`changed`) unless the
+  existing test tree is clean and the project wants whole-tree enforcement (`all`).
+  Use `paths.documentable` for tooling, configuration, CI, and skill surfaces that
+  require documentation without being product source.
 - Rerun `doctor` until it reports ok.
 
 ## Explain what happened

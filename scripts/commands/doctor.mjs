@@ -75,7 +75,9 @@ export default async function run({ cwd, flags }) {
       add("preview", "question", "no way to show results recorded");
       questions.push({ key: "preview", question: QUESTIONS.preview, howToRecord: 'config set preview \'{"kind":"web","cmd":"...","url":"http://..."}\'  or  config set preview.instructions "How the operator sees results"' });
     } else add("preview", "ok", `${preview.kind}${preview.url ? ` ${preview.url}` : preview.cmd ? ` ${preview.cmd}` : ""}`);
-    if (!config.paths.source.length) add("paths.source", "warn", "no source globs; every non-test file counts as source");
+    add("test-quality", "ok", `${config.rules.testQuality.scope} scope`);
+    if (!config.paths.source.length) add("paths.source", "warn", "no source globs; every remaining non-test, non-documentable file counts as source");
+    if (config.rules.requireDocsImpact && !config.paths.documentable.length) add("paths.documentable", "warn", "no tooling, configuration, or skill paths require documentation impact");
   }
 
   const skillsManifest = readJson(resolve(cwd, TOOLKIT_DIR, "skills.json"), null);

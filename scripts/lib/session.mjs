@@ -7,7 +7,7 @@ import { baselineUnchanged, captureBaseline, concernFiles } from "./baseline.mjs
 import { head, stateDir } from "./git.mjs";
 import { readJson, writeJson } from "./fs-safe.mjs";
 import { refused } from "./output.mjs";
-import { classify } from "./paths.mjs";
+import { isProductSource } from "./paths.mjs";
 
 export const SESSION_VERSION = 1;
 export const PHASES = Object.freeze({ IMPLEMENTATION: "implementation", AWAITING_FEEDBACK: "awaiting_feedback", FINALIZING: "finalizing" });
@@ -124,7 +124,7 @@ export function requireFinalizing(session) {
 // Tests and verification wait for operator feedback when the concern touches
 // product source. A concern that changes only docs/tooling/tests has nothing to preview.
 export function sessionTouchesSource(session, config, cwd) {
-  return concernFiles(session.baseline, cwd).some((file) => classify(config, file) === "source");
+  return concernFiles(session.baseline, cwd).some((file) => isProductSource(config, file));
 }
 
 export function assertMayRunChecks(session, config, cwd) {

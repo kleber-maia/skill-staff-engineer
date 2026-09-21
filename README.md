@@ -185,8 +185,10 @@ never leaves debug output, never mixes concerns, and always shows its work.
   JavaScript/TypeScript, Python, Go, Rust, Ruby, Java/Kotlin, Swift, PHP, C#, and shell; UI rules for
   browser dialogs, raw colors, arbitrary sizes, and marketing cliches; configurable import boundary
   rules; narrow JS/TS test-quality guards for whole-class comparisons and either-theme
-  assertions; docs and test coverage per batch. Test review also protects unique safety
-  coverage, real state transitions, device-specific behavior, and independent fresh data.
+  assertions, optionally across the whole test tree; docs impact for product source and
+  separately configured tooling, configuration, and skill paths; test coverage per batch. Test
+  review also protects unique safety coverage, real state transitions, device-specific behavior,
+  and independent fresh data.
   Every rule can be disabled or given a justified exception.
 - **A verification wrapper** that runs your project's own commands, stops at the first failure with
   a focused `file:line` report, keeps a timing ledger, and writes a receipt so the full check runs
@@ -237,6 +239,13 @@ Detection fills `config.json` for Node, Python, Go, Rust, Ruby, Java/Kotlin, Swi
 Makefiles, and static sites; anything it cannot infer becomes a plain-language question the agent
 asks you. Session state, receipts, screenshots, and logs live under `.git/staff-engineer/`, never in
 history. Rerunning `install` upgrades only toolkit-owned files; `install --uninstall` removes them.
+
+Compatibility defaults keep upgrades safe: `rules.testQuality.scope` is `changed`, which checks
+only staged assertion changes. Repositories that require a clean whole-test baseline can set it to
+`all`. `paths.documentable` separately names scripts, package/configuration files, CI, and any skills
+whose changes require documentation without treating them as product source or demanding a product
+test. Projects that set `rules.requireSession` to `block` also make finalizing phase and a current,
+complete context packet mandatory at lifecycle time.
 
 For the curious: [docs/lifecycle.md](docs/lifecycle.md) walks through every step and what it
 refuses, [docs/design.md](docs/design.md) explains why, and [docs/faq.md](docs/faq.md) answers the

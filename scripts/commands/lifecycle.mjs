@@ -7,9 +7,9 @@ import { loadExceptions, staleExceptions } from "../lib/exceptions.mjs";
 import { readJson } from "../lib/fs-safe.mjs";
 import { stagedDiff, stagedFiles, stagedNumstat, unstagedFiles } from "../lib/git.mjs";
 import { failed, ok } from "../lib/output.mjs";
-import { classify, isNeverStage, isProtected } from "../lib/paths.mjs";
+import { classify, isDocumentable, isNeverStage, isProductSource, isProtected } from "../lib/paths.mjs";
 import { applyLineRules } from "../lib/rules.mjs";
-import { readSession } from "../lib/session.mjs";
+import { PHASES, readSession, requireOpenSession, STATUSES } from "../lib/session.mjs";
 import { assetPath } from "../lib/toolkit.mjs";
 import { checkBoundaries } from "../lib/boundaries.mjs";
 import { checkTestQuality } from "../lib/test-quality.mjs";
@@ -42,6 +42,8 @@ export function runLifecycle(cwd, config, env = process.env) {
   const exceptions = loadExceptions(cwd, config);
   const staged = stagedFiles(cwd);
   const findings = [];
+  const session = readSession(cwd);
+  const sessionSeverity = config.rules.requireSession === "block" ? "block" : "warn";
 
   if (!staged.length) {
     findings.push({ rule: "nothing-staged", severity: "block", file: "", line: 0, message: "Nothing is staged. Stage the whole concern before running the gate." });
@@ -74,8 +76,18 @@ export function runLifecycle(cwd, config, env = process.env) {
   findings.push(...checkTestQuality(cwd, config, parsed, { exceptions }));
   findings.push(...checkBoundaries(cwd, config, parsed, { exceptions }));
 
-  // Partial staging relative to the session baseline.
-  const session = readSession(cwd);
+  // Session phase and partial staging relative to the session baseline.
+  if (config.rules.requireSession !== "off") {
+    let validated = null;
+    try {
+      validated = requireOpenSession(cwd);
+    } catch (error) {
+      findings.push({ rule: "session-required", severity: sessionSeverity, file: "", line: 0, message: error.message });
+    }
+    if (validated && validated.phase !== PHASES.FINALIZING) {
+      findings.push({ rule: "session-phase", severity: sessionSeverity, file: "", line: 0, message: "Lifecycle waits until the working result was presented and accepted. Finalize the concern first." });
+    }
+  }
   if (session && session.status === "open" && !session.cleared) {
     const baselineFiles = new Set(session.baseline?.files ?? []);
     const pending = unstagedFiles(cwd).filter((file) => !baselineFiles.has(file) && classify(config, file) !== "generated");
@@ -90,8 +102,9 @@ export function runLifecycle(cwd, config, env = process.env) {
 
   // Docs impact and test coverage.
   const kinds = staged.map((file) => classify(config, file));
-  const touchesSource = kinds.includes("source");
-  if (touchesSource && config.rules.requireDocsImpact && !kinds.includes("docs")) {
+  const touchesSource = staged.some((file) => isProductSource(config, file));
+  const touchesDocumentable = staged.some((file) => isDocumentable(config, file));
+  if ((touchesSource || touchesDocumentable) && config.rules.requireDocsImpact && !kinds.includes("docs")) {
     const waiver = validateWaiver(env.STAFF_ENGINEER_DOCS_WAIVER, "STAFF_ENGINEER_DOCS_WAIVER");
     if (!waiver.ok) findings.push({ rule: "docs-impact", severity: "block", file: "", line: 0, message: `Behavior changed without a documentation update in the same batch. Update the docs that describe it, or set STAFF_ENGINEER_DOCS_WAIVER="one-line reason". ${waiver.error ?? ""}`.trim() });
   }
@@ -100,15 +113,25 @@ export function runLifecycle(cwd, config, env = process.env) {
     if (!waiver.ok) findings.push({ rule: "test-coverage", severity: "block", file: "", line: 0, message: `Source changed without a changed or added test in the same batch. Add one, or set STAFF_ENGINEER_TEST_WAIVER="one-line reason". ${waiver.error ?? ""}`.trim() });
   }
 
-  // Task-context packet: stale skills block; scope growth warns.
+  // Task-context packet: required sessions need a current packet that covers the
+  // staged source and documentable surfaces. Advisory sessions keep warnings.
   const packet = readContext(cwd);
+  if (config.rules.requireSession !== "off" && session && !session.cleared && session.status === STATUSES.OPEN) {
+    const packetIsCurrent = packet?.at && (!session.startedAt || packet.at >= session.startedAt);
+    if (!packetIsCurrent) {
+      findings.push({ rule: "context-required", severity: sessionSeverity, file: "", line: 0, message: "Build a current context packet for this concern before lifecycle." });
+    } else {
+      const known = new Set([...(packet.files ?? []), ...(packet.dependencies ?? [])]);
+      const uncovered = staged.filter((file) => (isProductSource(config, file) || isDocumentable(config, file)) && !known.has(file));
+      if (uncovered.length) {
+        findings.push({ rule: "context-coverage", severity: sessionSeverity, file: uncovered.join(", "), line: 0, message: "The staged source or documentable scope grew beyond the context packet. Rerun context for the complete concern." });
+      }
+    }
+  }
   if (packet) {
     for (const skill of staleSkills(cwd, packet)) {
       findings.push({ rule: "stale-skill", severity: "block", file: skill.path, line: 0, message: `The ${skill.name} skill changed after the context packet was built. Re-read it and rerun context.` });
     }
-    const known = new Set([...(packet.files ?? []), ...(packet.dependencies ?? [])]);
-    const grew = staged.filter((file) => classify(config, file) === "source" && !known.has(file));
-    if (grew.length) findings.push({ rule: "scope-grew", severity: "warn", file: grew.join(", "), line: 0, message: "Source files outside the context packet changed. Rerun context so the guidance covers them." });
   }
 
   // Stale exceptions.

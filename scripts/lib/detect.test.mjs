@@ -19,6 +19,8 @@ test("node project with npm lockfile, vitest, tsconfig", () => {
   assert.equal(result.preview.kind, "web");
   assert.equal(result.preview.url, "http://localhost:5173");
   assert.deepEqual(result.paths.source, ["src/**"]);
+  assert.ok(result.paths.documentable.includes("scripts/**"));
+  assert.ok(result.paths.documentable.includes("package.json"));
   assert.equal(result.questions.length, 0);
 });
 

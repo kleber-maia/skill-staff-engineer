@@ -3,7 +3,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
 
-import { GATE_NAMES } from "./config.mjs";
+import { DEFAULT_DOCUMENTABLE_PATHS, GATE_NAMES } from "./config.mjs";
 import { listFiles } from "./fs-safe.mjs";
 
 const QUESTIONS = {
@@ -24,7 +24,7 @@ export function detectStack(root) {
     packageManager: null,
     gates: {},
     preview: null,
-    paths: { source: [] },
+    paths: { source: [], documentable: [...DEFAULT_DOCUMENTABLE_PATHS] },
     questions: [],
     notes: [],
   };

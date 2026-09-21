@@ -29,14 +29,18 @@ export function testQualityFindings(file, source) {
 
 export function checkTestQuality(cwd, config, parsedDiff, { exceptions = [] } = {}) {
   const disabled = new Set(config.rules.disable ?? []);
-  return parsedDiff.flatMap((entry) => {
-    if (entry.binary || !entry.added.length || !/\.[cm]?[jt]sx?$/i.test(entry.file)
-      || !isTestFile(config, entry.file) || isGenerated(config, entry.file) || isToolkitPath(entry.file)) return [];
-    const source = output("git", ["show", `:${entry.file}`], { cwd });
-    return testQualityFindings(entry.file, source).filter((finding) => !disabled.has(finding.rule)
-      && !isExcepted(exceptions, finding.rule, entry.file)
-      && entry.added.some(({ line }) => line >= finding.line && line <= finding.endLine));
-  });
+  const scan = (file, added = null) => {
+    if (!/\.[cm]?[jt]sx?$/i.test(file) || !isTestFile(config, file) || isGenerated(config, file) || isToolkitPath(file)) return [];
+    const source = output("git", ["show", `:${file}`], { cwd });
+    return testQualityFindings(file, source).filter((finding) => !disabled.has(finding.rule)
+      && !isExcepted(exceptions, finding.rule, file)
+      && (!added || added.some(({ line }) => line >= finding.line && line <= finding.endLine)));
+  };
+
+  if (config.rules.testQuality.scope === "all") {
+    return output("git", ["ls-files", "--cached"], { cwd }).split(/\r?\n/).filter(Boolean).flatMap((file) => scan(file));
+  }
+  return parsedDiff.flatMap((entry) => entry.binary || !entry.added.length ? [] : scan(entry.file, entry.added));
 }
 
 function closingParen(tokens, start) {

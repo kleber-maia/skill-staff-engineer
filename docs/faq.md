@@ -12,6 +12,20 @@ nothing applies, and `ship` still requires the lifecycle gate and approval.
 Set `preview.kind` to `command` (a demo command whose output the operator can read) or `manual`
 (explain how the operator sees the result).
 
+**Can test-quality rules cover inherited tests, not only this diff?**
+Yes. Set `rules.testQuality.scope` to `all`. The compatibility default is `changed`, so installing
+the toolkit does not make a legacy repository fail on untouched debt.
+
+**How do tooling or configuration changes require docs without counting as product source?**
+Add their globs to `paths.documentable`. The defaults include common script, package, CI, and
+configuration paths; projects can add their skill directories when those need a separate owner.
+Documentable paths trigger docs impact and context coverage, but not source-test pairing.
+
+**My operator preview address depends on the current machine. Should I save it in config?**
+No. `operator.previewPublicUrl` is for a stable portable address. A machine-derived or
+authenticated preview is project behavior: keep the toolkit's `preview.url` as the internal health
+address and let the project preview integration compute and present the operator address at runtime.
+
 **Can technical users skip the plain-language rules?**
 Set `operator.mode` to `technical`. Messages may include commands and diffs. Every gate still
 applies, and saving still needs an explicit "ship it".

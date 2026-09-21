@@ -7,7 +7,8 @@ not enough. Before changing anything, read `.agents/skills/staff-engineer/SKILL.
 - Agree the outcome with the operator first (`grill-me` skill), record it with `brief`, then run
   `context <planned files>` and read its packet before editing.
 - Build the smallest working first pass, then `preview` and **stop for feedback**. No tests,
-  review, simplification, docs, or verification before the operator accepts the preview.
+  review, simplification, docs, or verification before the operator accepts the preview. Preview
+  refuses empty work and product source mixed with tests on every pre-acceptance round.
 - After clear acceptance: `STAFF_ENGINEER_PREVIEW_APPROVED=1 node .staff-engineer/cli.mjs finalize`,
   then tests, the `simplify` skill, docs, `lifecycle`, and `verify --mode full` once.
 - Ask for approval with the `handoff` skill. Only after "ship it":

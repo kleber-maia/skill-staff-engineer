@@ -11,6 +11,31 @@ export const CONFIG_VERSION = 1;
 export const GATE_NAMES = ["install", "format", "lint", "typecheck", "test", "e2e", "build"];
 export const PREVIEW_KINDS = ["web", "command", "manual"];
 export const OPERATOR_MODES = ["non-technical", "technical"];
+export const TEST_QUALITY_SCOPES = ["changed", "all"];
+export const DEFAULT_TOOLING_PATHS = ["scripts/**", "bin/**", "cmd/**", "tools/**"];
+export const DEFAULT_DOCUMENTABLE_PATHS = [
+  ...DEFAULT_TOOLING_PATHS,
+  ".github/**",
+  "package.json",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+  "bun.lock",
+  "bun.lockb",
+  "pyproject.toml",
+  "requirements*.txt",
+  "go.mod",
+  "go.sum",
+  "Cargo.toml",
+  "Cargo.lock",
+  "Gemfile",
+  "Gemfile.lock",
+  "composer.json",
+  "composer.lock",
+  "Makefile",
+  "makefile",
+  "*.config.*",
+];
 
 export function defaultConfig() {
   return {
@@ -25,10 +50,11 @@ export function defaultConfig() {
       source: [],
       tests: ["**/*.test.*", "**/*.spec.*", "**/*_test.*", "tests/**", "test/**", "__tests__/**", "spec/**"],
       docs: ["**/*.md", "docs/**"],
+      documentable: [...DEFAULT_DOCUMENTABLE_PATHS],
       generated: ["node_modules/**", "dist/**", "build/**", "coverage/**", ".next/**", "target/**", "__pycache__/**", "*.lock", "*-lock.json", "*.lockb"],
       protected: [".env", ".env.*", "**/*.pem", "**/*.key", "**/id_rsa*", "**/*.p12", "**/*.keystore"],
       neverStage: [".env", ".env.*", "**/*.pem", "**/*.key", "*.log", "coverage/**", ".staff-engineer/backups/**"],
-      allowDebug: ["scripts/**", "bin/**", "cmd/**", "tools/**", ".staff-engineer/**"],
+      allowDebug: [...DEFAULT_TOOLING_PATHS, ".staff-engineer/**"],
     },
     rules: {
       maxAddedLinesPerFile: 300,
@@ -37,6 +63,7 @@ export function defaultConfig() {
       maxConcernCategories: 2,
       requireSession: "warn",
       disable: [],
+      testQuality: { scope: "changed" },
       ui: { enabled: "auto" },
       boundaries: [],
       importAliases: { "@/": "src/", "~/": "src/" },
@@ -101,6 +128,7 @@ export function validateConfig(config) {
     if (!Array.isArray(config.paths[key])) errors.push(`paths.${key} must be an array of globs`);
   }
   if (!["warn", "block", "off"].includes(config.rules?.requireSession)) errors.push("rules.requireSession must be warn, block, or off");
+  if (!TEST_QUALITY_SCOPES.includes(config.rules?.testQuality?.scope)) errors.push(`rules.testQuality.scope must be one of ${TEST_QUALITY_SCOPES.join(", ")}`);
   if (!Number.isInteger(config.rules?.maxAddedLinesPerFile) || config.rules.maxAddedLinesPerFile < 1) errors.push("rules.maxAddedLinesPerFile must be a positive integer");
   if (!Number.isInteger(config.rules?.maxConcernCategories) || config.rules.maxConcernCategories < 1) errors.push("rules.maxConcernCategories must be a positive integer");
   if (config.rules?.boundaries !== undefined) errors.push(...validateBoundaryRules(config.rules.boundaries));
