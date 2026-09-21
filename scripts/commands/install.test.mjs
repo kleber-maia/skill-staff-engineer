@@ -116,3 +116,31 @@ function snapshotFiles(dir) {
   }
   return out;
 }
+
+test("installed and upgraded lifecycle blocks weak test assertions from the staged index", async () => {
+  const dir = makeTempRepo({ fixture: "node-npm" });
+  try {
+    await installInto(dir);
+    git(dir, "add", ".");
+    git(dir, "commit", "--quiet", "-m", "install");
+    // Simulate an older installed module, then prove upgrade replaces it.
+    writeFiles(dir, {
+      ".staff-engineer/VERSION": "0.2.0\n",
+      ".staff-engineer/lib/test-quality.mjs": "export const obsolete = true;\n",
+    });
+    await installInto(dir);
+    writeFiles(dir, { "tests/theme.spec.ts": "await expect(page.locator('html')).toHaveClass(/dark|light/);\n" });
+    git(dir, "add", "tests/theme.spec.ts");
+    const { spawnSync } = await import("node:child_process");
+    const blocked = spawnSync(process.execPath, [".staff-engineer/cli.mjs", "lifecycle", "--json"], { cwd: dir, encoding: "utf8" });
+    assert.equal(blocked.status, 3, blocked.stdout + blocked.stderr);
+    const report = JSON.parse(blocked.stdout || blocked.stderr);
+    assert.ok(report.data.blocking.some(({ rule }) => rule === "test-theme-no-op"));
+    writeFiles(dir, { "tests/theme.spec.ts": "await expect(page.locator('html')).toHaveClass(/dark/);\n" });
+    git(dir, "add", "tests/theme.spec.ts");
+    const passed = spawnSync(process.execPath, [".staff-engineer/cli.mjs", "lifecycle", "--json"], { cwd: dir, encoding: "utf8" });
+    assert.equal(passed.status, 0, passed.stdout + passed.stderr);
+  } finally {
+    cleanup(dir);
+  }
+});

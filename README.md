@@ -184,7 +184,10 @@ never leaves debug output, never mixes concerns, and always shows its work.
 - **A staged-diff gate** for debug output, suppressions, loose types, and unfinished markers in
   JavaScript/TypeScript, Python, Go, Rust, Ruby, Java/Kotlin, Swift, PHP, C#, and shell; UI rules for
   browser dialogs, raw colors, arbitrary sizes, and marketing cliches; configurable import boundary
-  rules; docs and test coverage per batch. Every rule can be disabled or given a justified exception.
+  rules; narrow JS/TS test-quality guards for whole-class comparisons and either-theme
+  assertions; docs and test coverage per batch. Test review also protects unique safety
+  coverage, real state transitions, device-specific behavior, and independent fresh data.
+  Every rule can be disabled or given a justified exception.
 - **A verification wrapper** that runs your project's own commands, stops at the first failure with
   a focused `file:line` report, keeps a timing ledger, and writes a receipt so the full check runs
   once per batch.

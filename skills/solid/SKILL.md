@@ -58,8 +58,24 @@ Write tests after the operator accepts the preview, in the same batch as the cod
   for collaborating parts, end-to-end tests for operator-visible contracts.
 - Cover success, meaningful failure, authorization or boundary behavior, and the
   regression this change fixes. Never reduce existing coverage to make a change pass.
-- Use deterministic fixtures and isolated, disposable data. A test that fails alone
-  but passes in the suite has a setup bug; fix the setup, never add retries.
+- Before adding an assertion, name the observable regression it catches. Establish
+  the initial state, perform the action, and require the expected transition: the
+  assertion must fail if the action becomes a no-op.
+- Avoid incidental wording, whole styling/class strings, and absence checks for
+  obsolete routes. Assert current behavior, geometry, accessibility state, or a
+  deliberate semantic class. Critical warnings and declared compatibility text
+  can be valid exact contracts.
+- Before removing or merging tests, inventory unique failure coverage and name its
+  remaining owner. Preserve authorization, workspace isolation, approval, rollback,
+  save-conflict, and production-startup protection. Never add hollow assertions to
+  satisfy the changed-test gate; use a justified waiver when no useful test applies.
+- For web apps, keep complete business journeys in the appropriate primary suite;
+  mobile coverage must retain touch, navigation, viewport fit, menus, representative
+  editing, and leave-and-return location restoration. Trim duplicated business
+  steps only after preserving device-specific failures.
+- Read `references/testing.md` for test-value review and the lifecycle guard's scope.
+- Use deterministic fixtures and isolated, disposable data. Each test file and
+  scenario must provision its own fresh data. A test that fails alone but passes in the suite has a setup bug; fix the setup, never add retries.
 
 ## Final review
 
