@@ -156,6 +156,13 @@
             "type": "string"
           }
         },
+        "documentable": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Paths whose behavior affects setup, commands, configuration, skills, or operations and therefore requires a documentation companion when changed. These paths do not count as product source and do not trigger source-test pairing."
+        },
         "generated": {
           "type": "array",
           "items": {
@@ -205,6 +212,21 @@
             "block",
             "off"
           ]
+        },
+        "testQuality": {
+          "type": "object",
+          "required": [
+            "scope"
+          ],
+          "properties": {
+            "scope": {
+              "enum": [
+                "changed",
+                "all"
+              ],
+              "description": "changed checks weak assertions touched by the staged diff; all scans every staged test file in the repository."
+            }
+          }
         },
         "disable": {
           "type": "array",

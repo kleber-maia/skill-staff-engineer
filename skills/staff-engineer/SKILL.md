@@ -52,7 +52,9 @@ exist. Everything is invoked from the project root as
 5. Before editing, run `node .staff-engineer/cli.mjs context <planned files>` and read
    its packet: the skills for this change, the docs and tests that describe the
    files, and the local modules they import. Rerun it if the scope or the imports
-   grow; the lifecycle gate refuses when a listed skill changed after the packet.
+   grow. Blocking-session projects refuse lifecycle when the packet is missing,
+   predates the concern, omits staged source/documentable paths, or names a skill
+   that changed afterwards.
 6. For large work (more than two areas, new data shapes, or more than a day), write
    the spec and plan with `spec-and-plan` and get agreement before building.
 
@@ -63,6 +65,8 @@ exist. Everything is invoked from the project root as
 3. Run `node .staff-engineer/cli.mjs preview`. It marks the result as presented and
    reads the acceptance checks back. Share the preview link (or how to see it) and
    the acceptance checks in plain language. Stop and wait.
+   The command refuses an empty concern and refuses product source mixed with tests
+   on every pre-acceptance round; tooling/test-only concerns remain valid.
 4. For change requests: `node .staff-engineer/cli.mjs revise`, update, run
    `preview` again, stop again. Keep this loop quick.
 5. Clear acceptance ("looks good", "that works") unlocks finishing work. Record it:
@@ -100,6 +104,8 @@ exist. Everything is invoked from the project root as
    needed (`STAFF_ENGINEER_DOCS_WAIVER="..."` only with a real reason).
 3. Stage the entire concern. Nothing partial, nothing unrelated.
 4. Run `node .staff-engineer/cli.mjs lifecycle` and fix every finding.
+   When `rules.requireSession` is `block`, lifecycle also requires finalizing phase
+   and current context coverage for source and `paths.documentable` surfaces.
 5. Run `node .staff-engineer/cli.mjs verify --mode full` once. It writes the receipt
    for the staged code.
 6. Run `node .staff-engineer/cli.mjs handoff`, finish the draft with the `handoff`

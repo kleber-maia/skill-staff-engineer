@@ -39,6 +39,7 @@ test("context packet lists skills, docs, tests, and dependencies; stale skills b
 
     await runCli(["begin", "Invoice totals"], { cwd: dir });
     await runCli(["brief", "--outcome", "Invoices show a correct total.", "--accept", "Open an invoice and see the total"], { cwd: dir });
+    await runCli(["context", "src/billing/invoice.mjs", "src/billing/Invoice.tsx"], { cwd: dir });
     appendFileSync(join(dir, "src/billing/invoice.mjs"), "export const total = 2;\n");
     writeFiles(dir, { "src/other/thing.mjs": "export const thing = 1;\n" });
     await runCli(["preview"], { cwd: dir });
@@ -49,7 +50,7 @@ test("context packet lists skills, docs, tests, and dependencies; stale skills b
 
     result = await runCli(["lifecycle", "--json"], { cwd: dir });
     assert.equal(result.code, 0, JSON.stringify(result.json?.errors));
-    assert.ok(result.json.data.warnings.some((finding) => finding.rule === "scope-grew"), "file outside the packet warns");
+    assert.ok(result.json.data.warnings.some((finding) => finding.rule === "context-coverage"), "file outside the packet warns");
 
     appendFileSync(join(dir, ".agents/skills/solid/SKILL.md"), "\nA new rule.\n");
     result = await runCli(["lifecycle", "--json"], { cwd: dir });

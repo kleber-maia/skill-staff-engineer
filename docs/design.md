@@ -15,6 +15,9 @@
    broken gate must never let a batch through.
 7. **Vendored, versioned, upgradeable.** The CLI is copied into the project so every harness and
    teammate runs the same gates; `install` upgrades only toolkit-owned files.
+8. **Separate behavior surfaces from product source.** `paths.documentable` makes scripts,
+   configuration, CI, and skills require a documentation companion without also triggering the
+   product-source test-pairing rule.
 
 ## Why Node
 
@@ -36,6 +39,8 @@ stamped with `.staff-engineer-owned` are simple and upgrade cleanly.
 Preview screenshots use the project's own Playwright install when present and are skipped
 otherwise. UI rules apply only to user-facing file types. Boundary rules apply only when the
 project configures them, and only to newly added imports, so legacy debt never blocks a batch.
+Test-quality scanning defaults to changed assertions for upgrade compatibility; projects with a
+clean baseline can opt into `rules.testQuality.scope: "all"` for whole-tree enforcement.
 
 ## Non-goals (for now)
 

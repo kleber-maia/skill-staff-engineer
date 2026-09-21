@@ -5,9 +5,21 @@ import { join } from "node:path";
 
 import { listFiles } from "../lib/fs-safe.mjs";
 import { cleanup, git, installInto, makeTempDir, makeTempRepo, runCli, writeFiles } from "../lib/test-helpers.mjs";
+import { configFromDetection } from "./install.mjs";
 
 const USER_AGENTS = "# My project\n\nMy own instructions stay here.\n";
 const USER_IGNORE = "node_modules/\ndist/\n";
+
+test("legacy detection results inherit documentable path defaults", () => {
+  const config = configFromDetection({
+    languages: ["javascript"],
+    packageManager: "npm",
+    gates: {},
+    paths: { source: ["src/**"] },
+  }, "0.2.2");
+  assert.deepEqual(config.paths.source, ["src/**"]);
+  assert.ok(config.paths.documentable.includes("scripts/**"));
+});
 
 test("install is idempotent and preserves user text outside managed blocks", async () => {
   const dir = makeTempRepo({ fixture: "node-npm", files: { "AGENTS.md": USER_AGENTS, ".gitignore": USER_IGNORE } });
@@ -140,6 +152,29 @@ test("installed and upgraded lifecycle blocks weak test assertions from the stag
     git(dir, "add", "tests/theme.spec.ts");
     const passed = spawnSync(process.execPath, [".staff-engineer/cli.mjs", "lifecycle", "--json"], { cwd: dir, encoding: "utf8" });
     assert.equal(passed.status, 0, passed.stdout + passed.stderr);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("installed lifecycle can enforce the whole-test quality baseline", async () => {
+  const dir = makeTempRepo({ fixture: "node-npm" });
+  try {
+    writeFiles(dir, { "tests/legacy-theme.spec.ts": "await expect(page.locator('html')).toHaveClass(/dark|light/);\n" });
+    git(dir, "add", ".");
+    git(dir, "commit", "--quiet", "-m", "legacy test debt");
+    await installInto(dir);
+    await runCli(["config", "set", "rules.testQuality.scope", "all"], { cwd: dir });
+    git(dir, "add", ".");
+    git(dir, "commit", "--quiet", "-m", "install strict toolkit");
+
+    writeFiles(dir, { "README.md": "# Updated docs\n" });
+    git(dir, "add", "README.md");
+    const { spawnSync } = await import("node:child_process");
+    const blocked = spawnSync(process.execPath, [".staff-engineer/cli.mjs", "lifecycle", "--json"], { cwd: dir, encoding: "utf8" });
+    assert.equal(blocked.status, 3, blocked.stdout + blocked.stderr);
+    const report = JSON.parse(blocked.stdout || blocked.stderr);
+    assert.ok(report.data.blocking.some(({ rule, file }) => rule === "test-theme-no-op" && file === "tests/legacy-theme.spec.ts"));
   } finally {
     cleanup(dir);
   }

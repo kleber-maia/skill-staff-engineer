@@ -14,6 +14,14 @@ export function isDocsFile(config, file) {
   return matchesAny(file, config.paths.docs);
 }
 
+export function isDocumentable(config, file) {
+  return matchesAny(file, config.paths.documentable ?? []);
+}
+
+export function isProductSource(config, file) {
+  return classify(config, file) === "source";
+}
+
 export function isGenerated(config, file) {
   return matchesAny(file, config.paths.generated);
 }
@@ -32,6 +40,9 @@ export function classify(config, file) {
   if (isTestFile(config, file)) return "tests";
   if (isDocsFile(config, file)) return "docs";
   if (isGenerated(config, file)) return "generated";
+  // Documentable operational surfaces are deliberately not product source,
+  // even when a broad source glob overlaps them.
+  if (isDocumentable(config, file)) return "other";
   if (config.paths.source.length) return matchesAny(file, config.paths.source) ? "source" : "other";
   return "source";
 }

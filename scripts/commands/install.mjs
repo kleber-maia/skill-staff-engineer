@@ -233,7 +233,8 @@ export function configFromDetection(detected, version) {
   config.packageManager = detected.packageManager;
   config.gates = detected.gates;
   config.preview = detected.preview ?? { kind: "manual", instructions: "" };
-  if (detected.paths.source.length) config.paths.source = detected.paths.source;
+  if (detected.paths?.source?.length) config.paths.source = detected.paths.source;
+  if (detected.paths?.documentable?.length) config.paths.documentable = detected.paths.documentable;
   const { $schema, ...rest } = config;
   return { $schema, ...rest };
 }
