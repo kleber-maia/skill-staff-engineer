@@ -64,7 +64,7 @@ reminders.
 | Status reports are full of git and terminal jargon | Every operator-facing message is plain language: what changed, what to look at, what was checked, what was left out |
 | Praise for a screen is treated as a green light | Acceptance of a preview and approval to save are two separate, explicit steps |
 | Rules live in a prompt and decay | Rules live in scripts and hooks that refuse out-of-order steps, on every task, forever |
-| Setup is per project and per agent | One install: skills for every agent, a Claude Code plugin, and a vendored CLI that upgrades in place |
+| Setup is per project and per agent | One install: skills for every agent, a Claude Code plugin, and a vendored CLI that checks upstream before every new concern |
 
 ## Right things, right order
 
@@ -145,10 +145,13 @@ You reply "ship it". One commit lands, carrying the agreed outcome in its traile
 
 Every arrow is enforced by a script, not just described in a prompt:
 
-- **Agree.** `begin` opens exactly one work session and fingerprints anything already pending so it
-  cannot be swept in. The `grill-me` skill runs the interview. `brief` records the outcome and the
-  acceptance checks you will perform. `context` gathers the skills, docs, tests, and dependencies
-  relevant to the planned files.
+- **Agree.** As its first action, `begin` checks the recorded upstream repository. If a newer
+  toolkit is found, it upgrades the toolkit but opens no work session, so that upgrade can be saved
+  separately and the concern restarted under the new workflow. A failed lookup also stops before a
+  session. When already current, `begin` opens exactly one work session and fingerprints anything
+  already pending so it cannot be swept in. The `grill-me` skill runs the interview. `brief`
+  records the outcome and the acceptance checks you will perform. `context` gathers the skills,
+  docs, tests, and dependencies relevant to the planned files.
 - **Build.** The `solid` skill governs the code: design, code, and test rules, with reference notes
   on SOLID principles, architecture, clean code, code smells, complexity, design patterns, object
   design, and testing. `preview` presents the result and reads your checks back. Until you accept,
@@ -190,6 +193,9 @@ never leaves debug output, never mixes concerns, and always shows its work.
   review also protects unique safety coverage, real state transitions, device-specific behavior,
   and independent fresh data.
   Every rule can be disabled or given a justified exception.
+- **A begin-time upstream guard** that uses the repository URL recorded at installation (with a
+  canonical fallback), installs a newer toolkit before any session exists, and requires a restart.
+  It fails closed when upstream cannot be checked and never runs during the middle or end phases.
 - **A verification wrapper** that runs your project's own commands, stops at the first failure with
   a focused `file:line` report, keeps a timing ledger, and writes a receipt so the full check runs
   once per batch.

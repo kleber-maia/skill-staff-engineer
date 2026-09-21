@@ -41,12 +41,17 @@ exist. Everything is invoked from the project root as
 
 ## Start one concern
 
-1. If unsure the toolkit is healthy, run `node .staff-engineer/cli.mjs doctor`
-   and fix what it reports before doing anything else.
-2. Inspect read-only: find the files, surfaces, and tests likely to change. Do not
+1. Before inspecting the project, interviewing, or doing any work, run
+   `node .staff-engineer/cli.mjs begin "<short concern>"`. `begin` first checks the
+   recorded upstream repository and installs the newest toolkit version. If it
+   installs an update, it deliberately opens no session: keep and save that toolkit
+   upgrade as a separate change, then restart the concern so the refreshed code runs
+   from the beginning. If the upstream check fails, stop; a session is not opened.
+   Never defer this check or repeat it in the middle or at the end of a concern.
+2. If unsure the toolkit is healthy, run `node .staff-engineer/cli.mjs doctor`
+   after `begin` succeeds and fix what it reports before continuing.
+3. Inspect read-only: find the files, surfaces, and tests likely to change. Do not
    edit yet.
-3. Open exactly one session: `node .staff-engineer/cli.mjs begin "<short concern>"`.
-   If `status` shows a session already open, finish or abort it first.
 4. Run `grill-me` unless the request is trivially clear, then record the brief:
    `node .staff-engineer/cli.mjs brief --outcome "..." --accept "..." [--accept "..."] [--non-goal "..."] [--surface "..."]`.
 5. Before editing, run `node .staff-engineer/cli.mjs context <planned files>` and read

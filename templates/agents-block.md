@@ -3,7 +3,10 @@
 This project uses the **staff-engineer** toolkit. Scripts enforce the agreement; prose alone is
 not enough. Before changing anything, read `.agents/skills/staff-engineer/SKILL.md`.
 
-- Work on **one concern at a time**: `node .staff-engineer/cli.mjs begin "Short concern"`.
+- The **first workflow command** for every new concern is
+  `node .staff-engineer/cli.mjs begin "Short concern"`. It checks upstream before opening a
+  session. If it updates the toolkit, save that upgrade separately and restart; never update in
+  the middle or at the end of a concern.
 - Agree the outcome with the operator first (`grill-me` skill), record it with `brief`, then run
   `context <planned files>` and read its packet before editing.
 - Build the smallest working first pass, then `preview` and **stop for feedback**. No tests,

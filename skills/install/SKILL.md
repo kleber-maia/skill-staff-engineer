@@ -84,8 +84,16 @@ Do not list file paths or commands to a non-technical operator.
 
 ## Upgrade
 
-Rerun the install command for your path. Only toolkit-owned files change; config
-values and the exceptions file are preserved. Run `doctor` afterwards.
+Every new concern starts with `begin`, which checks the recorded upstream repository
+before it opens a work session. When upstream is newer, it upgrades only toolkit-owned
+files, preserves config values and exceptions, and refuses to open the concern. Save
+that upgrade as its own change, then restart the concern. A failed upstream check also
+opens no session, so fix connectivity or use `update --from <path-or-url>` and retry.
+
+For a manual upgrade, run `node .staff-engineer/cli.mjs update --json`. It prefers the
+recorded repository URL over the original local checkout, which may be stale. An
+explicit `--from <path-or-url>` still overrides the recorded source. Run `doctor`
+afterwards.
 
 ## Existing skills with the same names
 

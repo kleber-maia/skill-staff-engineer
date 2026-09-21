@@ -3,7 +3,8 @@
 import { parseArgs } from "./lib/args.mjs";
 import { isRepo, repoRoot } from "./lib/git.mjs";
 import { EXIT, fromError, render } from "./lib/output.mjs";
-import { pathToFileURL } from "node:url";
+import { realpathSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { toolkitVersion } from "./lib/toolkit.mjs";
 
@@ -30,7 +31,7 @@ export const COMMANDS = {
 
 const BOOLEANS = ["json", "dry-run", "yes", "reconfigure", "replace-existing-skills", "with-claude-hooks", "init-git", "uninstall", "push", "sync-only", "discard-confirmed", "which", "force"];
 
-export async function main(argv = process.argv.slice(2), { cwd = process.cwd(), env = process.env, stdout = process.stdout, stderr = process.stderr } = {}) {
+export async function main(argv = process.argv.slice(2), { cwd = process.cwd(), env = process.env, stdout = process.stdout, stderr = process.stderr, services = {} } = {}) {
   const [name, ...rest] = argv;
   const json = rest.includes("--json");
 
@@ -52,7 +53,7 @@ export async function main(argv = process.argv.slice(2), { cwd = process.cwd(), 
     const { flags, positional } = parseArgs(rest, { multi: spec.multi ?? [], booleans: BOOLEANS });
     const module = await import(spec.module);
     const root = name === "install" || name === "hook" ? cwd : isRepo(cwd) ? repoRoot(cwd) : cwd;
-    const result = await module.default({ cwd: root, invokedFrom: cwd, argv: rest, flags, positional, env, stdout, stderr });
+    const result = await module.default({ cwd: root, invokedFrom: cwd, argv: rest, flags, positional, env, stdout, stderr, services });
     if (name !== "hook") render(result, { json, stream: stdout, errStream: stderr });
     return result.code ?? EXIT.OK;
   } catch (error) {
@@ -74,7 +75,7 @@ Setup
   update [--from <path|git-url>]      Upgrade the vendored toolkit
 
 Lifecycle (one concern at a time)
-  begin "<short concern>"             Open exactly one work session
+  begin "<short concern>"             Check upstream, then open exactly one work session
   context <planned files...>          Build the task-context packet (skills, docs, tests, dependencies)
   brief --outcome "..." --accept "..." [--accept "..."] [--non-goal "..."] [--surface "..."]
   preview                             Present the working result; reads the acceptance checks back
@@ -93,8 +94,16 @@ Every command accepts --json for a machine-readable result.
 `;
 }
 
-const isDirectRun = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isDirectRun = Boolean(process.argv[1]) && sameFile(import.meta.url, process.argv[1]);
 if (isDirectRun) {
   const code = await main();
   process.exitCode = code;
+}
+
+function sameFile(moduleUrl, argvPath) {
+  try {
+    return realpathSync(fileURLToPath(moduleUrl)) === realpathSync(argvPath);
+  } catch {
+    return moduleUrl === pathToFileURL(argvPath).href;
+  }
 }
