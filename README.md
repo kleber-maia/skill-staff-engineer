@@ -156,7 +156,7 @@ Every arrow is enforced by a script, not just described in a prompt:
 - **Finish.** Tests, then the `simplify` skill (four lenses: reuse, quality, efficiency, altitude,
   every finding with `file:line` evidence and a SAFE/CAREFUL/RISKY tier), then docs. The
   `lifecycle` gate inspects the staged diff. `verify` runs your project's own format, lint,
-  typecheck, test, build, and end-to-end commands and writes a receipt for that exact code.
+  typecheck, test, build, and end-to-end commands and writes a receipt for that exact verified batch.
 - **Save.** `handoff` prints the approval request. `ship` refuses without your "ship it", without a
   passing gate, without a matching receipt, or with too many unrelated areas in one batch.
 

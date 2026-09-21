@@ -47,7 +47,7 @@ export default async function run({ cwd, positional, flags, env = process.env })
   if (sessionTouchesSource(session, config, cwd) || hasConfiguredGates(config)) {
     if (!receiptMatches(receipt, cwd, config, "staged")) {
       throw refused("The staged code has not passed the full check in its current form.", {
-        agent: `Run ${CLI} verify --mode full against this exact staged batch, then ship again. Docs-only edits after a passing full check do not require a rerun.`,
+        agent: `Run ${CLI} verify --mode full against this exact staged batch, then ship again. Prose-only edits after a passing full check do not require a rerun.`,
       });
     }
   }

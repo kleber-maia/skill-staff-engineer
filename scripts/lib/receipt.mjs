@@ -1,12 +1,13 @@
-// A verification receipt fingerprints the code that the full check exercised.
-// Docs and toolkit edits afterwards do not invalidate it; code edits do.
+// A verification receipt fingerprints the batch that the full check exercised.
+// Prose edits afterwards do not invalidate it; executable, rule, dependency, and
+// configuration edits do, including vendored toolkit runtime/configuration files.
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { dirtyFiles, head, stagedBlobHash, stagedFiles, stateDir, workingTreeHash } from "./git.mjs";
 import { readJson, writeJson } from "./fs-safe.mjs";
-import { classify } from "./paths.mjs";
+import { isVerificationDocumentation } from "./paths.mjs";
 
 export const RECEIPT_VERSION = 1;
 
@@ -25,18 +26,16 @@ export function writeReceipt(cwd, receipt) {
 }
 
 function countsForReceipt(config, file) {
-  const kind = classify(config, file);
-  return kind !== "docs" && kind !== "toolkit";
+  return !isVerificationDocumentation(config, file);
 }
 
-// "working": fingerprint dirty code files as they are on disk (verification time).
-// "staged": fingerprint staged code files from the index (ship time).
+// "working": fingerprint dirty files as they are on disk (verification time).
+// "staged": fingerprint staged files from the index (ship time).
 export function codeTreeFingerprint(cwd, config, mode = "working") {
   const files = (mode === "staged" ? stagedFiles(cwd) : dirtyFiles(cwd)).filter((file) => countsForReceipt(config, file));
   const entries = [];
   for (const file of files.sort()) {
-    const hash = mode === "staged" ? stagedBlobHash(file, cwd) : workingTreeHash(file, cwd);
-    if (!hash || hash === "deleted") continue;
+    const hash = (mode === "staged" ? stagedBlobHash(file, cwd) : workingTreeHash(file, cwd)) || "deleted";
     entries.push(`${file} ${hash}`);
   }
   return { files: entries.map((entry) => entry.split(" ")[0]), digest: createHash("sha256").update(entries.join("\n")).digest("hex") };

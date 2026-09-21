@@ -91,6 +91,15 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     assert.match(result.json.operator, /automated tests/);
     assert.equal(result.json.data.receiptCurrent, true);
 
+    // Verification-affecting toolkit configuration invalidates ship until restored.
+    const toolkitConfig = readFileSync(join(dir, ".staff-engineer/config.json"), "utf8");
+    writeFileSync(join(dir, ".staff-engineer/config.json"), `${toolkitConfig}\n`);
+    git(dir, "add", ".staff-engineer/config.json");
+    result = await runCli(["ship", "Add multiply to the demo", "--json"], { cwd: dir, env: { STAFF_ENGINEER_CHANGE_APPROVED: "1" } });
+    assert.equal(result.code, 1, "ship rejects toolkit configuration changed after verification");
+    writeFileSync(join(dir, ".staff-engineer/config.json"), toolkitConfig);
+    git(dir, "add", ".staff-engineer/config.json");
+
     // A docs-only edit after the full check keeps the receipt valid.
     appendFileSync(join(dir, "README.md"), "- docs tweak\n");
     git(dir, "add", "-A");

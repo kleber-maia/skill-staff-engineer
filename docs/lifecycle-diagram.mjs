@@ -22,7 +22,7 @@ const STAGES = [
     { id: "tests", title: "tests" },
     { id: "simplify", title: "simplify", sub: "four-lens cleanup review" },
     { id: "docs", title: "docs" },
-    { id: "gate", title: "lifecycle gate + verify", sub: "receipt for this exact code" },
+    { id: "gate", title: "lifecycle gate + verify", sub: "receipt for verified batch" },
   ] },
   { title: "Save", nodes: [
     { id: "handoff", title: "handoff", sub: "plain-language approval request" },

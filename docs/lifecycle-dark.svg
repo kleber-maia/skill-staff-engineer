@@ -105,7 +105,7 @@
   <text x="190" y="355" font-size="12">SOLID; no tests yet</text>
   <text x="190" y="433" font-size="12">show the working result</text>
   <text x="190" y="705" font-size="12">four-lens cleanup review</text>
-  <text x="190" y="861" font-size="12">receipt for this exact code</text>
+  <text x="190" y="861" font-size="12">receipt for verified batch</text>
   <text x="190" y="977" font-size="12">plain-language approval request</text>
   <text x="190" y="1133" font-size="12">one guarded commit</text>
 </g>

@@ -16,7 +16,7 @@ test("legacy detection results inherit documentable path defaults", () => {
     packageManager: "npm",
     gates: {},
     paths: { source: ["src/**"] },
-  }, "0.2.2");
+  }, "legacy-version");
   assert.deepEqual(config.paths.source, ["src/**"]);
   assert.ok(config.paths.documentable.includes("scripts/**"));
 });
