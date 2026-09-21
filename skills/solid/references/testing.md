@@ -1,5 +1,45 @@
 # Testing Strategy
 
+## Test-value review and automated guardrails
+
+For each changed test, name the observable failure it protects. Replace the action
+mentally with a no-op: an assertion accepting either the initial or final state
+cannot prove the transition. For example, capture the initial theme, click once,
+and require the opposite theme rather than accepting either light or dark.
+
+Before merging or deleting scenarios, inventory unique coverage and identify where
+it remains. Repeated setup is not evidence that authorization, workspace isolation,
+approval, rollback, save conflicts, or production startup checks are redundant.
+Use fresh disposable data and run affected test files independently, as well as in
+their suite. Do not rely on records created by earlier files or conceal setup bugs
+with retries.
+
+For browser suites, share setup without repeating exhaustive desktop business flows
+on every device. Retain mobile-specific touch interactions, drawer/menu navigation,
+screen fit, representative editing, blocked controls, and the full leave-and-return
+flow with location restored. Measure layout geometry rather than exact style strings.
+Exact critical warnings or compatibility text may be real contracts; incidental prose
+and absence of obsolete links usually are not. Negative checks must exercise a
+reachable current state and prove the replacement behavior.
+
+The lifecycle gate blocks two narrow patterns in staged JavaScript/TypeScript tests:
+
+- `test-class-equality`: direct positive `expect(...).toHaveAttribute('class', value)`.
+- `test-theme-no-op`: direct positive `expect(...).toHaveClass(/dark|light/)`
+  (or the reversed alternation).
+
+The zero-dependency scanner handles nested calls and multiline assertions, skips
+comments and quoted examples, and reports only assertions touching added lines.
+It reads the git index, not unstaged edits. Test paths come from `paths.tests`;
+generated and toolkit paths are excluded. Existing `rules.disable` and justified
+per-path exceptions apply to both rule IDs. Semantic attribute checks, class-presence
+checks, and negated assertions are not blocked.
+
+This is a lexical guard, not a full JS/TS parser: aliases, custom matchers, template
+interpolation, computed access, and other regex forms require review. Passing it
+establishes neither meaningful coverage nor file independence. Other languages use
+the same review principles without these matcher-specific automated checks.
+
 ## The Testing Pyramid
 
 ```

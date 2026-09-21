@@ -12,6 +12,7 @@ import { applyLineRules } from "../lib/rules.mjs";
 import { readSession } from "../lib/session.mjs";
 import { assetPath } from "../lib/toolkit.mjs";
 import { checkBoundaries } from "../lib/boundaries.mjs";
+import { checkTestQuality } from "../lib/test-quality.mjs";
 import { applyUiRules } from "../lib/ui-rules.mjs";
 import { validateWaiver } from "../lib/waivers.mjs";
 import { readContext, staleSkills } from "./context.mjs";
@@ -70,6 +71,7 @@ export function runLifecycle(cwd, config, env = process.env) {
   const parsed = parseUnifiedDiff(stagedDiff(cwd));
   findings.push(...applyLineRules(config, parsed, { exceptions }));
   findings.push(...applyUiRules(config, parsed, { exceptions }));
+  findings.push(...checkTestQuality(cwd, config, parsed, { exceptions }));
   findings.push(...checkBoundaries(cwd, config, parsed, { exceptions }));
 
   // Partial staging relative to the session baseline.

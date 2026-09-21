@@ -12,6 +12,8 @@ not enough. Before changing anything, read `.agents/skills/staff-engineer/SKILL.
   then tests, the `simplify` skill, docs, `lifecycle`, and `verify --mode full` once.
 - Ask for approval with the `handoff` skill. Only after "ship it":
   `STAFF_ENGINEER_CHANGE_APPROVED=1 node .staff-engineer/cli.mjs ship "Imperative message"`.
+- Test value is a contract: name the failure, prove state transitions, and inventory unique
+  coverage before removing tests. Follow the `solid` skill; never pad tests to satisfy a gate.
 - Never bypass a failed gate. Never stage secrets, environment files, logs, or generated output.
 - Speak to the operator in plain language; see the `handoff` and `data-safety` skills.
 

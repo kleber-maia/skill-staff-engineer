@@ -6,6 +6,7 @@ A concern is done only when every line below is true.
 - [ ] The operator saw a working preview and clearly accepted it.
 - [ ] Every acceptance check from the brief passes on the preview.
 - [ ] Changed behavior has a changed or added automated test in the same batch (or a recorded waiver).
+- [ ] Changed tests protect named failures, prove action effects, and pass with fresh data independently; retired coverage has a remaining owner or a documented reason.
 - [ ] The `simplify` review ran; SAFE and CAREFUL findings are applied, RISKY ones reported.
 - [ ] Documentation that describes the changed behavior is updated in the same batch.
 - [ ] No debug output, suppressions, weakened types, or unfinished markers remain.
