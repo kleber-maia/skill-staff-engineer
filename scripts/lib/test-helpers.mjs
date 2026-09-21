@@ -51,11 +51,11 @@ export function cleanup(dir) {
 
 // Runs the CLI in-process. Returns { code, stdout, stderr, json } where json is the
 // parsed result when --json was passed.
-export async function runCli(args, { cwd, env = {} } = {}) {
+export async function runCli(args, { cwd, env = {}, services = { updateSource: REPO_ROOT } } = {}) {
   const { main } = await import("../cli.mjs");
   const out = collector();
   const err = collector();
-  const code = await main(args, { cwd, env: { ...process.env, ...env }, stdout: out.stream, stderr: err.stream });
+  const code = await main(args, { cwd, env: { ...process.env, ...env }, stdout: out.stream, stderr: err.stream, services });
   const stdout = out.text();
   const stderr = err.text();
   let json = null;

@@ -5,7 +5,7 @@ Every command below is `node .staff-engineer/cli.mjs <command>`. The state machi
 
 | Step | Phase after | What the scripts guarantee |
 |---|---|---|
-| `begin "<concern>"` | `implementation` | One open session at a time. Files already dirty are fingerprinted; changing or staging them later is refused. |
+| `begin "<concern>"` | `implementation` | Before opening anything, checks the recorded upstream repository. A newer toolkit is installed as a separate change and the concern is refused until restart; a lookup failure also opens no session. When current, one session opens and already-dirty files are fingerprinted. |
 | `brief --outcome --accept ...` | `implementation` | Outcome and at least one acceptance check exist before preview or finish. |
 | `context <files>` | unchanged | Packet of skills, related docs and tests, and imported modules; digests recorded. With blocking sessions, lifecycle refuses a missing, pre-session, or incomplete packet. Listed-skill drift always blocks. |
 | `preview` | `awaiting_feedback` | Refuses an empty concern. Before acceptance, product source and tests cannot be mixed on any review round; tooling/test-only concerns remain allowed. Web previews must respond; command previews must exit 0. Acceptance checks are read back to the operator. |

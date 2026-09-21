@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { appendFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { cleanup, commitAll, git, installInto, makeTempRepo, runCli, writeFiles } from "../lib/test-helpers.mjs";
+import { cleanup, commitAll, git, installInto, makeTempRepo, REPO_ROOT, runCli, writeFiles } from "../lib/test-helpers.mjs";
 
 async function setup() {
   const dir = makeTempRepo({
@@ -64,10 +64,10 @@ test("context packet lists skills, docs, tests, and dependencies; stale skills b
 test("update reinstalls from a local toolkit path", async () => {
   const dir = await setup();
   try {
-    const result = await runCli(["update", "--json"], { cwd: dir });
+    const result = await runCli(["update", "--from", REPO_ROOT, "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr || result.stdout);
     assert.match(result.json.operator, /already up to date|Updated/);
-    const dry = await runCli(["update", "--dry-run", "--json"], { cwd: dir });
+    const dry = await runCli(["update", "--from", REPO_ROOT, "--dry-run", "--json"], { cwd: dir });
     assert.equal(dry.code, 0);
   } finally {
     cleanup(dir);

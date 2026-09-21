@@ -14,7 +14,10 @@
 6. **Fail open in hooks, fail closed in commands.** A broken hook must never brick the agent; a
    broken gate must never let a batch through.
 7. **Vendored, versioned, upgradeable.** The CLI is copied into the project so every harness and
-   teammate runs the same gates; `install` upgrades only toolkit-owned files.
+   teammate runs the same gates. As the first action of `begin`, it checks the recorded upstream
+   repository (not a potentially stale source checkout). `install` upgrades only toolkit-owned
+   files. A changed upgrade or failed lookup opens no session; the upgrade stays a separate change
+   and the concern restarts under the refreshed code.
 8. **Separate behavior surfaces from product source.** `paths.documentable` makes scripts,
    configuration, CI, and skills require a documentation companion without also triggering the
    product-source test-pairing rule.
