@@ -88,8 +88,10 @@ exist. Everything is invoked from the project root as
   ceiling. See `data-safety`.
 - Never run mutating tests against real data. Never delete data without a dry run
   and explicit confirmation.
-- Run the full check once on the final staged batch. Rerun it only when code,
-  tests, configuration, or dependencies changed afterwards.
+- Run the full check once on the final staged batch. Rerun it when executable code,
+  tests, rules, configuration, dependencies, or toolkit runtime changed afterwards.
+  Prose-only documentation, managed agent instructions, and skill prose keep the
+  receipt valid.
 - A test that fails alone but passes in the suite has a setup or ordering bug, not
   flakiness. Fix the setup. Never add retries, sleeps, or skips to make it pass.
 - Fix failed gates. Never bypass, weaken, or comment them out.

@@ -78,7 +78,7 @@ export default async function run({ cwd, flags, env = process.env }) {
     const ran = results.filter((entry) => entry.status === "passed").length;
     return ok({
       operator: `All checks passed (${ran} check${ran === 1 ? "" : "s"}, ${formatDuration(durationMs)}).`,
-      agent: [summary, ...slow.map((warning) => `Slower than usual: ${warning}`), estimateSentence(typical, mode) ?? "", mode === "full" ? "Receipt written; docs edits keep it valid, code edits require one more full check." : "Fast check only; run --mode full once on the final staged batch."].filter(Boolean).join("\n"),
+      agent: [summary, ...slow.map((warning) => `Slower than usual: ${warning}`), estimateSentence(typical, mode) ?? "", mode === "full" ? "Receipt written; prose-only edits keep it valid, while executable, rule, dependency, or configuration edits require one more full check." : "Fast check only; run --mode full once on the final staged batch."].filter(Boolean).join("\n"),
       data: receipt,
     });
   } finally {

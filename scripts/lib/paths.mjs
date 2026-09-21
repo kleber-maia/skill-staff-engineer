@@ -14,6 +14,15 @@ export function isDocsFile(config, file) {
   return matchesAny(file, config.paths.docs);
 }
 
+// Full-verification receipts deliberately ignore prose while still fingerprinting
+// executable toolkit assets, rules, markers, and configuration.
+export function isVerificationDocumentation(config, file) {
+  return file === "AGENTS.md"
+    || file === "CLAUDE.md"
+    || /^\.agents\/skills\/[^/]+\/agents\/openai\.ya?ml$/i.test(file)
+    || (isDocsFile(config, file) && /\.(?:mdx?|adoc|rst|txt)$/i.test(file));
+}
+
 export function isDocumentable(config, file) {
   return matchesAny(file, config.paths.documentable ?? []);
 }
