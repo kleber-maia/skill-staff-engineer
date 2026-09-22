@@ -13,6 +13,9 @@ export const COMMANDS = {
   doctor: { module: "./commands/doctor.mjs" },
   config: { module: "./commands/config.mjs" },
   status: { module: "./commands/status.mjs" },
+  next: { module: "./commands/next.mjs" },
+  lane: { module: "./commands/lane.mjs" },
+  plan: { module: "./commands/plan.mjs" },
   begin: { module: "./commands/begin.mjs" },
   brief: { module: "./commands/brief.mjs", multi: ["accept", "non-goal", "surface"] },
   preview: { module: "./commands/preview.mjs" },
@@ -74,17 +77,22 @@ Setup
   config get|set|unset <dotpath> [value]
   update [--from <path|git-url>]      Upgrade the vendored toolkit
 
-Lifecycle (one concern at a time)
-  begin "<short concern>"             Check upstream, then open exactly one work session
+Lifecycle (one concern at a time; run next whenever unsure)
+  next                                The one next step: command, skills to read, whether to wait
+  begin "<short concern>" [--lane trivial|standard|large]
+                                      Check upstream, then open exactly one work session
+  lane trivial|standard|large         Move the open concern to another lane
+  plan <path>                         Record the agreed plan (large lane, before preview)
   context <planned files...>          Build the task-context packet (skills, docs, tests, dependencies)
   brief --outcome "..." --accept "..." [--accept "..."] [--non-goal "..."] [--surface "..."]
   preview                             Present the working result; reads the acceptance checks back
   revise                              Return to implementation after feedback
-  finalize                            Record acceptance (needs STAFF_ENGINEER_PREVIEW_APPROVED=1)
+  finalize --approval-quote "..."     Record the operator's acceptance in their own words
   lifecycle                           Gate the staged batch
   verify --mode fast|full             Run the configured checks; full writes a receipt
   handoff                             Print a plain-language handoff draft
-  ship "<imperative message>" [--push] Guarded save (needs STAFF_ENGINEER_CHANGE_APPROVED=1)
+  ship "<imperative message>" --approval-quote "..." [--push]
+                                      Guarded save after the operator approved the handoff
   ship --sync-only                    Push a saved batch that was not pushed yet
   abort [--discard-confirmed]         Close an abandoned session (never deletes files)
   status                              Show session, brief, and receipt state

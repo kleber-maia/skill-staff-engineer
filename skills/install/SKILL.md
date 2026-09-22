@@ -78,7 +78,8 @@ Tell the operator, in plain language, what was installed and what changes for th
   settings file, and a short section in the project's agent instructions.
 - What changes: the agent will ask a few questions before building, show a preview
   before finishing, and ask before saving anything. Nothing is saved without a
-  "ship it".
+  "ship it". Small, obvious fixes get a single check-in instead of two. They never
+  need to run anything themselves.
 
 Do not list file paths or commands to a non-technical operator.
 

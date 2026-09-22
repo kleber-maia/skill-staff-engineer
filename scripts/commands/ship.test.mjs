@@ -42,11 +42,12 @@ test("failed push leaves a saved session that sync-only can recover", async () =
     await runCli(["brief", "--outcome", "The readme includes a recovery note.", "--accept", "Read the recovery note"], { cwd: dir });
     writeFiles(dir, { "README.md": "# demo\n\nRecovery note.\n" });
     await runCli(["preview"], { cwd: dir });
-    await runCli(["finalize"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     git(dir, "add", "README.md");
     await runCli(["verify", "--mode", "full"], { cwd: dir });
+    await runCli(["handoff"], { cwd: dir });
 
-    let result = await runCli(["ship", "Document sync recovery", "--push", "--json"], { cwd: dir, env: { STAFF_ENGINEER_CHANGE_APPROVED: "1" } });
+    let result = await runCli(["ship", "Document sync recovery", "--approval-quote", "ship it", "--push", "--json"], { cwd: dir });
     assert.equal(result.code, 2, result.stderr || result.stdout);
     const session = JSON.parse(readFileSync(join(dir, ".git", "staff-engineer", "session.json"), "utf8"));
     assert.equal(session.status, "saved");

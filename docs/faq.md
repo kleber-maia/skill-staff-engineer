@@ -5,6 +5,22 @@ Yes. Existing checks, bug reproductions, and focused regression tests can run du
 They do not replace your review: the concern still needs a working preview and clear acceptance
 before final lifecycle, full verification, and saving.
 
+**Do I ever need to run a command or type a special phrase?**
+No. The agent runs every toolkit command. You answer in your own words; the agent quotes your reply
+when it records acceptance or approval.
+
+**How does the toolkit know I really approved?**
+In Claude Code, a hook records your recent messages locally and the save is refused unless the
+agent's quote matches something you said after the step was shown to you. Other agents cannot
+record your messages, so their quote is trusted as reported. Every commit records the quote and
+which of the two applied (`Approval-Evidence`).
+
+**Small fixes feel slow. Is there a faster path?**
+Yes: the `trivial` lane. The agent picks it for obvious, low-risk changes within
+`rules.lanes.trivial` (default 3 source files and 40 added lines). You get one preview that asks
+"ship it?", and the change is saved exactly as you saw it. Anything that grows past the cap moves
+to the normal path automatically.
+
 **What happens when the update server is unavailable?**
 The default `updates.offline` value is `fail`, so `begin` opens no session. Set it to `allow` only
 when the project deliberately permits work with the installed toolkit. Use `updates.revision` to

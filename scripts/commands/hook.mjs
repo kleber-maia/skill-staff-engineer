@@ -3,9 +3,11 @@
 import { existsSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 
+import { OPERATOR_LOG, recordOperatorMessage } from "../lib/approval.mjs";
 import { hasConfig, loadConfig, TOOLKIT_DIR } from "../lib/config.mjs";
 import { isRepo, repoRoot } from "../lib/git.mjs";
 import { normalize } from "../lib/glob.mjs";
+import { nextStep, renderNext } from "../lib/next.mjs";
 import { EXIT } from "../lib/output.mjs";
 import { classify, isGenerated, isProtected, isToolkitPath } from "../lib/paths.mjs";
 import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
@@ -13,7 +15,7 @@ import { CLI, PHASES, readSession, sessionConcernFiles } from "../lib/session.mj
 import { toolkitVersion } from "../lib/toolkit.mjs";
 
 export const description = "Internal: handle a Claude Code hook event from stdin.";
-export const usage = "hook <SessionStart|PreToolUse|Stop>";
+export const usage = "hook <SessionStart|UserPromptSubmit|PreToolUse|Stop>";
 
 export default async function run({ positional, stdout, invokedFrom }) {
   const event = positional[0];
@@ -45,6 +47,7 @@ export function decide(event, payload, root) {
   const config = loadConfig(root);
   const session = activeSession(root);
   if (event === "SessionStart") return sessionStart(config, session, root);
+  if (event === "UserPromptSubmit") return userPromptSubmit(config, session, root, payload);
   if (event === "PreToolUse") return preToolUse(config, session, root, payload);
   if (event === "Stop") return stop(config, session, root);
   return null;
@@ -66,11 +69,22 @@ function sessionStart(config, session, root) {
     lines.push(`Open concern: "${session.concern}" — phase ${session.phase}, ${session.brief ? "brief recorded" : "NO BRIEF YET"}.`);
     const files = sessionConcernFiles(session, root);
     if (files.length) lines.push(`Concern files so far: ${files.slice(0, 15).join(", ")}${files.length > 15 ? ", ..." : ""}`);
-  } else {
-    lines.push(`No concern is open. Before changing code, run ${CLI} begin "Short concern" and follow the staff-engineer skill.`);
   }
-  lines.push("Read .agents/skills/staff-engineer/SKILL.md (or the staff-engineer plugin skill) for the operating contract.");
+  lines.push(renderNext(nextStep({ cwd: root, config, session, quick: true })));
+  lines.push(`Read .agents/skills/staff-engineer/SKILL.md (or the staff-engineer plugin skill) for the operating contract. Run ${CLI} next whenever unsure what comes next.`);
   return { hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: lines.join("\n") } };
+}
+
+// ---------- UserPromptSubmit ----------
+// Records the operator's own words so approvals can be checked against them,
+// and reminds the agent of the one next step while a concern is open.
+function userPromptSubmit(config, session, root, payload) {
+  recordOperatorMessage(root, payload.prompt);
+  if (!session) return null;
+  const next = nextStep({ cwd: root, config, session, quick: true });
+  const lines = [`staff-engineer: open concern "${session.concern}" (${session.lane ?? "standard"} lane).`, renderNext(next)];
+  if (next.waitFor === "operator") lines.push("This message is the operator's reply: decide whether it is clear approval, a change request, or a question before acting.");
+  return { hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: lines.join("\n") } };
 }
 
 // ---------- PreToolUse ----------
@@ -103,8 +117,10 @@ export function guardBash(config, session, root, command) {
   if (writesProtected.length) return deny(`This command writes to a protected file (${writesProtected.join(", ")}). Secrets, keys, and environment files are off limits.`);
   if (isStandaloneToolkitCommand(command)) return null;
 
+  if (writesOperatorLog(command)) return deny("The operator's messages are recorded by the harness only. Quote the operator; never write their messages yourself.");
+
   const gated = session || config.rules.requireSession === "block";
-  if (gated && /\bgit\s+commit\b/.test(command)) return deny(`Commits go through the guarded save: STAFF_ENGINEER_CHANGE_APPROVED=1 ${CLI} ship "message" after the operator approved the handoff.`);
+  if (gated && /\bgit\s+commit\b/.test(command)) return deny(`Commits go through the guarded save: ${CLI} ship "message" --approval-quote "<the operator's words>" after the operator approved the handoff.`);
   if (gated && /\bgit\s+push\b/.test(command)) return deny(`Pushes go through ${CLI} ship --push or ship --sync-only.`);
 
   return null;
@@ -121,6 +137,10 @@ export function isStandaloneToolkitCommand(command) {
     || first === `${TOOLKIT_DIR}/cli.mjs`;
 }
 
+function writesOperatorLog(command) {
+  return command.includes(OPERATOR_LOG) && /(>>?|\btee\b|\bcp\b|\bmv\b|\bsed\s+-i|\brm\b|\btruncate\b|\bnode\b|\bpython|\bperl\b)/.test(command);
+}
+
 function protectedTargets(config, root, command) {
   const writeIndicators = /(>>?|\btee\b|\bcp\b|\bmv\b|\bsed\s+-i|\brm\b|\btruncate\b)/;
   if (!writeIndicators.test(command)) return [];
@@ -134,6 +154,7 @@ function protectedTargets(config, root, command) {
 export function guardEdit(config, session, root, filePath) {
   const rel = toRelative(root, filePath);
   if (!rel) return null;
+  if (rel === ".git" || rel.startsWith(".git/")) return deny("Repository internals and the toolkit's session records are managed by git and the toolkit. Do not edit them directly.");
   if (isToolkitPath(rel)) return null;
   if (isProtected(config, rel)) return deny(`${rel} is a protected file (secrets, keys, environment). Do not edit it; ask the operator to change it themselves.`);
   if (isGenerated(config, rel)) return deny(`${rel} is generated output. Change the source that produces it instead.`);

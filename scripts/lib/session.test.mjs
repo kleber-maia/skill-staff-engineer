@@ -45,7 +45,7 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     result = await runCli(["verify", "--mode", "full", "--json"], { cwd: dir });
     assert.equal(result.code, 1, "the final full check still waits for preview acceptance");
 
-    result = await runCli(["finalize", "--json"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    result = await runCli(["finalize", "--approval-quote", "looks good", "--json"], { cwd: dir });
     assert.equal(result.code, 1, "finalize needs a presented preview");
 
     result = await runCli(["preview", "--json"], { cwd: dir });
@@ -54,14 +54,16 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     assert.equal(result.json.data.round, 1);
 
     result = await runCli(["finalize", "--json"], { cwd: dir });
-    assert.equal(result.code, 1, "finalize needs the approval flag");
+    assert.equal(result.code, 1, "finalize needs the operator's words");
+    result = await runCli(["finalize", "--approval-quote", "can you make it bigger?", "--json"], { cwd: dir });
+    assert.equal(result.code, 1, "a question is not acceptance");
 
     result = await runCli(["revise", "--json"], { cwd: dir });
     assert.equal(result.code, 0);
     result = await runCli(["preview", "--json"], { cwd: dir });
     assert.equal(result.json.data.round, 2);
 
-    result = await runCli(["finalize", "--json"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    result = await runCli(["finalize", "--approval-quote", "looks good", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr);
 
     appendFileSync(join(dir, "tests/math.test.mjs"), 'import { mul } from "../src/math.mjs";\ntest("mul", () => assert.equal(mul(2, 3), 6));\n');
@@ -81,7 +83,7 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     result = await runCli(["lifecycle", "--json"], { cwd: dir });
     assert.equal(result.code, 0, JSON.stringify(result.json?.errors));
 
-    result = await runCli(["ship", "Add multiply to the demo", "--json"], { cwd: dir, env: { STAFF_ENGINEER_CHANGE_APPROVED: "1" } });
+    result = await runCli(["ship", "Add multiply to the demo", "--approval-quote", "ship it", "--json"], { cwd: dir });
     assert.equal(result.code, 1, "ship needs a matching full receipt");
 
     result = await runCli(["verify", "--mode", "full", "--json"], { cwd: dir });
@@ -98,7 +100,7 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     const toolkitConfig = readFileSync(join(dir, ".staff-engineer/config.json"), "utf8");
     writeFileSync(join(dir, ".staff-engineer/config.json"), `${toolkitConfig}\n`);
     git(dir, "add", ".staff-engineer/config.json");
-    result = await runCli(["ship", "Add multiply to the demo", "--json"], { cwd: dir, env: { STAFF_ENGINEER_CHANGE_APPROVED: "1" } });
+    result = await runCli(["ship", "Add multiply to the demo", "--approval-quote", "ship it", "--json"], { cwd: dir });
     assert.equal(result.code, 1, "ship rejects toolkit configuration changed after verification");
     writeFileSync(join(dir, ".staff-engineer/config.json"), toolkitConfig);
     git(dir, "add", ".staff-engineer/config.json");
@@ -110,12 +112,14 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     result = await runCli(["ship", "Add multiply to the demo", "--json"], { cwd: dir });
     assert.equal(result.code, 1, "ship needs approval");
 
-    result = await runCli(["ship", "Add multiply to the demo", "--json"], { cwd: dir, env: { STAFF_ENGINEER_CHANGE_APPROVED: "1" } });
+    result = await runCli(["ship", "Add multiply to the demo", "--approval-quote", "ship it", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr);
     assert.equal(result.json.data.status, "synced", "no remote means synced immediately");
     const message = git(dir, "log", "-1", "--format=%B");
     assert.match(message, /^Add multiply to the demo/);
     assert.match(message, /Brief-Outcome: People can multiply two numbers\./);
+    assert.match(message, /Operator-Approval: ship it/);
+    assert.match(message, /Approval-Evidence: agent-reported/);
     assert.equal(git(dir, "status", "--short"), "");
 
     result = await runCli(["begin", "Second concern", "--json"], { cwd: dir });
@@ -180,7 +184,7 @@ test("blocking sessions require finalization and current context covering docume
     assert.ok(result.json.data.blocking.some((finding) => finding.rule === "session-phase"));
 
     await runCli(["preview"], { cwd: dir });
-    await runCli(["finalize"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     appendFileSync(join(dir, "tests/math.test.mjs"), "// square coverage\n");
     appendFileSync(join(dir, "README.md"), "- square\n");
     git(dir, "add", "-A");
@@ -238,7 +242,7 @@ test("pre-existing dirty files are protected from the batch", async () => {
     await runCli(["brief", "--outcome", "The demo greets people by name.", "--accept", "Run the demo and see a greeting"], { cwd: dir });
     writeFiles(dir, { "src/greet.mjs": "export const greet = (n) => `hi ${n}`;\n" });
     await runCli(["preview"], { cwd: dir });
-    await runCli(["finalize"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     git(dir, "add", "-A"); // sweeps notes.md in
 
     result = await runCli(["lifecycle", "--json"], { cwd: dir });
@@ -269,7 +273,7 @@ test("pre-existing staged files remain outside the concern commit", async () => 
     await runCli(["brief", "--outcome", "The demo adds a small isolated helper.", "--accept", "Run the demo and see the helper"], { cwd: dir });
     writeFiles(dir, { "src/helper.mjs": "export const helper = true;\n" });
     await runCli(["preview"], { cwd: dir });
-    await runCli(["finalize"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     git(dir, "add", "src/helper.mjs");
 
     let result = await runCli(["lifecycle", "--json"], { cwd: dir });
@@ -278,8 +282,9 @@ test("pre-existing staged files remain outside the concern commit", async () => 
 
     result = await runCli(["verify", "--mode", "full", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr || result.stdout);
+    await runCli(["handoff"], { cwd: dir });
     const before = git(dir, "rev-parse", "HEAD");
-    result = await runCli(["ship", "Add isolated helper", "--json"], { cwd: dir, env: { STAFF_ENGINEER_CHANGE_APPROVED: "1" } });
+    result = await runCli(["ship", "Add isolated helper", "--approval-quote", "ship it", "--json"], { cwd: dir });
     assert.equal(result.code, 3, "ship re-runs lifecycle and refuses the staged baseline");
     assert.equal(git(dir, "rev-parse", "HEAD"), before);
     assert.match(git(dir, "diff", "--cached", "--name-only"), /other\.md/);
@@ -298,7 +303,7 @@ test("docs-only concerns may verify before feedback; waivers unblock the gate", 
     assert.equal(result.code, 0, "docs-only concern verifies before feedback");
 
     await runCli(["preview"], { cwd: dir });
-    await runCli(["finalize"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     appendFileSync(join(dir, "src/math.mjs"), "export const sub = (a, b) => a - b;\n");
     git(dir, "add", "-A");
     result = await runCli(["lifecycle", "--json"], { cwd: dir });

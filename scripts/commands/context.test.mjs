@@ -43,7 +43,7 @@ test("context packet lists skills, docs, tests, and dependencies; stale skills b
     appendFileSync(join(dir, "src/billing/invoice.mjs"), "export const total = 2;\n");
     writeFiles(dir, { "src/other/thing.mjs": "export const thing = 1;\n" });
     await runCli(["preview"], { cwd: dir });
-    await runCli(["finalize"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     appendFileSync(join(dir, "tests/invoice.test.mjs"), "\n");
     appendFileSync(join(dir, "docs/billing.md"), "Totals.\n");
     git(dir, "add", "-A");

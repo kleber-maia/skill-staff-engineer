@@ -8,6 +8,7 @@ import { readJson } from "../lib/fs-safe.mjs";
 import { stagedDiff, stagedFiles, stagedNumstat, unstagedFiles } from "../lib/git.mjs";
 import { failed, ok } from "../lib/output.mjs";
 import { classify, isDocumentable, isNeverStage, isProductSource, isProtected } from "../lib/paths.mjs";
+import { laneOf, laneOverflow } from "../lib/lanes.mjs";
 import { applyLineRules } from "../lib/rules.mjs";
 import { PHASES, readSession, requireOpenSession, STATUSES } from "../lib/session.mjs";
 import { assetPath } from "../lib/toolkit.mjs";
@@ -88,6 +89,8 @@ export function runLifecycle(cwd, config, env = process.env) {
     if (validated && validated.phase !== PHASES.FINALIZING) {
       findings.push({ rule: "session-phase", severity: sessionSeverity, file: "", line: 0, message: "Lifecycle waits until the working result was presented and accepted. Finalize the concern first." });
     }
+    const overflow = validated ? laneOverflow(cwd, config, validated) : null;
+    if (overflow) findings.push({ rule: "lane-exceeded", severity: "block", file: "", line: 0, message: overflow });
   }
   if (session && session.status === "open" && !session.cleared) {
     const baselineFiles = new Set(session.baseline?.files ?? []);
@@ -117,7 +120,8 @@ export function runLifecycle(cwd, config, env = process.env) {
   // Task-context packet: required sessions need a current packet that covers the
   // staged source and documentable surfaces. Advisory sessions keep warnings.
   const packet = readContext(cwd);
-  if (config.rules.requireSession !== "off" && session && !session.cleared && session.status === STATUSES.OPEN) {
+  // The trivial lane is size-capped instead, so it needs no packet.
+  if (config.rules.requireSession !== "off" && session && !session.cleared && session.status === STATUSES.OPEN && laneOf(session) !== "trivial") {
     const packetIsCurrent = packet?.at && (!session.startedAt || packet.at >= session.startedAt);
     if (!packetIsCurrent) {
       findings.push({ rule: "context-required", severity: sessionSeverity, file: "", line: 0, message: "Build a current context packet for this concern before lifecycle." });

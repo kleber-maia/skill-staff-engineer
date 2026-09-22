@@ -41,7 +41,7 @@ export function clearSession(cwd) {
 }
 
 // ---------- begin ----------
-export function beginSession(cwd, concern, { now = new Date().toISOString() } = {}) {
+export function beginSession(cwd, concern, { lane = "standard", now = new Date().toISOString() } = {}) {
   assertConcern(concern);
   const existing = readSession(cwd);
   const currentHead = head(cwd);
@@ -51,6 +51,7 @@ export function beginSession(cwd, concern, { now = new Date().toISOString() } = 
     status: STATUSES.OPEN,
     phase: PHASES.IMPLEMENTATION,
     concern: concern.trim(),
+    lane,
     baseCommit: currentHead,
     startedAt: now,
     reviewRound: 0,
@@ -116,7 +117,7 @@ export function requireBrief(session) {
 export function requireFinalizing(session) {
   if (session.phase !== PHASES.FINALIZING) {
     throw refused("Final checks wait until the operator has reviewed the working result and accepted it.", {
-      agent: `Run ${CLI} preview, wait for feedback, then STAFF_ENGINEER_PREVIEW_APPROVED=1 ${CLI} finalize.`,
+      agent: `Run ${CLI} preview, wait for feedback, then ${CLI} finalize --approval-quote "<the operator's words>".`,
     });
   }
 }
@@ -142,25 +143,44 @@ export function normalizeBrief({ outcome, accept = [], nonGoals = [], surfaces =
   return { outcome: cleanOutcome, acceptance, nonGoals: cleanList(nonGoals), surfaces: cleanList(surfaces) };
 }
 
-export function markAwaitingFeedback(session, presentedFiles, { now = new Date().toISOString() } = {}) {
+// presentedSource is set only when a trivial preview doubles as the save question.
+export function markAwaitingFeedback(session, presentedFiles, { presentedSource, now = new Date().toISOString() } = {}) {
   if (session.phase !== PHASES.IMPLEMENTATION) {
     throw refused("Return this concern to implementation before presenting another preview.", { agent: `Run ${CLI} revise first.` });
   }
-  return { ...session, phase: PHASES.AWAITING_FEEDBACK, reviewRound: (session.reviewRound ?? 0) + 1, presentedAt: now, presentedFiles, acceptedAt: undefined };
+  return { ...withoutApprovals(session), phase: PHASES.AWAITING_FEEDBACK, reviewRound: (session.reviewRound ?? 0) + 1, presentedAt: now, presentedFiles, presentedSource };
 }
 
 export function markRevising(session, { now = new Date().toISOString() } = {}) {
   if (session.phase === PHASES.IMPLEMENTATION) {
     throw refused("This concern is already in implementation.", { agent: "Keep building, then run preview again." });
   }
-  return { ...session, phase: PHASES.IMPLEMENTATION, resumedAt: now, acceptedAt: undefined };
+  return { ...withoutApprovals(session), phase: PHASES.IMPLEMENTATION, resumedAt: now, presentedSource: undefined };
 }
 
-export function markFinalizing(session, { now = new Date().toISOString() } = {}) {
+export function markFinalizing(session, approval, { now = new Date().toISOString() } = {}) {
   if (session.phase !== PHASES.AWAITING_FEEDBACK) {
     throw refused("Present the working result and wait for the operator's feedback before finalizing.", { agent: `Run ${CLI} preview first.` });
   }
-  return { ...session, phase: PHASES.FINALIZING, acceptedAt: now };
+  return { ...session, phase: PHASES.FINALIZING, acceptedAt: now, acceptance: approval };
+}
+
+export function setLane(session, lane, { now = new Date().toISOString() } = {}) {
+  // Leaving the trivial lane drops the combined preview-and-save approval.
+  return { ...session, lane, laneChangedAt: now, presentedSource: lane === "trivial" ? session.presentedSource : undefined };
+}
+
+export function recordPlan(session, path, { now = new Date().toISOString() } = {}) {
+  return { ...session, plan: { path, recordedAt: now } };
+}
+
+// The handoff binds the approval request to one verified receipt.
+export function recordHandoff(session, receiptAt, { now = new Date().toISOString() } = {}) {
+  return { ...session, handoff: { at: now, receiptAt } };
+}
+
+function withoutApprovals(session) {
+  return { ...session, acceptedAt: undefined, acceptance: undefined, handoff: undefined };
 }
 
 export function markSaved(session, savedCommit, { now = new Date().toISOString() } = {}) {

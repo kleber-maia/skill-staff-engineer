@@ -261,6 +261,7 @@ export function withClaudeHooks(settings) {
   next.hooks ??= {};
   const entries = {
     SessionStart: [{ hooks: [{ type: "command", command: `node ${TOOLKIT_DIR}/hooks/session-start.mjs`, timeout: 10 }] }],
+    UserPromptSubmit: [{ hooks: [{ type: "command", command: `node ${TOOLKIT_DIR}/hooks/user-prompt-submit.mjs`, timeout: 10 }] }],
     PreToolUse: [
       { matcher: "Bash", hooks: [{ type: "command", command: `node ${TOOLKIT_DIR}/hooks/pre-tool-use.mjs`, timeout: 10 }] },
       { matcher: "Edit|Write|MultiEdit|NotebookEdit", hooks: [{ type: "command", command: `node ${TOOLKIT_DIR}/hooks/pre-tool-use.mjs`, timeout: 10 }] },

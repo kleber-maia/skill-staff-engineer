@@ -143,8 +143,14 @@ You reply "ship it". One commit lands, carrying the agreed outcome in its traile
   </picture>
 </p>
 
-The CLI enforces the stateful transitions and save checks below. Skills describe the work between
-those transitions, and optional Claude Code hooks provide immediate guidance:
+The CLI enforces the stateful transitions and save checks below, and the agent runs every one of
+them: you never type a command. `next` tells the agent the one step that comes next, so the order
+lives in code rather than in the agent's memory. Skills describe the work between those
+transitions, and optional Claude Code hooks provide immediate guidance.
+
+Work is sized into **lanes**. A `trivial` change (a typo, a color, a one-line fix, capped in size)
+gets one check-in: the preview asks "ship it?" and your yes covers both. `standard` work gets the
+full loop below. `large` work also agrees a written plan before the first preview.
 
 - **Agree.** As its first action, `begin` checks the recorded upstream repository. If a newer
   toolkit is found, it upgrades the toolkit but opens no work session, so that upgrade can be saved
@@ -161,8 +167,10 @@ those transitions, and optional Claude Code hooks provide immediate guidance:
   every finding with `file:line` evidence and a SAFE/CAREFUL/RISKY tier), then docs. The
   `lifecycle` gate inspects the staged diff. `verify` runs your project's own format, lint,
   typecheck, test, build, and end-to-end commands and writes a receipt for that exact verified batch.
-- **Save.** `handoff` prints the approval request. `ship` refuses without your "ship it", without a
-  passing gate, without a matching receipt, or with too many unrelated areas in one batch.
+- **Save.** `handoff` prints the approval request. `ship` refuses without your "ship it" for that
+  exact verified batch, without a passing gate, without a matching receipt, or with too many
+  unrelated areas in one batch. The agent quotes your words; in Claude Code they are checked
+  against what you actually typed, and every commit records them.
 
 ## Once installed, you just talk
 
@@ -201,10 +209,12 @@ debug output, and mixed concern scope, plus a workflow that presents the result 
 - **A verification wrapper** that runs your project's own commands, stops at the first failure with
   a focused `file:line` report, keeps a timing ledger, and writes a receipt so the full check runs
   once per batch.
-- **A session state machine** in `.git/staff-engineer/` that refuses out-of-order steps and protects
-  work that was already pending when a concern began.
+- **A session state machine** in `.git/staff-engineer/` that refuses out-of-order steps, protects
+  work that was already pending when a concern began, and answers `next` with the one step the
+  agent should take.
 - **A Claude Code plugin** with a slash command per step, subagents for the four simplify lenses plus
-  an explorer and a verifier, and hooks that inject session state at start, deny dangerous commands,
+  an explorer and a verifier, and hooks that inject session state and the next step, record your messages so approvals can be
+  checked against them, deny dangerous commands,
   protect secrets, and block raw commits while a concern is open.
 - **Zero dependencies.** Node.js 20+ and git are all a project needs.
 

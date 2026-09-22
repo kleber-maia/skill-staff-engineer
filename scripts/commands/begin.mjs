@@ -2,13 +2,16 @@ import { loadConfig } from "../lib/config.mjs";
 import { baselineUnchanged } from "../lib/baseline.mjs";
 import { head } from "../lib/git.mjs";
 import { ok, refused, ToolkitError, tooling } from "../lib/output.mjs";
-import { assertCanBegin, beginSession, CLI, readSession } from "../lib/session.mjs";
+import { assertLane, DEFAULT_LANE } from "../lib/lanes.mjs";
+import { nextStep, renderNext } from "../lib/next.mjs";
+import { assertCanBegin, beginSession, readSession } from "../lib/session.mjs";
 import { updateToolkit } from "./update.mjs";
 
 export const description = "Open exactly one work session for one concern.";
-export const usage = 'begin "<short concern>"';
+export const usage = 'begin "<short concern>" [--lane trivial|standard|large]';
 
-export default async function run({ cwd, positional, services = {} }) {
+export default async function run({ cwd, positional, flags = {}, services = {} }) {
+  const lane = assertLane(flags.lane ?? DEFAULT_LANE);
   // An already-open concern is not a workflow start. Refuse it before consulting
   // upstream so an update can never land in the middle of active work.
   const existing = readSession(cwd);
@@ -26,15 +29,15 @@ export default async function run({ cwd, positional, services = {} }) {
       data: { update: update.data, sessionOpened: false, restartRequired: true },
     });
   }
-  loadConfig(cwd);
-  const session = beginSession(cwd, positional.join(" "));
+  const config = loadConfig(cwd);
+  const session = beginSession(cwd, positional.join(" "), { lane });
   return ok({
     operator: `Started working on: ${session.concern}.`,
     agent: [
       "All changes for this concern must be staged and saved together as one batch.",
       session.baseline.files.length ? `Pre-existing pending files are protected and must stay out of this batch: ${summarize(session.baseline.files)}` : "",
-      "Before building, agree the outcome with the operator (grill-me skill) unless the request is trivially clear, then record the brief:",
-      `  ${CLI} brief --outcome "..." --accept "..." [--accept "..."] [--non-goal "..."] [--surface "..."]`,
+      `Lane: ${lane}.`,
+      renderNext(nextStep({ cwd, config, session })),
     ].filter(Boolean).join("\n"),
     data: session,
   });

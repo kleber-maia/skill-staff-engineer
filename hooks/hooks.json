@@ -1,10 +1,17 @@
 {
-  "description": "staff-engineer guardrails: session context, dangerous-command and protected-path guards, tests-wait-for-feedback, stop reminders. Every hook fails open and does nothing in projects without a .staff-engineer/ install.",
+  "description": "staff-engineer guardrails: session context, next-step reminders and operator-message records for approvals, dangerous-command and protected-path guards, tests-wait-for-feedback, stop reminders. Every hook fails open and does nothing in projects without a .staff-engineer/ install.",
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
           { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-start.mjs\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/user-prompt-submit.mjs\"", "timeout": 10 }
         ]
       }
     ],

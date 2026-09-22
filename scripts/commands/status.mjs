@@ -1,5 +1,6 @@
 import { hasConfig, loadConfig } from "../lib/config.mjs";
 import { head } from "../lib/git.mjs";
+import { nextStep, renderNext } from "../lib/next.mjs";
 import { ok } from "../lib/output.mjs";
 import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
 import { readSession, sessionConcernFiles } from "../lib/session.mjs";
@@ -25,7 +26,8 @@ export default async function run({ cwd }) {
     receipt: receipt ? { ...receipt, current: config ? receiptMatches(receipt, cwd, config, "working") : false } : null,
     typicalDurations: typicalDurations(cwd).byMode,
   };
-  return ok({ operator: describe(data), agent: nextStep(data), data });
+  data.next = nextStep({ cwd, config, session });
+  return ok({ operator: describe(data), agent: renderNext(data.next), data });
 }
 
 function describe(data) {
@@ -34,15 +36,4 @@ function describe(data) {
   if (data.session.status === "saved") return `The concern "${data.session.concern}" is saved and waiting to be synced.`;
   const phase = { implementation: "being built", awaiting_feedback: "waiting for your feedback on the preview", finalizing: "accepted and being finished" }[data.session.phase];
   return `Working on "${data.session.concern}" (${phase}).${data.session.brief ? "" : " No brief recorded yet."}`;
-}
-
-function nextStep(data) {
-  if (!data.installed) return "Run the installer (install skill).";
-  const s = data.session;
-  if (!s || s.cleared || s.status === "synced") return 'Open a concern with: node .staff-engineer/cli.mjs begin "Short concern"';
-  if (s.status === "saved") return "Run: node .staff-engineer/cli.mjs ship --sync-only";
-  if (!s.brief) return "Interview the operator (grill-me skill), then record the brief.";
-  if (s.phase === "implementation") return "Build the smallest working first pass with useful regression checks, then run preview. Final review and full verification wait for acceptance.";
-  if (s.phase === "awaiting_feedback") return "Wait for the operator. On change requests run revise; on clear acceptance run STAFF_ENGINEER_PREVIEW_APPROVED=1 ... finalize.";
-  return data.receipt?.current ? "Run handoff and ask for approval; after \"ship it\" run the approved ship." : "Complete coverage, simplify, docs, then lifecycle and verify --mode full.";
 }
