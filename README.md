@@ -62,6 +62,29 @@ agents, and other machines.
   extra rounds, a rule keeps getting waived, or a saved change was later undone, so it adjusts, and
   every tenth save you hear, in one line, how often things were right the first time.
 
+## Efficiency and cost
+
+Discipline sounds expensive. The toolkit is built so the extra work is small, paid once, and only
+where the risk is.
+
+- **Cost follows risk.** A typo gets no interview, a self-review, and one check-in with you. A
+  normal change gets one independent reviewer, which costs roughly one extra read of its diff. Only
+  changes to stored data, sign-in, or money get several reviewers.
+- **Code does the repetitive work, not the model.** The CLI works out the next step, assembles one
+  review packet (the diff, its callers, its tests), runs your preview probes and bug
+  reproductions, and fingerprints what was checked. None of that spends model tokens.
+- **Nothing runs twice.** Your full test suite runs once per change, and the receipt proves it ran
+  on exactly the code being saved, so there are no reruns "to be safe". Later fixes are reviewed as
+  a delta only. Unchanged previews are not rechecked, and updates are looked for once a day.
+- **Less context spent rediscovering things.** The agent reads a short step from `next` instead of
+  the whole process, a context packet instead of crawling the repository, and your saved decisions
+  instead of asking again.
+- **The biggest saving is rework avoided.** A minute of questions prevents a rebuild. Showing you
+  the result before finishing means tests and cleanup happen once, on the version you wanted. A
+  review before saving is cheaper than a bug found by a customer.
+- **You set the ceiling.** Ask the agent to spend less and it caps the review level or turns
+  self-checks off, on your machine only.
+
 ## A session, from your seat
 
 You: *"Customers should be able to export their order history."*
