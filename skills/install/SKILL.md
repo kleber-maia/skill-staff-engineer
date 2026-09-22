@@ -83,6 +83,14 @@ Tell the operator, in plain language, what was installed and what changes for th
 
 Do not list file paths or commands to a non-technical operator.
 
+## Maintenance is not a concern
+
+Installing, updating, configuring, and removing the toolkit never run the workflow the
+toolkit adds. Do not call `begin`, `brief`, `preview`, `review`, `handoff`, or `ship` for
+it, and do not apply its gates to its own files. After the doctor loop, ask the operator
+and save with `node .staff-engineer/cli.mjs save-toolkit`; it commits only toolkit-owned
+files and refuses while a concern is open.
+
 ## Upgrade
 
 Every new concern starts with `begin`, which (at most once a day by default, local setting
@@ -95,7 +103,8 @@ with the installed copy unless `updates.offline` is `fail`. Projects may also pi
 `updates.revision` or change the per-process `updates.timeoutMs`. Updates
 record the resolved commit and roll back toolkit-owned destinations if installation fails.
 
-For a manual upgrade, run `node .staff-engineer/cli.mjs update --json`. It prefers the
+For a manual upgrade, run `node .staff-engineer/cli.mjs update --json` outside any open
+concern; it saves the upgrade as its own change. It prefers the
 recorded repository URL over the original local checkout, which may be stale. An
 explicit `--from <path-or-url>` still overrides the recorded source. Run `doctor`
 afterwards.

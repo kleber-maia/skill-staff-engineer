@@ -85,7 +85,8 @@ export default async function run({ cwd, flags, env = process.env }) {
       `Installed staff-engineer ${version} into ${root}.`,
       `Changed: ${changed.length ? changed.map((action) => action.path).join(", ") : "nothing (already up to date)"}`,
       plan.questions.length ? `Open questions for the operator (ask one at a time, record with config set):\n${plan.questions.map((question) => `- ${question.key}: ${question.question}`).join("\n")}` : "No open questions from detection.",
-      `Next: node ${TOOLKIT_DIR}/cli.mjs doctor`,
+      `Next: node ${TOOLKIT_DIR}/cli.mjs doctor, and answer its questions.`,
+      `This is toolkit maintenance, not a concern: do not run begin, brief, preview, review, or ship for it. When the doctor loop is done, ask the operator and save it with node ${TOOLKIT_DIR}/cli.mjs save-toolkit.`,
     ].join("\n"),
     data: { root, version, changed: changed.map(({ apply, ...rest }) => rest), questions: plan.questions, detected: plan.detected },
   });

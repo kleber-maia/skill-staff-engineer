@@ -7,7 +7,9 @@ import { join, resolve } from "node:path";
 import { loadConfig, TOOLKIT_DIR } from "../lib/config.mjs";
 import { output } from "../lib/exec.mjs";
 import { readJson, readText, writeJson } from "../lib/fs-safe.mjs";
-import { ok, tooling } from "../lib/output.mjs";
+import { ok, refused, tooling } from "../lib/output.mjs";
+import { pendingToolkitFiles, saveToolkit, toolkitPaths } from "../lib/maintenance.mjs";
+import { readSession } from "../lib/session.mjs";
 import { getSetting } from "../lib/settings.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
 import { withInstallTransaction } from "./install.mjs";
@@ -16,8 +18,23 @@ export const description = "Upgrade the toolkit in this project from its recorde
 export const usage = "update [--from <path|git-url>] [--dry-run]";
 export const CANONICAL_REPOSITORY_URL = "https://github.com/kleber-maia/skill-staff-engineer.git";
 
+// Manual upgrade. Maintenance, not a concern: it refuses during open work and saves itself.
 export default async function run(options) {
-  return updateToolkit(options);
+  const { cwd, flags = {} } = options;
+  const session = readSession(cwd);
+  if (session && !session.cleared && session.status === "open") {
+    throw refused("A work session is open, so the toolkit is not updated in the middle of it.", {
+      agent: "Finish or abort the open concern first. New concerns check for updates on their own at begin.",
+    });
+  }
+  const pending = flags["dry-run"] ? [] : pendingToolkitFiles(cwd);
+  const result = await updateToolkit(options);
+  if (flags["dry-run"] || !result.data.updated) return result;
+  if (pending.length) {
+    return { ...result, agent: [result.agent, `Toolkit files had unsaved edits before the update (${pending.join(", ")}), so nothing was committed. Review them, then run node .staff-engineer/cli.mjs save-toolkit.`].filter(Boolean).join("\n") };
+  }
+  const saved = saveToolkit(cwd, `Upgrade the staff-engineer toolkit to ${result.data.version}`, { "Toolkit-Upgrade": `${result.data.previousVersion} -> ${result.data.version}` });
+  return { ...result, agent: [result.agent, saved ? `Saved as its own change (${saved.commit.slice(0, 10)}). Do not open a concern for it.` : ""].filter(Boolean).join("\n"), data: { ...result.data, saved } };
 }
 
 export async function updateToolkit({ cwd, flags = {}, services = {} }) {
@@ -83,7 +100,7 @@ export async function updateToolkit({ cwd, flags = {}, services = {} }) {
       if (!flags["dry-run"]) stabilizeRecordedSource(cwd, manifest, { explicit, injected, from, resolvedCommit });
     };
     if (flags["dry-run"]) executeInstaller();
-    else withInstallTransaction(cwd, updateTransactionTargets(cwd, sourceDir), executeInstaller);
+    else withInstallTransaction(cwd, toolkitPaths(cwd, sourceDir), executeInstaller);
     const newVersion = payload.data?.version ?? "?";
     const changed = payload.data?.changed ?? [];
     const updated = !flags["dry-run"] && (newVersion !== previousVersion || changed.length > 0);
@@ -110,23 +127,6 @@ function gitRevision(dir, timeoutMs) {
   } catch {
     return null;
   }
-}
-
-// Every path an install or upgrade may own; sourceDir adds skills new in that version.
-export function updateTransactionTargets(cwd, sourceDir = null) {
-  const installedSkills = readJson(resolve(cwd, TOOLKIT_DIR, "skills.json"), null)?.skills ?? [];
-  const sourceSkillsDir = sourceDir ? resolve(sourceDir, "skills") : null;
-  const sourceSkills = sourceSkillsDir && existsSync(sourceSkillsDir)
-    ? readdirSync(sourceSkillsDir, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name)
-    : [];
-  return [
-    TOOLKIT_DIR,
-    ...[...new Set([...installedSkills, ...sourceSkills])].map((name) => `.agents/skills/${name}`),
-    "AGENTS.md",
-    "CLAUDE.md",
-    ".gitignore",
-    ".claude/settings.json",
-  ];
 }
 
 function stabilizeRecordedSource(cwd, previous, { explicit, injected, from, resolvedCommit }) {

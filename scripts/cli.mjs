@@ -33,6 +33,7 @@ export const COMMANDS = {
   exception: { module: "./commands/exception.mjs" },
   context: { module: "./commands/context.mjs" },
   update: { module: "./commands/update.mjs" },
+  "save-toolkit": { module: "./commands/save-toolkit.mjs" },
   hook: { module: "./commands/hook.mjs" },
 };
 
@@ -80,7 +81,10 @@ Setup
   doctor [--which]                    Check the installation and list questions for the operator
   config get|set|unset <dotpath> [value]
   settings [get|set|unset <key> [value]]  This machine's preferences (never committed)
-  update [--from <path|git-url>]      Upgrade the vendored toolkit
+  update [--from <path|git-url>]      Upgrade the vendored toolkit and save it as its own change
+  save-toolkit ["message"]            Save install or configuration changes to the toolkit as its own change
+
+  Toolkit maintenance never opens a concern: no begin, brief, preview, review, or ship.
 
 Lifecycle (one concern at a time; run next whenever unsure)
   next                                The one next step: command, skills to read, whether to wait

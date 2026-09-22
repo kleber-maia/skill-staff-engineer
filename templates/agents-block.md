@@ -3,6 +3,9 @@
 This project uses the **staff-engineer** toolkit. The CLI enforces its lifecycle and save operations;
 skills guide the work between them. Before changing anything, read `.agents/skills/staff-engineer/SKILL.md`.
 
+- **Toolkit maintenance is not a concern.** Installing, updating, configuring, or removing the
+  toolkit uses `install`, `update`, `config`, `settings`, and `save-toolkit` only; never `begin`,
+  a brief, a preview, a review, or `ship` for toolkit files.
 - **You run every command; the operator never does.** Run `node .staff-engineer/cli.mjs next`
   whenever unsure: it prints the one next step, the skills to read now, and whether to wait for
   the operator.
