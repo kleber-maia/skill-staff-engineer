@@ -119,7 +119,7 @@ for (const name of new Set([...lifecycleSection.matchAll(/^\s{2}([a-z]+)\b/gm)].
   if (COMMANDS[name] && !lifecycleDoc.includes(`\`${name}`)) problems.push(`docs/lifecycle.md: lifecycle command "${name}" is not described`);
 }
 for (const file of files(join(root, "commands"), ".md")) {
-  for (const match of readFileSync(file, "utf8").matchAll(/cli\.mjs"? ([a-z]+)/g)) {
+  for (const match of readFileSync(file, "utf8").matchAll(/cli\.mjs"? ([a-z][a-z-]*)/g)) {
     if (!COMMANDS[match[1]]) problems.push(`${relative(root, file)}: references unknown command "${match[1]}"`);
   }
 }

@@ -2,6 +2,7 @@
 
 One line per notable change. Breaking changes are marked **breaking**.
 
+- **0.6.1** Toolkit maintenance never runs the concern lifecycle: `update` refuses during a concern and saves itself; new `save-toolkit` saves installs and configuration.
 - **0.6.0** Risk-sized code review (`review`: minimum, standard, detailed) replaces the standalone simplify step; `ship` requires a current review.
 - **0.5.0** Local insight history; findings surface at `begin`, milestones at `ship`, summary via `stats`.
 - **0.4.0** Daily, self-saving toolkit updates (offline now defaults to `allow`); committed decisions log; free preview probes (`brief --check`); machine-local `settings`.

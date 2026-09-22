@@ -24,6 +24,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
         "- standard: anything else of normal size.",
         "- large: more than two areas, new data shapes, or more than a day of work.",
         "When unsure, choose standard. The lane can change later with the lane command.",
+        `Only for product changes the operator asked for. Installing, updating, or configuring the toolkit is maintenance: use install, update, config, or save-toolkit, never a concern.`,
       ].join("\n"),
     });
   }

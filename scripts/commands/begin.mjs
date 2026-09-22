@@ -6,15 +6,15 @@ import { loadConfig, TOOLKIT_DIR } from "../lib/config.mjs";
 import { baselineUnchanged } from "../lib/baseline.mjs";
 import { relevantDecisions, renderDecisions } from "../lib/decisions.mjs";
 import { agentInsights, renderAgentInsights } from "../lib/insights.mjs";
-import { output } from "../lib/exec.mjs";
 import { readJson, writeJson } from "../lib/fs-safe.mjs";
-import { dirtyFiles, head, stateDir } from "../lib/git.mjs";
+import { head, stateDir } from "../lib/git.mjs";
 import { assertLane, DEFAULT_LANE } from "../lib/lanes.mjs";
 import { nextStep, renderNext } from "../lib/next.mjs";
 import { ok, refused, ToolkitError, tooling } from "../lib/output.mjs";
 import { assertCanBegin, beginSession, readSession } from "../lib/session.mjs";
 import { getSetting } from "../lib/settings.mjs";
-import { updateToolkit, updateTransactionTargets } from "./update.mjs";
+import { pendingToolkitFiles, saveToolkit } from "../lib/maintenance.mjs";
+import { updateToolkit } from "./update.mjs";
 
 export const description = "Open exactly one work session for one concern.";
 export const usage = 'begin "<short concern>" [--lane trivial|standard|large]';
@@ -30,7 +30,7 @@ export default async function run({ cwd, positional, flags = {}, env = process.e
   assertCanBegin(existing, head(cwd), existing ? baselineUnchanged(existing.baseline, cwd) : true);
 
   if (env[UPDATED_ENV] !== "1" && updateCheckDue(cwd)) {
-    const pendingToolkit = toolkitFiles(cwd);
+    const pendingToolkit = pendingToolkitFiles(cwd);
     let update;
     try {
       update = await (services.updateToolkit ?? updateToolkit)({ cwd, flags: {}, services });
@@ -79,20 +79,12 @@ export function updateCheckDue(cwd, now = Date.now()) {
   return !Number.isFinite(last) || now - last >= hours * 3600 * 1000;
 }
 
-function toolkitFiles(cwd) {
-  const targets = updateTransactionTargets(cwd);
-  return dirtyFiles(cwd).filter((file) => targets.some((target) => file === target || file.startsWith(`${target}/`)));
-}
-
 // Save the upgrade as its own commit, touching only toolkit-owned paths that
 // were clean before it. Returns null when it cannot, so begin can stop instead.
 function saveUpgrade(cwd, update) {
-  const files = toolkitFiles(cwd);
-  if (!files.length) return { version: update.version, commit: null };
   try {
-    output("git", ["add", "-A", "--", ...files], { cwd });
-    output("git", ["commit", "--quiet", "--only", "-m", `Upgrade the staff-engineer toolkit to ${update.version}`, "--trailer", `Toolkit-Upgrade: ${update.previousVersion} -> ${update.version}`, "--", ...files], { cwd });
-    return { version: update.version, previousVersion: update.previousVersion, commit: head(cwd), files };
+    const saved = saveToolkit(cwd, `Upgrade the staff-engineer toolkit to ${update.version}`, { "Toolkit-Upgrade": `${update.previousVersion} -> ${update.version}` });
+    return { version: update.version, previousVersion: update.previousVersion, commit: saved?.commit ?? null, files: saved?.files ?? [] };
   } catch {
     return null;
   }

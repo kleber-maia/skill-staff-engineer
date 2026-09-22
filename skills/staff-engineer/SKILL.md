@@ -29,6 +29,10 @@ memorize it.
 4. Repeat until the concern is saved. If a command refuses, its message says how to
    recover; `next` always says where you are.
 
+A concern is a product change the operator asked for. Installing, updating, configuring,
+or removing the toolkit is maintenance, not a concern: use `install`, `update`, `config`,
+`settings`, and `save-toolkit` directly, and never run the lifecycle for toolkit files.
+
 Start every new concern with `begin` before inspecting, interviewing, or editing. At
 most once a day (`updates.checkEveryHours`) it checks for a toolkit update first, saves a
 clean upgrade as its own change, and continues on the refreshed toolkit. Only when

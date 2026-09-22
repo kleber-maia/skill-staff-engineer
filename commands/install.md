@@ -2,13 +2,14 @@
 description: Install or upgrade the staff-engineer toolkit in the current project (skills, config, guardrails).
 ---
 
-Read the `install` skill first.
+Read the `install` skill first. Installing is maintenance, not a concern: never run `begin`, a brief, a preview, a review, or `ship` for it.
 
 1. Run a dry run and review the plan:
    `node "${CLAUDE_PLUGIN_ROOT}/scripts/cli.mjs" install --target . --dry-run --json`
 2. If existing skills with the same names are reported, ask the operator before adding `--replace-existing-skills`.
 3. Run it for real: `node "${CLAUDE_PLUGIN_ROOT}/scripts/cli.mjs" install --target . --yes --json`
 4. Run `node .staff-engineer/cli.mjs doctor --json` and ask the operator the listed questions one at a time, in plain language. Record each answer with `node .staff-engineer/cli.mjs config set ...`. Repeat until doctor reports no questions.
-5. Tell the operator in plain language what was set up and what changes for them: you will ask a few questions before building, show a working preview before finishing, review the work, and ask before saving. They never need to run anything; small fixes get a single check-in.
+5. Ask whether to save the setup, then run `node .staff-engineer/cli.mjs save-toolkit --json`.
+6. Tell the operator in plain language what was set up and what changes for them: you will ask a few questions before building, show a working preview before finishing, review the work, and ask before saving. They never need to run anything; small fixes get a single check-in.
 
 Arguments: $ARGUMENTS (for example `--reconfigure`, `--with-claude-hooks`, `--uninstall`).

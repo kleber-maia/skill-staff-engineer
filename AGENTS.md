@@ -15,6 +15,13 @@ Node scripts enforce the lifecycle, verification, and guarded-save operations th
 Requirements in the target project: **Node.js 20 or newer** and **git**. Nothing is installed from
 npm.
 
+## Installing is maintenance, not a concern
+
+Installing, updating, configuring, or removing the toolkit never goes through the workflow the
+toolkit adds: do not run `begin`, `brief`, `preview`, `review`, `handoff`, or `ship` for it, and do
+not apply its gates to its own files. Use only the commands below. The workflow applies from the
+operator's first product request after installation.
+
 ## Install steps
 
 1. Locate the toolkit. If you are reading this inside a clone, `<toolkit>` is this directory.
@@ -52,11 +59,14 @@ npm.
    Also explain that you run every command yourself (they never need to), that small fixes get a
    single check-in, and that the toolkit keeps itself up to date: at most once a day, `begin`
    saves a newer toolkit as its own change before starting work.
-   Suggest saving the installation as its own change.
+   Ask whether to save the installation, then run `node .staff-engineer/cli.mjs save-toolkit`.
+   It commits only toolkit-owned files, as its own change.
 
 ## Upgrading, removing
 
-- Upgrade: pull the toolkit and rerun step 4. Only toolkit-owned files change.
+- Upgrade: `node .staff-engineer/cli.mjs update` (or pull the toolkit and rerun step 4, then
+  `save-toolkit`). Only toolkit-owned files change, and `update` saves them as its own change.
+  New concerns also check for updates on their own at `begin`.
 - Remove: `node <toolkit>/scripts/cli.mjs install --target . --uninstall`.
 
 ## Rules while installing

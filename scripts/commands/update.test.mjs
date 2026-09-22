@@ -300,3 +300,33 @@ test("upstream checks are throttled by the local check interval", async () => {
     cleanup(dir);
   }
 });
+
+test("toolkit maintenance saves itself and never runs inside a concern", async () => {
+  const latest = toolkitRepository("7.7.7");
+  const dir = makeTempRepo({ files: { "README.md": "# demo\n", "src/app.mjs": "export const a = 1;\n" } });
+  try {
+    await installInto(dir);
+    await runCli(["config", "set", "gates.test", "null"], { cwd: dir });
+    writeFiles(dir, { "src/app.mjs": "export const a = 2;\n" });
+    let result = await runCli(["save-toolkit", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    assert.match(git(dir, "show", "--name-only", "--format=%s", "HEAD"), /Set up the staff-engineer toolkit[\s\S]*\.staff-engineer\/config\.json/);
+    assert.match(git(dir, "status", "--short"), /src\/app\.mjs/, "product files are never swept into a toolkit save");
+    assert.equal((await runCli(["save-toolkit", "--json"], { cwd: dir })).json.data.saved, null);
+
+    git(dir, "checkout", "--", "src/app.mjs");
+    await runCli(["begin", "Some product change", "--json"], { cwd: dir, services: { updateToolkit: async () => ({ data: { updated: false } }) } });
+    assert.equal((await runCli(["update", "--from", latest.dir, "--json"], { cwd: dir })).code, 1, "no upgrade in the middle of a concern");
+    assert.equal((await runCli(["save-toolkit", "--json"], { cwd: dir })).code, 1);
+    await runCli(["abort"], { cwd: dir });
+
+    result = await runCli(["update", "--from", latest.dir, "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    assert.ok(result.json.data.saved?.commit, "a manual update commits itself");
+    assert.match(git(dir, "log", "-1", "--format=%B"), /Upgrade the staff-engineer toolkit to 7\.7\.7[\s\S]*Toolkit-Upgrade/);
+    assert.equal(git(dir, "status", "--short"), "");
+  } finally {
+    cleanup(dir);
+    cleanup(latest.parent);
+  }
+});
