@@ -18,7 +18,7 @@ export default async function run({ cwd, flags }) {
   const brief = updated.brief;
   return ok({
     operator: `Agreed: ${brief.outcome} You will be able to check: ${brief.acceptance.map((item, index) => `${index + 1}) ${item}`).join(" ")}`,
-    agent: `Brief recorded. Build the smallest working first pass, then run ${CLI} preview. Do not write or run tests, review, simplify, or verify before the operator has seen the preview.`,
+    agent: `Brief recorded. Build the smallest working first pass, run useful existing or focused regression tests, then run ${CLI} preview. Simplification, final docs, lifecycle, and the full check wait for acceptance.`,
     data: brief,
   });
 }

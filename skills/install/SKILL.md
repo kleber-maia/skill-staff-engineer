@@ -88,7 +88,10 @@ Every new concern starts with `begin`, which checks the recorded upstream reposi
 before it opens a work session. When upstream is newer, it upgrades only toolkit-owned
 files, preserves config values and exceptions, and refuses to open the concern. Save
 that upgrade as its own change, then restart the concern. A failed upstream check also
-opens no session, so fix connectivity or use `update --from <path-or-url>` and retry.
+opens no session by default, so fix connectivity or use `update --from <path-or-url>` and retry.
+Projects may pin `updates.revision`, change the per-process `updates.timeoutMs`, or set
+`updates.offline` to `allow` when continuing with the installed copy is intentional. Updates
+record the resolved commit and roll back toolkit-owned destinations if installation fails.
 
 For a manual upgrade, run `node .staff-engineer/cli.mjs update --json`. It prefers the
 recorded repository URL over the original local checkout, which may be stale. An

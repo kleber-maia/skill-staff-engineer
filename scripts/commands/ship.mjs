@@ -72,6 +72,7 @@ export default async function run({ cwd, positional, flags, env = process.env })
 
   const savedCommit = commit(message, { cwd, trailers });
   let updated = markSaved(session, savedCommit);
+  writeSession(cwd, updated);
   let pushed = false;
   const remote = hasRemote(cwd);
   if (flags.push && remote) {
@@ -79,7 +80,7 @@ export default async function run({ cwd, positional, flags, env = process.env })
     pushed = true;
   }
   if (pushed || !remote) updated = markSynced(updated);
-  writeSession(cwd, updated);
+  if (updated.status !== "saved") writeSession(cwd, updated);
 
   const plain = isNonTechnical(config);
   return ok({

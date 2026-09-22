@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { validateBoundaryRules } from "./boundaries.mjs";
+import { validateAffectedCommandTemplate } from "./command-template.mjs";
 import { readJson, writeJson } from "./fs-safe.mjs";
 import { tooling } from "./output.mjs";
 
@@ -12,6 +13,7 @@ export const GATE_NAMES = ["install", "format", "lint", "typecheck", "test", "e2
 export const PREVIEW_KINDS = ["web", "command", "manual"];
 export const OPERATOR_MODES = ["non-technical", "technical"];
 export const TEST_QUALITY_SCOPES = ["changed", "all"];
+export const UPDATE_OFFLINE_POLICIES = ["fail", "allow"];
 export const DEFAULT_TOOLING_PATHS = ["scripts/**", "bin/**", "cmd/**", "tools/**"];
 export const DEFAULT_DOCUMENTABLE_PATHS = [
   ...DEFAULT_TOOLING_PATHS,
@@ -46,6 +48,7 @@ export function defaultConfig() {
     packageManager: null,
     gates: {},
     preview: { kind: "manual", screenshots: "auto", screenshotPaths: ["/"] },
+    updates: { revision: null, offline: "fail", timeoutMs: 60000 },
     paths: {
       source: [],
       tests: ["**/*.test.*", "**/*.spec.*", "**/*_test.*", "tests/**", "test/**", "__tests__/**", "spec/**"],
@@ -107,6 +110,7 @@ export function mergeConfig(defaults, overrides = {}) {
   merged.paths = { ...defaults.paths, ...(overrides.paths ?? {}) };
   merged.rules = { ...defaults.rules, ...(overrides.rules ?? {}) };
   merged.preview = { ...defaults.preview, ...(overrides.preview ?? {}) };
+  merged.updates = { ...defaults.updates, ...(overrides.updates ?? {}) };
   merged.gates = { ...(overrides.gates ?? {}) };
   return merged;
 }
@@ -123,6 +127,10 @@ export function validateConfig(config) {
     if (gate !== null && (typeof gate !== "object" || typeof gate.cmd !== "string" || !gate.cmd.trim())) {
       errors.push(`gates.${name} must be null or an object with a non-empty "cmd" string`);
     }
+    if (gate?.affected !== undefined) {
+      const template = validateAffectedCommandTemplate(gate.affected);
+      if (!template.ok) errors.push(`gates.${name}.affected ${template.error}`);
+    }
   }
   for (const key of Object.keys(config.paths ?? {})) {
     if (!Array.isArray(config.paths[key])) errors.push(`paths.${key} must be an array of globs`);
@@ -133,6 +141,9 @@ export function validateConfig(config) {
   if (!Number.isInteger(config.rules?.maxConcernCategories) || config.rules.maxConcernCategories < 1) errors.push("rules.maxConcernCategories must be a positive integer");
   if (config.rules?.boundaries !== undefined) errors.push(...validateBoundaryRules(config.rules.boundaries));
   if (config.preview?.screenshotPaths !== undefined && !Array.isArray(config.preview.screenshotPaths)) errors.push("preview.screenshotPaths must be an array of paths");
+  if (!UPDATE_OFFLINE_POLICIES.includes(config.updates?.offline)) errors.push(`updates.offline must be one of ${UPDATE_OFFLINE_POLICIES.join(", ")}`);
+  if (config.updates?.revision !== null && (typeof config.updates?.revision !== "string" || !config.updates.revision.trim())) errors.push("updates.revision must be null or a non-empty git revision");
+  if (!Number.isInteger(config.updates?.timeoutMs) || config.updates.timeoutMs < 1000) errors.push("updates.timeoutMs must be an integer of at least 1000");
   return errors;
 }
 

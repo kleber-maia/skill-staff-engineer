@@ -36,9 +36,9 @@ export function codeTreeFingerprint(cwd, config, mode = "working") {
   const entries = [];
   for (const file of files.sort()) {
     const hash = (mode === "staged" ? stagedBlobHash(file, cwd) : workingTreeHash(file, cwd)) || "deleted";
-    entries.push(`${file} ${hash}`);
+    entries.push([file, hash]);
   }
-  return { files: entries.map((entry) => entry.split(" ")[0]), digest: createHash("sha256").update(entries.join("\n")).digest("hex") };
+  return { files: entries.map(([file]) => file), digest: createHash("sha256").update(JSON.stringify(entries)).digest("hex") };
 }
 
 export function receiptMatches(receipt, cwd, config, mode = "staged") {

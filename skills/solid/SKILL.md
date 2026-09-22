@@ -8,7 +8,7 @@ metadata:
     source: ramziddin/solid-skills
     path: skills/solid/SKILL.md
     adapted: true
-    reason: Rewritten as a language-neutral design contract; tests are deferred until the operator accepts the preview, and value objects or fixed method-length limits are not mandated.
+    reason: Rewritten as a language-neutral design contract; focused regression tests may run during implementation, and value objects or fixed method-length limits are not mandated.
 ---
 
 # SOLID Engineering Contract
@@ -20,7 +20,7 @@ engineer can quickly discover, understand, change, test, debug, and release.
 
 1. State the operator-visible outcome and the acceptance checks from the brief.
 2. Define inputs, outputs, failure behavior, and important edge cases.
-3. Identify the smallest coherent change and the tests that will prove it later.
+3. Identify the smallest coherent change and the tests that will prove it.
 4. Prefer the existing owner and pattern. Add an abstraction only for a demonstrated
    need, never a hypothetical future.
 
@@ -51,7 +51,9 @@ engineer can quickly discover, understand, change, test, debug, and release.
 
 ## Tests
 
-Write tests after the operator accepts the preview, in the same batch as the code.
+Run existing tests and write focused bug-reproduction or regression tests during implementation
+when they shorten feedback. Keep all required coverage in the same batch as the code. Tests are
+engineering evidence; the operator's preview acceptance remains a separate requirement.
 
 - Keep tests close to the behavior they protect and name concrete outcomes.
 - Use the smallest useful layer: unit tests for isolated behavior, integration tests

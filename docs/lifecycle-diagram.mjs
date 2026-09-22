@@ -14,12 +14,12 @@ const STAGES = [
     { id: "brief", title: "brief", sub: "outcome, acceptance checks, non-goals" },
   ] },
   { title: "Build", nodes: [
-    { id: "code", title: "first working pass", sub: "SOLID; no tests yet" },
+    { id: "code", title: "working implementation", sub: "SOLID design and code" },
+    { id: "tests", title: "regression tests", sub: "existing checks and focused coverage" },
     { id: "preview", title: "preview", sub: "show the working result" },
     { id: "feedback", title: "operator feedback", kind: "decision" },
   ] },
   { title: "Finish", nodes: [
-    { id: "tests", title: "tests" },
     { id: "simplify", title: "simplify", sub: "four-lens cleanup review" },
     { id: "docs", title: "docs" },
     { id: "gate", title: "lifecycle gate + verify", sub: "receipt for verified batch" },
@@ -33,7 +33,7 @@ const STAGES = [
 const FLOW_LABELS = { feedback: "looks good", approve: "yes" };
 const LOOPS = [
   { from: "feedback", to: "code", label: "change this", lane: 0 },
-  { from: "approve", to: "tests", label: "hold", lane: 1 },
+  { from: "approve", to: "simplify", label: "hold", lane: 1 },
 ];
 
 const PALETTES = {
@@ -77,7 +77,7 @@ function render(palette) {
   const out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${height}" width="${W}" height="${height}" role="img" aria-labelledby="title desc" font-family="${FONT}">`);
   out.push(`<title id="title">The staff-engineer lifecycle</title>`);
-  out.push(`<desc id="desc">Agree: begin, grill-me, brief. Build: first working pass, preview, operator feedback (change requests loop back). Finish: tests, simplify, docs, lifecycle gate and verify. Save: handoff, ship it approval (hold loops back to finishing), ship as one commit.</desc>`);
+  out.push(`<desc id="desc">Agree: begin, grill-me, brief. Build: implementation, regression tests, preview, operator feedback (change requests loop back). Finish: simplify, docs, lifecycle gate and verify. Save: handoff, ship it approval (hold loops back to finishing), ship as one commit.</desc>`);
   out.push(`<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="${p.arrow}"/></marker></defs>`);
 
   for (const band of bands) {

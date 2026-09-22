@@ -42,7 +42,7 @@ function nextStep(data) {
   if (!s || s.cleared || s.status === "synced") return 'Open a concern with: node .staff-engineer/cli.mjs begin "Short concern"';
   if (s.status === "saved") return "Run: node .staff-engineer/cli.mjs ship --sync-only";
   if (!s.brief) return "Interview the operator (grill-me skill), then record the brief.";
-  if (s.phase === "implementation") return "Build the smallest working first pass, then run preview. No tests, review, or verification yet.";
+  if (s.phase === "implementation") return "Build the smallest working first pass with useful regression checks, then run preview. Final review and full verification wait for acceptance.";
   if (s.phase === "awaiting_feedback") return "Wait for the operator. On change requests run revise; on clear acceptance run STAFF_ENGINEER_PREVIEW_APPROVED=1 ... finalize.";
-  return data.receipt?.current ? "Run handoff and ask for approval; after \"ship it\" run the approved ship." : "Tests, simplify, docs, then lifecycle and verify --mode full.";
+  return data.receipt?.current ? "Run handoff and ask for approval; after \"ship it\" run the approved ship." : "Complete coverage, simplify, docs, then lifecycle and verify --mode full.";
 }

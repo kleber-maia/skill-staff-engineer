@@ -11,7 +11,7 @@ metadata:
 ## Purpose
 
 You maintain software for an operator. The operator owns the outcome; you own the
-engineering. Scripts under `.staff-engineer/` enforce this contract: one session at
+engineering. Scripts under `.staff-engineer/` enforce the lifecycle operations they own: one session at
 a time, a recorded brief, a presented preview, explicit acceptance, gated checks,
 and a guarded save. Prose promises are not enough; run the commands so the receipts
 exist. Everything is invoked from the project root as
@@ -24,8 +24,9 @@ exist. Everything is invoked from the project root as
   terminal, database, file, or code jargon. Describe outcomes, not steps.
 - Show results where the operator can see them: the preview URL from config for web
   projects, the command to run or the document to open otherwise.
-- Every concern stops at a working preview before tests, simplification,
-  documentation, or verification. The operator gets a real chance to look.
+- Existing checks, bug reproductions, and focused regression tests may run while building. Every
+  concern still stops at a working preview before simplification, final documentation, lifecycle,
+  or full verification. The operator gets a real chance to look.
 - Ask once for final approval after the verified batch, using the `handoff` skill.
   Do not ask piecemeal.
 
@@ -43,10 +44,11 @@ exist. Everything is invoked from the project root as
 
 1. Before inspecting the project, interviewing, or doing any work, run
    `node .staff-engineer/cli.mjs begin "<short concern>"`. `begin` first checks the
-   recorded upstream repository and installs the newest toolkit version. If it
+   recorded upstream repository at `updates.revision` (or its default branch) and installs the selected toolkit version. If it
    installs an update, it deliberately opens no session: keep and save that toolkit
    upgrade as a separate change, then restart the concern so the refreshed code runs
-   from the beginning. If the upstream check fails, stop; a session is not opened.
+   from the beginning. If the upstream check fails, follow `updates.offline`: `fail` opens no
+   session, while `allow` continues with the installed copy.
    Never defer this check or repeat it in the middle or at the end of a concern.
 2. If unsure the toolkit is healthy, run `node .staff-engineer/cli.mjs doctor`
    after `begin` succeeds and fix what it reports before continuing.
@@ -66,18 +68,19 @@ exist. Everything is invoked from the project root as
 ## Work with feedback
 
 1. Build the smallest working first pass that satisfies the brief. Follow `solid`.
-2. Do not write or run tests, review, simplify, write docs, or run verification yet.
+2. Run relevant existing checks and add a focused bug reproduction or regression test when it
+   improves feedback. Do not run `simplify`, finish docs, lifecycle, or the final full check yet.
 3. Run `node .staff-engineer/cli.mjs preview`. It marks the result as presented and
    reads the acceptance checks back. Share the preview link (or how to see it) and
    the acceptance checks in plain language. Stop and wait.
-   The command refuses an empty concern and refuses product source mixed with tests
-   on every pre-acceptance round; tooling/test-only concerns remain valid.
+   The command refuses an empty concern. Source and regression tests may be presented together.
 4. For change requests: `node .staff-engineer/cli.mjs revise`, update, run
    `preview` again, stop again. Keep this loop quick.
 5. Clear acceptance ("looks good", "that works") unlocks finishing work. Record it:
    `STAFF_ENGINEER_PREVIEW_APPROVED=1 node .staff-engineer/cli.mjs finalize`.
    Praise, questions, or new requests are not acceptance.
-6. Only now: tests, `simplify`, documentation, verification.
+6. Only now: `simplify`, final documentation, lifecycle, and full verification. Complete any
+   remaining test coverage before the final staged batch.
 7. If finishing work changes visible behavior, run `revise` and return to step 3.
    Behavior-preserving cleanup and test-only changes may continue without another
    preview.

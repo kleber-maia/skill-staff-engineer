@@ -5,7 +5,7 @@
 **Turn your AI coding agent into a staff engineer you can trust with your product.**
 
 A drop-in toolkit for Claude Code, Codex, Kimi, Pi, OpenCode, Cursor, and any other coding agent. It makes the
-agent interview you before building, show you a working result before writing tests, follow SOLID
+agent interview you before building, write focused regression tests as it works, show you a working result, follow SOLID
 while it codes, clean up after itself, run your project's own checks through a gate, and ask for
 your approval in plain language before anything is saved. The model writes the code; the toolkit
 supplies the engineering judgment. Works with any language or framework. No dependencies. Installed
@@ -27,7 +27,8 @@ judgment: asking before building, refusing to call something done before it is s
 keeping changes small and separate, leaving code cleaner than it was found, and knowing exactly what
 to check before saying "this is safe to ship."
 
-staff-engineer packages that judgment as skills the agent reads and scripts the agent cannot skip.
+staff-engineer packages that judgment as skills the agent reads and a CLI that makes the critical
+state transitions and save checks repeatable.
 The model still writes the code. The toolkit supplies the discipline that carries you from 80
 percent to the 100 percent you thought you could not reach without hiring an engineer.
 
@@ -48,8 +49,8 @@ Left alone, even the best coding agent behaves like a talented junior on their f
 - **Every project starts from zero.** The careful setup you built for one repository does not
   travel to the next one, or to a different agent.
 
-None of this is a model problem. It is a process problem, and process needs enforcement, not
-reminders.
+None of this is a model problem. It is a process problem, and process benefits from durable checks
+instead of reminders alone.
 
 ## What changes
 
@@ -57,13 +58,13 @@ reminders.
 |---|---|
 | The agent guesses at what you meant | The agent asks at most three questions per round, each with a recommended answer, and records the agreed outcome and how you will check it |
 | "Done" means the tests pass | "Done" means **you** saw it working, said so, and then it got tested, cleaned up, documented, and checked |
-| Tests are written first and defended later | Tests are written **after** you accept the preview, so they protect what you actually wanted |
+| Tests are treated as a substitute for product review | Existing tests, bug reproductions, and focused regressions run early; your acceptance still controls final completion |
 | Debug lines, `TODO`s, `any`, `eslint-disable`, oversized files slip through | A staged-diff gate refuses them, in ten languages, before anything is saved |
 | Unrelated changes ride along in one commit | One concern, one session, one commit. Files that were already dirty are fingerprinted and kept out |
 | Cross-feature imports and UI shortcuts accumulate | Architecture boundaries and UI finish rules are checked on every batch |
 | Status reports are full of git and terminal jargon | Every operator-facing message is plain language: what changed, what to look at, what was checked, what was left out |
 | Praise for a screen is treated as a green light | Acceptance of a preview and approval to save are two separate, explicit steps |
-| Rules live in a prompt and decay | Rules live in scripts and hooks that refuse out-of-order steps, on every task, forever |
+| Rules live in a prompt and decay | The shared CLI records state and refuses invalid lifecycle, verification, and save operations; skills and optional hooks guide the agent between them |
 | Setup is per project and per agent | One install: skills for every agent, a Claude Code plugin, and a vendored CLI that checks upstream before every new concern |
 
 ## Right things, right order
@@ -73,8 +74,8 @@ every step is placed where it prevents the most expensive kind of rework.
 
 - **Three questions before code** cost a minute. A wrong guess costs a rebuild, a second review, and
   the trust lost in between.
-- **A preview before tests** makes change requests cheap. There is nothing to un-test yet, so "move
-  that button" is a small edit, not an afternoon of rewriting assertions.
+- **Early regression tests plus a working preview** catch known breakage without treating tests as
+  product acceptance. A change request still returns to implementation and another preview.
 - **One concern per commit** keeps debugging scoped and reverts surgical. You never untangle three
   fixes to undo one.
 - **A gate before the full check** means the expensive test suite runs once, on a batch already
@@ -92,8 +93,7 @@ task, without asking the agent to be more careful.
 ## Who it is for
 
 - **Founders and operators without an engineering background** who run their product through an
-  agent. You get a collaborator that explains itself, shows its work, and never saves without
-  asking.
+  agent. You get a workflow that asks for plain-language approval before its guarded save.
 - **Engineers using agents daily** who are tired of reviewing sloppy diffs. You get a colleague
   who follows SOLID, keeps batches small, and cleans up before handing over.
 - **Teams mixing agents and people.** Every agent in every harness reads the same contract from
@@ -120,8 +120,8 @@ working version, and comes back:
 > order. 3) Pick last month and confirm only those orders are included. Tell me what to change, or
 > say it looks good.
 
-You ask for a change; the agent revises and shows it again. You say it looks good. Only now it
-writes tests, runs a four-lens cleanup review, updates the docs, passes the gate, runs your
+You ask for a change; the agent revises its code and regression tests and shows it again. You say
+it looks good. Only now it runs a four-lens cleanup review, updates the docs, passes the gate, runs your
 project's full checks once, and asks:
 
 > **What changed:** Customers can export their order history as a spreadsheet, for all time or a
@@ -139,11 +139,12 @@ You reply "ship it". One commit lands, carrying the agreed outcome in its traile
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/lifecycle-dark.svg">
-    <img alt="The staff-engineer lifecycle: agree (begin, grill-me, brief), build (first working pass, preview, operator feedback), finish (tests, simplify, docs, lifecycle gate and verify), save (handoff, ship it approval, one guarded commit)" src="docs/lifecycle-light.svg" width="460">
+    <img alt="The staff-engineer lifecycle: agree (begin, grill-me, brief), build (implementation, regression tests, preview, operator feedback), finish (simplify, docs, lifecycle gate and verify), save (handoff, ship it approval, one guarded commit)" src="docs/lifecycle-light.svg" width="460">
   </picture>
 </p>
 
-Every arrow is enforced by a script, not just described in a prompt:
+The CLI enforces the stateful transitions and save checks below. Skills describe the work between
+those transitions, and optional Claude Code hooks provide immediate guidance:
 
 - **Agree.** As its first action, `begin` checks the recorded upstream repository. If a newer
   toolkit is found, it upgrades the toolkit but opens no work session, so that upgrade can be saved
@@ -152,11 +153,11 @@ Every arrow is enforced by a script, not just described in a prompt:
   already pending so it cannot be swept in. The `grill-me` skill runs the interview. `brief`
   records the outcome and the acceptance checks you will perform. `context` gathers the skills,
   docs, tests, and dependencies relevant to the planned files.
-- **Build.** The `solid` skill governs the code: design, code, and test rules, with reference notes
+- **Build.** The `solid` skill governs the code and focused tests, with reference notes
   on SOLID principles, architecture, clean code, code smells, complexity, design patterns, object
-  design, and testing. `preview` presents the result and reads your checks back. Until you accept,
-  test runs and test edits are refused.
-- **Finish.** Tests, then the `simplify` skill (four lenses: reuse, quality, efficiency, altitude,
+  design, and testing. Existing tests, bug reproductions, and regression tests may run during
+  implementation. `preview` presents the result and reads your checks back.
+- **Finish.** After acceptance, the `simplify` skill (four lenses: reuse, quality, efficiency, altitude,
   every finding with `file:line` evidence and a SAFE/CAREFUL/RISKY tier), then docs. The
   `lifecycle` gate inspects the staged diff. `verify` runs your project's own format, lint,
   typecheck, test, build, and end-to-end commands and writes a receipt for that exact verified batch.
@@ -175,8 +176,8 @@ good" means finish it properly. "Ship it" means save. Anything else is treated a
 permission. If you walk away and come back a week later, the agent picks up exactly where the two of
 you left off, because the state lives in the project, not in a chat window.
 
-Engineers get the same thing from the other side: an agent that never commits behind their back,
-never leaves debug output, never mixes concerns, and always shows its work.
+Engineers get the same thing from the other side: a guarded save that rejects missing approval,
+debug output, and mixed concern scope, plus a workflow that presents the result first.
 
 <details>
 <summary><strong>Under the hood</strong> (you do not need to read this)</summary>
@@ -194,8 +195,9 @@ never leaves debug output, never mixes concerns, and always shows its work.
   and independent fresh data.
   Every rule can be disabled or given a justified exception.
 - **A begin-time upstream guard** that uses the repository URL recorded at installation (with a
-  canonical fallback), installs a newer toolkit before any session exists, and requires a restart.
-  It fails closed when upstream cannot be checked and never runs during the middle or end phases.
+  canonical fallback), resolves an optional pinned revision, installs a changed toolkit before any
+  session exists, and requires a restart. It follows the explicit offline policy and never runs
+  during the middle or end phases.
 - **A verification wrapper** that runs your project's own commands, stops at the first failure with
   a focused `file:line` report, keeps a timing ledger, and writes a receipt so the full check runs
   once per batch.
@@ -203,7 +205,7 @@ never leaves debug output, never mixes concerns, and always shows its work.
   work that was already pending when a concern began.
 - **A Claude Code plugin** with a slash command per step, subagents for the four simplify lenses plus
   an explorer and a verifier, and hooks that inject session state at start, deny dangerous commands,
-  protect secrets, block tests before feedback, and block raw commits while a concern is open.
+  protect secrets, and block raw commits while a concern is open.
 - **Zero dependencies.** Node.js 20+ and git are all a project needs.
 
 </details>
@@ -252,6 +254,28 @@ only staged assertion changes. Repositories that require a clean whole-test base
 whose changes require documentation without treating them as product source or demanding a product
 test. Projects that set `rules.requireSession` to `block` also make finalizing phase and a current,
 complete context packet mandatory at lifecycle time.
+
+Automatic update behavior is configurable under `updates`: `revision` can pin a branch, tag, or
+commit; `timeoutMs` bounds each network and installer subprocess; and `offline` is `fail` by default
+or `allow` when work may continue with the installed copy. Successful installs record the resolved
+commit. Update writes are transactional over toolkit-owned destinations and managed blocks. For
+affected test commands, `{files}` must appear once as a top-level token outside quotes after a
+simple static runner command. Shell command-evaluation templates such as `sh -c`, `eval`, and
+Windows `call` are unsupported; normal npm, Jest, Vitest, pytest,
+and similar runner commands remain supported. The CLI passes each path through an environment
+variable so file names cannot become shell syntax.
+
+### Trust boundary
+
+staff-engineer is a cooperative workflow, not a security sandbox. The vendored CLI can enforce the
+rules of commands that pass through it: session transitions, protected staged batches, immutable
+verification inputs, receipts, approval flags, and guarded commits. Claude Code hooks are optional,
+harness-specific, and deliberately fail open if they break. Other agents follow the installed
+skills and `AGENTS.md`; they are not technically prevented from invoking git directly. The default
+`rules.requireSession: "warn"` also reports skipped session discipline without blocking standalone
+lifecycle use; set it to `"block"` when the project wants the CLI gate to require a finalized
+session and current context packet. Approval environment variables record what the cooperating
+agent heard from the operator; they are not authentication tokens.
 
 For the curious: [docs/lifecycle.md](docs/lifecycle.md) walks through every step and what it
 refuses, [docs/design.md](docs/design.md) explains why, and [docs/faq.md](docs/faq.md) answers the
