@@ -30,6 +30,26 @@ None of this is a model problem. It is a process problem, and process needs dura
 reminders. staff-engineer packages that judgment as skills the agent reads and a small CLI that
 refuses to skip the steps that matter.
 
+## Discipline is cheaper than disorder
+
+Skipping steps feels fast until the bill arrives. Disorder costs time, money, or both:
+
+- a feature rebuilt because nobody asked what was actually wanted;
+- a fix that quietly breaks another screen and is found by a customer;
+- a bug that comes back because nothing proved it was gone;
+- a change nobody can undo cleanly because three things were saved together;
+- hours of an expensive engineer untangling code no one dares to touch.
+
+And depending on what the software does, it can be far worse than wasted time: a customer charged
+twice, records deleted or leaked, an account opened to the wrong person, a medical or financial
+number that is quietly wrong. Those are not bugs you fix on Monday; they cost trust, money, and
+sometimes much more.
+
+Preventing that is the whole reason this toolkit exists. The second goal is to do it without
+waste: the extra care is paid once, only where the risk is, and as much of it as possible is done
+by plain code rather than by the model, so agents and tokens are spent on judgment, not on
+repeating themselves.
+
 ## What changes
 
 | Before | After |
@@ -61,29 +81,6 @@ agents, and other machines.
 - **What works.** A private history on your machine tells the agent when changes keep needing
   extra rounds, a rule keeps getting waived, or a saved change was later undone, so it adjusts, and
   every tenth save you hear, in one line, how often things were right the first time.
-
-## Efficiency and cost
-
-Discipline sounds expensive. The toolkit is built so the extra work is small, paid once, and only
-where the risk is.
-
-- **Cost follows risk.** A typo gets no interview, a self-review, and one check-in with you. A
-  normal change gets one independent reviewer, which costs roughly one extra read of its diff. Only
-  changes to stored data, sign-in, or money get several reviewers.
-- **Code does the repetitive work, not the model.** The CLI works out the next step, assembles one
-  review packet (the diff, its callers, its tests), runs your preview probes and bug
-  reproductions, and fingerprints what was checked. None of that spends model tokens.
-- **Nothing runs twice.** Your full test suite runs once per change, and the receipt proves it ran
-  on exactly the code being saved, so there are no reruns "to be safe". Later fixes are reviewed as
-  a delta only. Unchanged previews are not rechecked, and updates are looked for once a day.
-- **Less context spent rediscovering things.** The agent reads a short step from `next` instead of
-  the whole process, a context packet instead of crawling the repository, and your saved decisions
-  instead of asking again.
-- **The biggest saving is rework avoided.** A minute of questions prevents a rebuild. Showing you
-  the result before finishing means tests and cleanup happen once, on the version you wanted. A
-  review before saving is cheaper than a bug found by a customer.
-- **You set the ceiling.** Ask the agent to spend less and it caps the review level or turns
-  self-checks off, on your machine only.
 
 ## A session, from your seat
 
