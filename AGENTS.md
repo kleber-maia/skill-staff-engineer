@@ -49,8 +49,9 @@ npm.
 6. Read `.agents/skills/staff-engineer/SKILL.md` and follow it from now on.
 7. Tell the operator, in plain language, what changed for them: before building you will ask a
    few questions, you will show a working result before finishing, and you will ask before saving.
-   Also explain that the first `begin` step checks upstream automatically; if it upgrades the
-   toolkit, that upgrade is saved separately and the concern restarts.
+   Also explain that you run every command yourself (they never need to), that small fixes get a
+   single check-in, and that the toolkit keeps itself up to date: at most once a day, `begin`
+   saves a newer toolkit as its own change before starting work.
    Suggest saving the installation as its own change.
 
 ## Upgrading, removing

@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "staff-engineer",
-      "description": "A cooperative staff-engineer workflow: clarify, build and test, preview, verify, and request approval before saving. Stack-agnostic, zero dependencies.",
+      "description": "A cooperative staff-engineer workflow: clarify, build and test, preview, review sized to risk, verify, and request approval before saving. Stack-agnostic, zero dependencies.",
       "source": "./",
       "category": "productivity"
     }

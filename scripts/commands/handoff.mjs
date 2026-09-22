@@ -15,7 +15,7 @@ export default async function run({ cwd }) {
   // Only a handoff of the verified batch can be answered with approval to save.
   if (current) writeSession(cwd, recordHandoff(session, receipt.at));
   const preview = config.preview?.kind === "web" ? (config.operator?.previewPublicUrl ?? config.preview.url) : null;
-  const checked = describeChecks(receipt, current, config);
+  const checked = describeChecks(receipt, current, config, session.review);
   const text = renderHandoff({ brief, preview, checked, technical: !isNonTechnical(config), files: sessionConcernFiles(session, cwd) });
   return ok({
     operator: text,
@@ -38,11 +38,13 @@ export function renderHandoff({ brief, preview, checked, technical, files = [] }
   return lines.join("\n");
 }
 
-function describeChecks(receipt, current, config) {
+const REVIEW_WORDS = { minimum: "a code self-review", standard: "an independent code review", detailed: "a detailed code review by several reviewers" };
+
+function describeChecks(receipt, current, config, review) {
   if (!receipt || !current) return "<the checks have not been run on this exact version yet>";
   const ran = receipt.gates.filter((gate) => gate.status === "passed").map((gate) => gate.name);
   const words = { format: "formatting", lint: "code style", typecheck: "type safety", test: "automated tests", e2e: "end-to-end scenarios", build: "a full build" };
   const parts = ran.map((name) => words[name] ?? name);
   const manual = config.preview?.kind === "web" ? "the preview by hand" : "the result by hand";
-  return [manual, ...parts].join(", ").replace(/, ([^,]*)$/, " and $1");
+  return [manual, ...(review ? [REVIEW_WORDS[review.level]] : []), ...parts].join(", ").replace(/, ([^,]*)$/, " and $1");
 }

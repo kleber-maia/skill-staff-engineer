@@ -15,7 +15,7 @@ operator). `status`, `begin`, `finalize`, and the Claude Code hooks show the sam
 | `context <files>` | unchanged | Packet of skills, related docs and tests, and imported modules; digests recorded. With blocking sessions, lifecycle refuses a missing, pre-session, or incomplete packet (not needed in the size-capped `trivial` lane). Listed-skill drift always blocks. |
 | `preview` | `awaiting_feedback` | Refuses an empty concern, a `trivial` concern past its size cap, and a `large` concern without a plan. In `trivial`, asks the save question and fingerprints the presented source. Runs the brief's probes per `preview.selfCheck` and refuses on failure; an unchanged concern reuses the last passing result. Source and focused regression tests may be presented together on every review round. Web previews must respond; command previews must exit 0. Acceptance checks are read back to the operator. |
 | `revise` | `implementation` | Editing source while awaiting feedback is denied by the Claude hook until this runs. |
-| `finalize --approval-quote "..."` | `finalizing` | Needs the operator's words of acceptance, sent after the preview (checked against recorded operator messages when the harness records them). Simplification, final documentation, lifecycle, and the final full verification are unlocked. |
+| `finalize --approval-quote "..."` | `finalizing` | Needs the operator's words of acceptance, sent after the preview (checked against recorded operator messages when the harness records them). The code review, final documentation, lifecycle, and the final full verification are unlocked. |
 | `review` / `review done` | unchanged | Prepares the review packet at the required level (trivial before its preview; otherwise after acceptance). `done` records found/fixed/reported counts bound to the reviewed code; a lower level needs `--reason`. |
 | `lifecycle` | unchanged | Blocking-session projects must be finalizing with current context coverage. The staged diff passes language and structural rules; the whole concern is staged; no protected or never-stage paths; docs and tests are present or waived. |
 | `verify --mode full` | unchanged | All configured gates pass without changing HEAD or their inputs; a receipt fingerprints executable, rule, dependency, and configuration files, including toolkit runtime/config. A new run invalidates an older receipt immediately. Prose-only docs and skill edits keep it valid. Durations go to a ledger; runs slower than usual are flagged. |
@@ -26,7 +26,7 @@ operator). `status`, `begin`, `finalize`, and the Claude Code hooks show the sam
 
 | Lane | Operator touchpoints | Skips | Adds |
 |---|---|---|---|
-| `trivial` | One: the preview asks "ship it?" | Interview, context packet, independent review, handoff | Size cap (`rules.lanes.trivial`, default 3 source files and 40 added lines); tests and docs finish before the preview |
+| `trivial` | One: the preview asks "ship it?" | Interview, context packet, independent review, handoff | Size cap (`rules.lanes.trivial`, default 3 source files and 40 added lines); tests, docs, and the minimum review finish before the preview |
 | `standard` | Brief, preview, handoff | Nothing | Nothing |
 | `large` | Brief, plan, preview, handoff | Nothing | An agreed spec and plan before the first preview |
 
@@ -71,13 +71,13 @@ committed with the change. A newer decision on the same topic supersedes the old
 ## Insights
 
 `ship` and `abort` add a one-line summary of the concern to `.git/staff-engineer/history.json`
-(local, never committed): lane and lane moves, review rounds, probes, gate blocks, waivers, and
-approval evidence. Nobody has to ask for results:
+(local, never committed): lane and lane moves, preview rounds, probes, gate blocks, waivers, the
+code-review level and counts, and approval evidence. Nobody has to ask for results:
 
 - `begin` shows the agent at most two findings, only after enough history (usually five saved
   concerns): many review rounds, no automatic checks on web previews, a waiver or gate rule that
   keeps firing, trivial concerns that keep outgrowing their lane, or a saved change that was later
-  reverted. A finding is shown once and repeats only when it changes, at most every 14 days.
+  reverted (with its review level, so similar changes are reviewed more deeply). A finding is shown once and repeats only when it changes, at most every 14 days.
 - `ship` adds a plain-language milestone for the operator every tenth saved change.
 - `stats` prints the summary for the agent.
 
