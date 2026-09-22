@@ -4,13 +4,11 @@
 
 **Turn your AI coding agent into a staff engineer you can trust with your product.**
 
-A drop-in toolkit for Claude Code, Codex, Kimi, Pi, OpenCode, Cursor, and any other coding agent. It makes the
-agent interview you before building, write focused regression tests as it works, show you a working result, follow SOLID
-while it codes, review its own work for bugs and missed requirements, clean up after itself, run your
-project's own checks through a gate, and ask for your approval in plain language before anything is
-saved. You never type a command: the agent drives everything. The model writes the code; the toolkit
-supplies the engineering judgment. Works with any language or framework. No dependencies. Installed
-by the agent itself in one instruction.
+A drop-in toolkit for Claude Code, Codex, Kimi, Pi, OpenCode, Cursor, and any other coding agent.
+The agent interviews you before building, shows you a working result, has its code reviewed for
+bugs and missed requirements, runs your project's own checks, and asks for your approval in plain
+language before anything is saved. You never type a command; the agent drives everything. Any
+language or framework, no dependencies, installed by the agent itself:
 
 ```text
 "install https://github.com/kleber-maia/skill-staff-engineer into this project"
@@ -18,187 +16,103 @@ by the agent itself in one instruction.
 
 ## The last 20 percent
 
-Anyone who has built something with an agent has felt it. A great model in a great harness gets you
-to **80 percent of great software** astonishingly fast. Then the other 20 percent shows up: the edge
-case nobody asked about, the fix that quietly broke a different screen, the change you cannot judge
-because you cannot read the diff, the codebase that slowly becomes something no one dares to touch.
+A great model gets you to 80 percent of great software astonishingly fast. The last 20 percent is
+judgment, and left alone, even the best agent behaves like a talented junior in their first week:
 
-That 20 percent is why software engineers still exist. It was never about typing faster. It is
-judgment: asking before building, refusing to call something done before it is seen working,
-keeping changes small and separate, leaving code cleaner than it was found, and knowing exactly what
-to check before saying "this is safe to ship."
+- **It starts typing before it understands**, and you find the wrong guess after the code exists.
+- **It calls it done when the tests pass.** You never saw it work.
+- **It misses things**: the edge case, the caller it broke, the requirement it forgot.
+- **It leaves a mess**: debug output, suppressed warnings, three unrelated fixes in one commit.
+- **It speaks engineer**, so you cannot judge whether the news is good.
+- **It forgets.** Rules fade as the chat grows, and every new chat starts from zero.
 
-staff-engineer packages that judgment as skills the agent reads and a CLI that makes the critical
-state transitions and save checks repeatable.
-The model still writes the code. The toolkit supplies the discipline that carries you from 80
-percent to the 100 percent you thought you could not reach without hiring an engineer.
-
-## What the missing 20 percent looks like
-
-Left alone, even the best coding agent behaves like a talented junior on their first week:
-
-- **It starts typing before it understands.** Ambiguity gets resolved by guessing, and you
-  discover the wrong guess after the code is written.
-- **It calls it done when the tests pass.** You never saw it work. Tests written before you looked
-  at the result cement the wrong behavior and make every change request expensive.
-- **It leaves a mess.** Debug output, `TODO`s, suppressed warnings, weakened types, a new
-  `utils.ts` nobody owns, a 600-line file, and three unrelated fixes swept into one commit.
-- **It speaks engineer.** "I refactored the service layer and rebased onto main." If you are not
-  an engineer, you cannot judge whether that is good news.
-- **It forgets the rules.** Instructions in a prompt fade as the conversation grows. The tenth
-  task is done sloppier than the first.
-- **Every project starts from zero.** The careful setup you built for one repository does not
-  travel to the next one, or to a different agent.
-
-None of this is a model problem. It is a process problem, and process benefits from durable checks
-instead of reminders alone.
+None of this is a model problem. It is a process problem, and process needs durable checks, not
+reminders. staff-engineer packages that judgment as skills the agent reads and a small CLI that
+refuses to skip the steps that matter.
 
 ## What changes
 
 | Before | After |
 |---|---|
-| The agent guesses at what you meant | The agent asks at most three questions per round, each with a recommended answer, and records the agreed outcome and how you will check it |
-| "Done" means the tests pass | "Done" means **you** saw it working, said so, and then it got reviewed, tested, cleaned up, documented, and checked |
-| Tests are treated as a substitute for product review | Existing tests, bug reproductions, and focused regressions run early; your acceptance still controls final completion |
-| Bugs, regressions, and missed requirements reach the product | Every code change gets a review sized to its risk, from a quick self-check to parallel specialists, before it can be saved |
-| Debug lines, `TODO`s, `any`, `eslint-disable`, oversized files slip through | A staged-diff gate refuses them, in ten languages, before anything is saved |
-| Unrelated changes ride along in one commit | One concern, one session, one commit. Files that were already dirty are fingerprinted and kept out |
-| Cross-feature imports and UI shortcuts accumulate | Architecture boundaries and UI finish rules are checked on every batch |
-| Status reports are full of git and terminal jargon | Every operator-facing message is plain language: what changed, what to look at, what was checked, what was left out |
-| Praise for a screen is treated as a green light | Acceptance of a preview and approval to save are two separate, explicit steps |
-| Rules live in a prompt and decay | The shared CLI records state and refuses invalid lifecycle, verification, and save operations; skills and optional hooks guide the agent between them |
-| Every change pays the same process cost | Lanes size the process to the work: a typo gets one check-in, a payments change gets a detailed review |
-| You answer the same questions on every request | Decisions are saved with each change and reused, so you are not asked twice |
-| Setup is per project and per agent | One install: skills for every agent, a Claude Code plugin, and a vendored CLI that keeps itself up to date |
+| The agent guesses at what you meant | It asks at most three questions, each with a recommended answer, and records what you agreed |
+| "Done" means the tests pass | "Done" means **you** saw it working and said so; then it is reviewed, tested, cleaned up, and checked |
+| Bugs, regressions, and missed requirements slip through | Every code change gets a review sized to its risk, from a quick self-check to several independent reviewers |
+| A fixed bug comes back | A bug fix is saved only with a test that fails without the fix and passes with it |
+| Debug lines, `TODO`s, `any`, oversized files slip in | A gate refuses them, in ten languages, before anything is saved |
+| Unrelated changes ride along | One change, one commit; work that was already pending is kept out |
+| Status reports are full of jargon | Every message to you is plain language |
+| Praise for a screen is taken as a green light | Accepting a preview and approving a save are two separate, explicit steps |
+| Every request pays the same process cost | A typo gets one check-in; a payments change gets a detailed review |
+| Every chat starts from zero | It remembers your decisions, known weak spots, and what worked (below) |
 
-## Right things, right order
+## It remembers
 
-Discipline looks slower. It is the fastest way to finish, and the toolkit's order is not arbitrary:
-every step is placed where it prevents the most expensive kind of rework.
+The agent's memory lives in the project, not in a chat window, so it survives new chats, other
+agents, and other machines.
 
-- **Three questions before code** cost a minute. A wrong guess costs a rebuild, a second review, and
-  the trust lost in between.
-- **Early regression tests plus a working preview** catch known breakage without treating tests as
-  product acceptance. A change request still returns to implementation and another preview.
-  Automatic checks the toolkit runs itself catch obvious misses before you look, at no cost.
-- **A review sized to the risk** runs once, on the version you accepted. A typo gets a quick
-  self-check; money or sign-in gets several independent reviewers. Later fixes are reviewed as a
-  delta, so review cost never repeats.
-- **One concern per commit** keeps debugging scoped and reverts surgical. You never untangle three
-  fixes to undo one.
-- **A gate before the full check** means the expensive test suite runs once, on a batch already
-  known to be clean. The receipt then makes reruns "to be safe" unnecessary, and the toolkit refuses
-  to do them.
-- **A context packet instead of a repository crawl** points the agent at the files, docs, and tests
-  that matter, so it stops re-reading the codebase on every task.
-- **A plain-language handoff** lets you decide in one read, instead of a back-and-forth about what
-  was actually done.
-
-The result is fewer rebuilds, fewer wasted test runs, shorter debugging loops, and far less context
-spent re-discovering the same facts. That is time, tokens, and frustration you keep, on every single
-task, without asking the agent to be more careful.
-
-## Who it is for
-
-- **Founders and operators without an engineering background** who run their product through an
-  agent. You get a workflow that asks for plain-language approval before its guarded save.
-- **Engineers using agents daily** who are tired of reviewing sloppy diffs. You get a colleague
-  who follows SOLID, keeps batches small, and cleans up before handing over.
-- **Teams mixing agents and people.** Every agent in every harness reads the same contract from
-  `AGENTS.md`, runs the same gates, and produces commits with the same shape and trailers.
+- **Where you left off.** The current piece of work, its agreed outcome, and its step are kept in
+  the project. Come back a week later and the agent continues exactly there.
+- **Your decisions.** Every choice you settle ("export as CSV", "no scheduled emails") is saved with
+  the change. Before asking you anything new, the agent sees the decisions that apply, so you are
+  never asked twice. Committed, so teammates and other agents inherit them.
+- **Known weak spots.** Problems a review found but left for later are saved with the files they
+  affect. When later work touches those files, the agent sees them and can fix them while it is
+  there, and it tells you when a weak spot remains near a change.
+- **What works.** A private history on your machine tells the agent when changes keep needing
+  extra rounds, a rule keeps getting waived, or a saved change was later undone, so it adjusts, and
+  every tenth save you hear, in one line, how often things were right the first time.
 
 ## A session, from your seat
 
 You: *"Customers should be able to export their order history."*
 
-The agent opens one concern and asks, in a single message:
+> **Q1. Format.** Spreadsheet or PDF? *Recommended: spreadsheet, customers like to filter it.*
+> **Q2. Range.** Everything or chosen dates? *Recommended: chosen dates, "all time" by default.*
 
-> **Q1. Format.** Spreadsheet or PDF? *Recommended: spreadsheet (CSV), because customers usually
-> want to filter it.*
-> **Q2. Range.** Everything, or a chosen date range? *Recommended: a date range with "all time" as
-> the default.*
-> **Q3. Where.** A button on the Orders page, or in Account settings? *Recommended: Orders page,
-> next to the filters.*
+You say "go with your recommendations". The agent builds it and shows you where to try it, with
+three things to check. You ask for one change, it revises, you say it looks good. An independent
+reviewer then checks the change, the agent fixes what it found, runs your project's checks, and
+asks:
 
-You answer, or say "go with your recommendations". The agent records the brief, builds the smallest
-working version, and comes back:
-
-> The export is ready to try at your preview address. Please check: 1) Open Orders and find the
-> Export button next to the filters. 2) Export all time and confirm the file opens with one row per
-> order. 3) Pick last month and confirm only those orders are included. Tell me what to change, or
-> say it looks good.
-
-You ask for a change; the agent revises its code and regression tests and shows it again. You say
-it looks good. Only now an independent reviewer checks the change for bugs, regressions, edge cases,
-and missed requirements, and cleans it up; the agent fixes what it found, updates the docs, passes the
-gate, runs your project's full checks once, and asks:
-
-> **What changed:** Customers can export their order history as a spreadsheet, for all time or a
-> chosen date range.
-> **What to look at:** the Orders page, the Export button next to the filters.
-> **What was checked:** the preview by hand on desktop and mobile, an independent code review, the
-> automated tests, code style, type safety, and a full build.
-> **Left out on purpose:** PDF export.
+> **What changed:** customers can export their order history as a spreadsheet.
+> **What was checked:** the preview by hand, an independent code review, the automated tests, and a
+> full build.
 > **Is this finished and approved to save?** Reply "ship it" to save it, or "hold" to keep reviewing.
 
-You reply "ship it". One commit lands, carrying the agreed outcome, your approval, and the review in
-its trailers, plus your format and range decisions for next time. Nothing else.
+You reply "ship it". One commit lands, and "spreadsheet, chosen dates" is remembered for next time.
+
+## Who it is for
+
+- **Founders and operators without an engineering background** who run their product through an
+  agent and want to approve outcomes, not read diffs.
+- **Engineers using agents daily** who are tired of reviewing sloppy, unreviewed changes.
+- **Teams mixing agents and people**: every agent reads the same contract from `AGENTS.md` and
+  produces commits with the same shape.
 
 ## How it works
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/lifecycle-dark.svg">
-    <img alt="The staff-engineer lifecycle: agree (begin, grill-me, brief), build (implementation, regression tests, preview, operator feedback), finish (code review, docs, lifecycle gate and verify), save (handoff, ship it approval, one guarded commit)" src="docs/lifecycle-light.svg" width="460">
+    <img alt="The staff-engineer lifecycle: agree (begin, grill-me, brief), build (implementation, regression tests, preview, operator feedback), finish (code review, docs, lifecycle gate and verify), save (handoff, ship it approval, one guarded commit), and how each lane changes it" src="docs/lifecycle-light.svg" width="460">
   </picture>
 </p>
 
-The CLI enforces the stateful transitions and save checks below, and the agent runs every one of
-them: you never type a command. `next` tells the agent the one step that comes next, so the order
-lives in code rather than in the agent's memory. Skills describe the work between those
-transitions, and optional Claude Code hooks provide immediate guidance.
+- **Agree.** The agent opens one piece of work, sized into a lane (trivial, standard, large), and
+  interviews you unless the request is obvious. It records the outcome and how you will check it.
+- **Build.** It builds the smallest working version with focused tests, checks it itself where it
+  can, and shows you. For a bug, it first writes a test that proves the bug. "Change this" loops
+  back; "looks good" moves on.
+- **Finish.** A code review sized to the risk hunts for bugs, regressions, edge cases, and missed
+  requirements, and cleans the code up. Then the docs, the gate, and your project's full checks,
+  once.
+- **Save.** A plain-language handoff: what changed, what to look at, what was checked, what was
+  left out. Only your "ship it" saves it, as one commit that records your words and the review.
 
-Work is sized into **lanes**. A `trivial` change (a typo, a color, a one-line fix, capped in size)
-gets one check-in: the preview asks "ship it?" and your yes covers both. `standard` work gets the
-full loop below. `large` work also agrees a written plan before the first preview.
-
-- **Agree.** At most once a day, `begin` first checks the recorded upstream repository; a newer
-  toolkit is saved as its own change and the refreshed workflow continues. `begin` opens exactly
-  one work session, fingerprints anything already pending so it cannot be swept in, and lists
-  earlier decisions that apply, so you are not asked twice. The `grill-me` skill runs the interview. `brief`
-  records the outcome and the acceptance checks you will perform. `context` gathers the skills,
-  docs, tests, and dependencies relevant to the planned files.
-- **Build.** The `solid` skill governs the code and focused tests, with reference notes
-  on SOLID principles, architecture, clean code, code smells, complexity, design patterns, object
-  design, and testing. Existing tests, bug reproductions, and regression tests may run during
-  implementation. `preview` presents the result and reads your checks back.
-- **Finish.** After acceptance, a **code review** sized to the change hunts for bugs, regressions,
-  edge cases, and missed requirements, and applies the four cleanup lenses (reuse, quality,
-  efficiency, altitude). Small work gets a quick self-check, normal work one independent reviewer,
-  and large or risky work (data, sign-in, money) parallel specialists whose findings are then
-  challenged. Every finding needs `file:line` evidence and a concrete failure. Later fixes are
-  reviewed as a delta, never the whole change again. The
-  `lifecycle` gate inspects the staged diff. `verify` runs your project's own format, lint,
-  typecheck, test, build, and end-to-end commands and writes a receipt for that exact verified batch.
-- **Save.** `handoff` prints the approval request. `ship` refuses without your "ship it" for that
-  exact verified batch, without a passing gate, without a matching receipt, or with too many
-  unrelated areas in one batch. The agent quotes your words; in Claude Code they are checked
-  against what you actually typed, and every commit records them.
-
-## Once installed, you just talk
-
-There is nothing to learn and nothing to invoke. You describe what you want, in your own words. The
-agent already knows what comes next: when to ask, when to build, when to show you, when to stop and
-wait, when to test, when to clean up, and when to ask for your approval. You never type a command,
-name a skill, or think about a software lifecycle.
-
-Your words carry the meaning they would with a person. "Change this" means keep working. "Looks
-good" means finish it properly. "Ship it" means save. Anything else is treated as feedback, never as
-permission. If you walk away and come back a week later, the agent picks up exactly where the two of
-you left off, because the state lives in the project, not in a chat window.
-
-Engineers get the same thing from the other side: a guarded save that rejects missing approval,
-debug output, and mixed concern scope, plus a workflow that presents the result first.
+Each step is a CLI command the agent runs, and `next` tells it which step comes next, so the order
+lives in code rather than in the agent's memory. Small fixes get a single check-in: the preview
+itself asks "ship it?". Your words carry their normal meaning: "change this" keeps working, "looks
+good" finishes properly, "ship it" saves, and anything else is feedback, never permission.
 
 <details>
 <summary><strong>Under the hood</strong> (you do not need to read this)</summary>
@@ -207,35 +121,20 @@ debug output, and mixed concern scope, plus a workflow that presents the result 
   risk-sized code review, the four cleanup lenses, UI finish, architecture boundaries, data safety,
   spec and plan, the handoff, and the installer.
 - **A staged-diff gate** for debug output, suppressions, loose types, and unfinished markers in
-  JavaScript/TypeScript, Python, Go, Rust, Ruby, Java/Kotlin, Swift, PHP, C#, and shell; UI rules for
-  browser dialogs, raw colors, arbitrary sizes, and marketing cliches; configurable import boundary
-  rules; narrow JS/TS test-quality guards for whole-class comparisons and either-theme
-  assertions, optionally across the whole test tree; docs impact for product source and
-  separately configured tooling, configuration, and skill paths; test coverage per batch. Test
-  review also protects unique safety coverage, real state transitions, device-specific behavior,
-  and independent fresh data.
-  Every rule can be disabled or given a justified exception.
-- **A begin-time upstream check**, at most once a day by default, that uses the repository URL
-  recorded at installation (with a canonical fallback), resolves an optional pinned revision,
-  installs and saves a changed toolkit before any session exists, and continues on the refreshed
-  code. It follows the offline policy and never runs during the middle or end phases.
-- **A decisions log** committed with each change, so choices you made once are reused, not re-asked.
-- **Self-improving insights** from a private, local history: the agent is told when changes keep
-  needing extra rounds, a rule keeps being waived, or a saved change was reverted, and you get a
-  plain-language milestone every tenth save. Nobody has to ask for a report.
-- **Free self-checks**: acceptance checks can carry probes the CLI runs before you look, with no
-  model tokens and no reruns when nothing changed. Personal preferences such as the self-check
-  level live on your machine only (`settings`).
-- **A verification wrapper** that runs your project's own commands, stops at the first failure with
-  a focused `file:line` report, keeps a timing ledger, and writes a receipt so the full check runs
-  once per batch.
-- **A session state machine** in `.git/staff-engineer/` that refuses out-of-order steps, protects
-  work that was already pending when a concern began, and answers `next` with the one step the
-  agent should take.
-- **A Claude Code plugin** with a slash command per step, subagents for code review (an
-  independent reviewer, a refuter, and the four cleanup lenses) plus an explorer and a verifier, and hooks that inject session state and the next step, record your messages so approvals can be
-  checked against them, deny dangerous commands,
-  protect secrets, and block raw commits while a concern is open.
+  JavaScript/TypeScript, Python, Go, Rust, Ruby, Java/Kotlin, Swift, PHP, C#, and shell; UI finish
+  rules; import boundaries; test-quality guards; docs and test coverage per batch. Every rule can
+  be disabled or given a justified exception.
+- **Reviews that cost what the risk warrants**: one packet (brief, diff, callers, tests, known
+  issues) so reviewers never crawl the repository, delta-only re-reviews, and findings that need
+  `file:line` evidence and a concrete failure.
+- **Receipts instead of reruns**: the full check runs once per batch; the receipt proves it ran on
+  exactly the code being saved. Free preview probes and bug reproductions run in the CLI, not the
+  model.
+- **Self-updating**: at most once a day, a newer toolkit is saved as its own change before work
+  starts. Installing and updating the toolkit never go through the workflow themselves.
+- **A Claude Code plugin** with slash commands, review subagents, and hooks that keep the next step
+  in view, check approvals against what you actually typed, deny dangerous commands, and protect
+  secrets.
 - **Zero dependencies.** Node.js 20+ and git are all a project needs.
 
 </details>
@@ -266,7 +165,8 @@ claude plugin install staff-engineer@staff-engineer
 <summary><strong>What lands in your project</strong></summary>
 
 ```
-.staff-engineer/        vendored CLI, rules, templates, config.json, exceptions.json, decisions.json
+.staff-engineer/        vendored CLI, rules, templates, config.json, exceptions.json,
+                        and the committed memory: decisions.json, known-issues.json
 .agents/skills/         the eleven skills, discovered by Claude Code, Codex, Cursor, and others
 AGENTS.md               a managed block with the contract; your own text is untouched
 CLAUDE.md               "@AGENTS.md" (created only if missing)
@@ -277,9 +177,8 @@ CLAUDE.md               "@AGENTS.md" (created only if missing)
 Detection fills `config.json` for Node, Python, Go, Rust, Ruby, Java/Kotlin, Swift, PHP,
 Makefiles, and static sites; anything it cannot infer becomes a plain-language question the agent
 asks you. Session state, receipts, review packets, screenshots, logs, operator messages, local
-settings, and the insight history live under `.git/staff-engineer/`, never in history. The
-decisions log is the one piece of toolkit data that is committed, because it belongs to the
-project. Rerunning `install` upgrades only toolkit-owned files; `install --uninstall` removes them.
+settings, and the insight history live under `.git/staff-engineer/`, never in history. Decisions
+and known issues are the only toolkit data that is committed, because they belong to the project. Rerunning `install` upgrades only toolkit-owned files; `install --uninstall` removes them.
 
 Every option, with its default and meaning, is described in
 [schemas/config.schema.json](schemas/config.schema.json); per-machine preferences are listed by

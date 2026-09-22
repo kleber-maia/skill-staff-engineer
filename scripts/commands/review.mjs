@@ -3,6 +3,7 @@ import { laneOf } from "../lib/lanes.mjs";
 import { ok, refused } from "../lib/output.mjs";
 import { codeTreeFingerprint } from "../lib/receipt.mjs";
 import { buildPacket, rank, REVIEW_LEVELS, requiredReview, snapshot } from "../lib/review.mjs";
+import { parseIssue } from "../lib/issues.mjs";
 import { CLI, PHASES, requireBrief, requireOpenSession, writeSession } from "../lib/session.mjs";
 import { validateReason } from "../lib/waivers.mjs";
 
@@ -74,11 +75,18 @@ function recordReview(cwd, config, session, required, flags) {
     counts[name] = value;
   }
   if (counts.fixed + counts.reported > counts.found) throw refused("Fixed and reported findings cannot exceed the findings found.");
+  const issues = (flags.issue ?? []).map(parseIssue);
+  if (issues.length < counts.reported) {
+    throw refused(`${counts.reported} finding${counts.reported === 1 ? " was" : "s were"} reported but only ${issues.length} recorded as known issues.`, {
+      agent: 'Record each reported finding with --issue "file:line what is wrong" so later concerns see it.',
+    });
+  }
   const review = {
     level,
     required: required.level,
     reasons: required.reasons,
     ...counts,
+    issues: [...(session.review?.issues ?? []), ...issues],
     reason,
     at: new Date().toISOString(),
     delta: session.reviewPacket.delta,

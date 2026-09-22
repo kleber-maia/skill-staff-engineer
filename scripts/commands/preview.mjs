@@ -21,6 +21,9 @@ export default async function run({ cwd }) {
   const lane = laneOf(session);
   const overflow = laneOverflow(cwd, config, session);
   if (overflow) throw refused("This change is bigger than a quick fix, so it needs the full review steps.", { agent: overflow });
+  if (session.kind === "bug" && !session.repro?.failsAtBase && !session.repro?.waiver) {
+    throw refused("A bug fix is shown only after a test proves the bug.", { agent: `Write a test that reproduces it and run ${CLI} repro "<test command>" first.` });
+  }
   if (lane === "large" && !session.plan) {
     throw refused("A large change needs an agreed plan before the first preview.", { agent: `Write the spec and plan (spec-and-plan skill), get agreement, then run ${CLI} plan <path>.` });
   }

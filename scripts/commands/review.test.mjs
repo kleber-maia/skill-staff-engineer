@@ -91,17 +91,24 @@ test("a lower level needs a written reason, which is saved with the change", asy
     await runCli(["review"], { cwd: dir });
     let result = await runCli(["review", "done", "--level", "standard", "--found", "0", "--fixed", "0", "--json"], { cwd: dir });
     assert.equal(result.code, 1, "money needs detailed");
-    result = await runCli(["review", "done", "--level", "standard", "--found", "2", "--fixed", "1", "--reported", "1", "--reason", "The only change is a one-line clamp already covered by an explicit test case.", "--json"], { cwd: dir });
+    const done = ["review", "done", "--level", "standard", "--found", "2", "--fixed", "1", "--reported", "1", "--reason", "The only change is a one-line clamp already covered by an explicit test case."];
+    result = await runCli([...done, "--json"], { cwd: dir });
+    assert.equal(result.code, 1, "reported findings must be recorded as known issues");
+    result = await runCli([...done, "--issue", "src/billing/charge.mjs:1 Rounds before clamping, so tiny negative amounts become zero", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr || result.stdout);
     appendFileSync(join(dir, "README.md"), "Charges never go negative.\n");
     git(dir, "add", "-A");
     await runCli(["verify", "--mode", "full"], { cwd: dir });
-    await runCli(["handoff"], { cwd: dir });
+    const handoff = await runCli(["handoff", "--json"], { cwd: dir });
+    assert.match(handoff.json.operator, /one known weak spot near this change/);
     result = await runCli(["ship", "Clamp negative charges", "--approval-quote", "ship it", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr || result.stdout);
     const message = git(dir, "log", "-1", "--format=%B");
     assert.match(message, /Review: standard \(required detailed\), 2 found, 1 fixed, 1 reported/);
     assert.match(message, /Review-Downgrade: The only change is a one-line clamp/);
+    assert.match(git(dir, "show", "--name-only", "--format=", "HEAD"), /known-issues\.json/, "known issues are saved with the change");
+    const issues = await runCli(["issues", "--for", "src/billing/charge.mjs", "--json"], { cwd: dir });
+    assert.equal(issues.json.data.issues[0].summary, "Rounds before clamping, so tiny negative amounts become zero");
   } finally {
     cleanup(dir);
   }

@@ -1,6 +1,6 @@
 {
   "name": "staff-engineer",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Skills, scripts, and guardrails that make AI coding agents work like a staff engineer for technical and non-technical people. Harness-neutral, stack-agnostic, zero dependencies.",
   "type": "module",
   "license": "MIT",

@@ -1,4 +1,5 @@
 import { isNonTechnical, loadConfig } from "../lib/config.mjs";
+import { openIssuesFor } from "../lib/issues.mjs";
 import { ok } from "../lib/output.mjs";
 import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
 import { recordHandoff, requireBrief, requireOpenSession, sessionConcernFiles, writeSession } from "../lib/session.mjs";
@@ -16,7 +17,9 @@ export default async function run({ cwd }) {
   if (current) writeSession(cwd, recordHandoff(session, receipt.at));
   const preview = config.preview?.kind === "web" ? (config.operator?.previewPublicUrl ?? config.preview.url) : null;
   const checked = describeChecks(receipt, current, config, session.review);
-  const text = renderHandoff({ brief, preview, checked, technical: !isNonTechnical(config), files: sessionConcernFiles(session, cwd) });
+  const files = sessionConcernFiles(session, cwd);
+  const weakSpots = openIssuesFor(cwd, files, { pending: (session.review?.issues ?? []).map((issue) => ({ ...issue, status: "open" })), resolved: session.resolvedIssues ?? [] });
+  const text = renderHandoff({ brief, preview, checked, technical: !isNonTechnical(config), files, weakSpots: weakSpots.length });
   return ok({
     operator: text,
     agent: current
@@ -26,7 +29,7 @@ export default async function run({ cwd }) {
   });
 }
 
-export function renderHandoff({ brief, preview, checked, technical, files = [] }) {
+export function renderHandoff({ brief, preview, checked, technical, files = [], weakSpots = 0 }) {
   const lines = [
     `What changed: ${brief.outcome}`,
     `What to look at: ${preview ? `${preview}, then ` : ""}${brief.surfaces.length ? brief.surfaces.join(", ") : "<where to see it>"}; check ${brief.acceptance.join("; ")}.`,
@@ -34,6 +37,7 @@ export function renderHandoff({ brief, preview, checked, technical, files = [] }
     `Left out on purpose: ${brief.nonGoals.length ? brief.nonGoals.join("; ") : "nothing"}.`,
     `Is this finished and approved to save? Reply "ship it" to save it, or "hold" to keep reviewing.`,
   ];
+  if (weakSpots) lines.splice(4, 0, `Also noticed: ${weakSpots === 1 ? "one known weak spot" : `${weakSpots} known weak spots`} near this change, left as they were. I can fix ${weakSpots === 1 ? "it" : "them"} next if you like.`);
   if (technical && files.length) lines.splice(4, 0, `Files: ${files.join(", ")}`);
   return lines.join("\n");
 }
