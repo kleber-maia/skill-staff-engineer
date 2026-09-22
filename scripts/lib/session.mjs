@@ -52,6 +52,7 @@ export function beginSession(cwd, concern, { lane = "standard", now = new Date()
     phase: PHASES.IMPLEMENTATION,
     concern: concern.trim(),
     lane,
+    initialLane: lane,
     baseCommit: currentHead,
     startedAt: now,
     reviewRound: 0,

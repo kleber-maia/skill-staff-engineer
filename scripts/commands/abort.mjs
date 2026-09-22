@@ -1,3 +1,4 @@
+import { recordConcern } from "../lib/history.mjs";
 import { ok, refused } from "../lib/output.mjs";
 import { clearSession, readSession, sessionConcernFiles } from "../lib/session.mjs";
 
@@ -16,6 +17,7 @@ export default async function run({ cwd, flags }) {
       data: { pending },
     });
   }
+  if (session.status === "open") recordConcern(cwd, session, { outcome: "aborted" });
   clearSession(cwd);
   return ok({
     operator: `Stopped working on "${session.concern}".`,

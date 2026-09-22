@@ -3,6 +3,8 @@
 import { approvalTrailers, checkApproval } from "../lib/approval.mjs";
 import { appendDecisions } from "../lib/decisions.mjs";
 import { output } from "../lib/exec.mjs";
+import { recordConcern } from "../lib/history.mjs";
+import { operatorInsight } from "../lib/insights.mjs";
 import { isNonTechnical, loadConfig } from "../lib/config.mjs";
 import { readJson } from "../lib/fs-safe.mjs";
 import { commit, hasUnpushedCommits, head, push, stagedFiles } from "../lib/git.mjs";
@@ -14,7 +16,7 @@ import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
 import { CLI, markSaved, markSynced, readSession, requireBrief, requireFinalizing, requireOpenSession, sessionTouchesSource, writeSession } from "../lib/session.mjs";
 import { assetPath } from "../lib/toolkit.mjs";
 import { validateReason, validateWaiver } from "../lib/waivers.mjs";
-import { formatFinding, runLifecycle } from "./lifecycle.mjs";
+import { formatFinding, recordBlocks, runLifecycle } from "./lifecycle.mjs";
 
 export const description = "Save the verified batch as one commit after explicit operator approval.";
 export const usage = 'ship "<imperative message>" --approval-quote "<the operator\'s exact words>" [--push]  |  ship --sync-only';
@@ -37,6 +39,7 @@ export default async function run({ cwd, positional, flags, env = process.env })
 
   const gate = runLifecycle(cwd, config, env);
   if (gate.blocking.length) {
+    recordBlocks(cwd, gate.blocking);
     throw failed(`The staged batch still has ${gate.blocking.length} lifecycle issue${gate.blocking.length === 1 ? "" : "s"}.`, {
       errors: gate.blocking.map(formatFinding),
       agent: "Fix them and run lifecycle, then verify --mode full again if code changed.",
@@ -78,6 +81,8 @@ export default async function run({ cwd, positional, flags, env = process.env })
   const savedCommit = commit(message, { cwd, trailers });
   let updated = markSaved(session, savedCommit);
   writeSession(cwd, updated);
+  recordConcern(cwd, session, { outcome: "saved", commit: savedCommit, trailers });
+  const milestone = operatorInsight(cwd);
   let pushed = false;
   const remote = hasRemote(cwd);
   if (flags.push && remote) {
@@ -89,9 +94,12 @@ export default async function run({ cwd, positional, flags, env = process.env })
 
   const plain = isNonTechnical(config);
   return ok({
-    operator: plain
-      ? `Saved.${pushed ? " It is also sent to the shared copy of the project." : remote ? " It still needs to be sent to the shared copy of the project." : ""}`
-      : `Committed ${savedCommit.slice(0, 10)} on ${branchName(cwd)}${pushed ? " and pushed." : remote ? " (not pushed)." : "."}`,
+    operator: [
+      plain
+        ? `Saved.${pushed ? " It is also sent to the shared copy of the project." : remote ? " It still needs to be sent to the shared copy of the project." : ""}`
+        : `Committed ${savedCommit.slice(0, 10)} on ${branchName(cwd)}${pushed ? " and pushed." : remote ? " (not pushed)." : "."}`,
+      milestone?.message ?? "",
+    ].filter(Boolean).join(" "),
     agent: updated.status === "saved"
       ? `Saved as ${savedCommit}. Run ${CLI} ship --sync-only to push before opening another concern.`
       : `Saved as ${savedCommit}. The session is complete; open the next concern with ${CLI} begin.`,
