@@ -86,9 +86,11 @@ the commit as `Broad-Change-Reason`.
 
 **Does this work without Claude Code?**
 Yes. The skills in `.agents/skills/` and the block in `AGENTS.md` carry the contract; the CLI
-enforces the lifecycle operations invoked through it. Only the slash commands, subagents, and hooks
-are Claude Code specific.
+enforces the lifecycle operations invoked through it. The reviewer instructions ship inside the
+`code-review` skill, so any agent with subagents can run independent reviews. Only the slash
+commands, the plugin's agents, and the hooks are Claude Code specific; without the hooks, approvals
+are recorded as reported by the agent rather than checked against your messages.
 
 **How do I uninstall?**
 `node <toolkit>/scripts/cli.mjs install --target . --uninstall`. Only toolkit-owned files and the
-managed blocks are removed.
+managed blocks are removed; the decisions log stays, because it is the project's own record.

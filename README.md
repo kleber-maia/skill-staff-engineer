@@ -6,8 +6,9 @@
 
 A drop-in toolkit for Claude Code, Codex, Kimi, Pi, OpenCode, Cursor, and any other coding agent. It makes the
 agent interview you before building, write focused regression tests as it works, show you a working result, follow SOLID
-while it codes, clean up after itself, run your project's own checks through a gate, and ask for
-your approval in plain language before anything is saved. The model writes the code; the toolkit
+while it codes, review its own work for bugs and missed requirements, clean up after itself, run your
+project's own checks through a gate, and ask for your approval in plain language before anything is
+saved. You never type a command: the agent drives everything. The model writes the code; the toolkit
 supplies the engineering judgment. Works with any language or framework. No dependencies. Installed
 by the agent itself in one instruction.
 
@@ -57,7 +58,7 @@ instead of reminders alone.
 | Before | After |
 |---|---|
 | The agent guesses at what you meant | The agent asks at most three questions per round, each with a recommended answer, and records the agreed outcome and how you will check it |
-| "Done" means the tests pass | "Done" means **you** saw it working, said so, and then it got tested, cleaned up, documented, and checked |
+| "Done" means the tests pass | "Done" means **you** saw it working, said so, and then it got reviewed, tested, cleaned up, documented, and checked |
 | Tests are treated as a substitute for product review | Existing tests, bug reproductions, and focused regressions run early; your acceptance still controls final completion |
 | Bugs, regressions, and missed requirements reach the product | Every code change gets a review sized to its risk, from a quick self-check to parallel specialists, before it can be saved |
 | Debug lines, `TODO`s, `any`, `eslint-disable`, oversized files slip through | A staged-diff gate refuses them, in ten languages, before anything is saved |
@@ -66,7 +67,9 @@ instead of reminders alone.
 | Status reports are full of git and terminal jargon | Every operator-facing message is plain language: what changed, what to look at, what was checked, what was left out |
 | Praise for a screen is treated as a green light | Acceptance of a preview and approval to save are two separate, explicit steps |
 | Rules live in a prompt and decay | The shared CLI records state and refuses invalid lifecycle, verification, and save operations; skills and optional hooks guide the agent between them |
-| Setup is per project and per agent | One install: skills for every agent, a Claude Code plugin, and a vendored CLI that checks upstream before every new concern |
+| Every change pays the same process cost | Lanes size the process to the work: a typo gets one check-in, a payments change gets a detailed review |
+| You answer the same questions on every request | Decisions are saved with each change and reused, so you are not asked twice |
+| Setup is per project and per agent | One install: skills for every agent, a Claude Code plugin, and a vendored CLI that keeps itself up to date |
 
 ## Right things, right order
 
@@ -77,6 +80,10 @@ every step is placed where it prevents the most expensive kind of rework.
   the trust lost in between.
 - **Early regression tests plus a working preview** catch known breakage without treating tests as
   product acceptance. A change request still returns to implementation and another preview.
+  Automatic checks the toolkit runs itself catch obvious misses before you look, at no cost.
+- **A review sized to the risk** runs once, on the version you accepted. A typo gets a quick
+  self-check; money or sign-in gets several independent reviewers. Later fixes are reviewed as a
+  delta, so review cost never repeats.
 - **One concern per commit** keeps debugging scoped and reverts surgical. You never untangle three
   fixes to undo one.
 - **A gate before the full check** means the expensive test suite runs once, on a batch already
@@ -122,25 +129,27 @@ working version, and comes back:
 > say it looks good.
 
 You ask for a change; the agent revises its code and regression tests and shows it again. You say
-it looks good. Only now it runs a four-lens cleanup review, updates the docs, passes the gate, runs your
-project's full checks once, and asks:
+it looks good. Only now an independent reviewer checks the change for bugs, regressions, edge cases,
+and missed requirements, and cleans it up; the agent fixes what it found, updates the docs, passes the
+gate, runs your project's full checks once, and asks:
 
 > **What changed:** Customers can export their order history as a spreadsheet, for all time or a
 > chosen date range.
 > **What to look at:** the Orders page, the Export button next to the filters.
-> **What was checked:** the preview by hand on desktop and mobile, the automated tests, code style,
-> type safety, and a full build.
+> **What was checked:** the preview by hand on desktop and mobile, an independent code review, the
+> automated tests, code style, type safety, and a full build.
 > **Left out on purpose:** PDF export.
 > **Is this finished and approved to save?** Reply "ship it" to save it, or "hold" to keep reviewing.
 
-You reply "ship it". One commit lands, carrying the agreed outcome in its trailer. Nothing else.
+You reply "ship it". One commit lands, carrying the agreed outcome, your approval, and the review in
+its trailers, plus your format and range decisions for next time. Nothing else.
 
 ## How it works
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/lifecycle-dark.svg">
-    <img alt="The staff-engineer lifecycle: agree (begin, grill-me, brief), build (implementation, regression tests, preview, operator feedback), finish (simplify, docs, lifecycle gate and verify), save (handoff, ship it approval, one guarded commit)" src="docs/lifecycle-light.svg" width="460">
+    <img alt="The staff-engineer lifecycle: agree (begin, grill-me, brief), build (implementation, regression tests, preview, operator feedback), finish (code review, docs, lifecycle gate and verify), save (handoff, ship it approval, one guarded commit)" src="docs/lifecycle-light.svg" width="460">
   </picture>
 </p>
 
@@ -194,9 +203,9 @@ debug output, and mixed concern scope, plus a workflow that presents the result 
 <details>
 <summary><strong>Under the hood</strong> (you do not need to read this)</summary>
 
-- **Ten skills** the agent reads on its own: the operating contract, the interview, SOLID, the
-  four-lens cleanup review, UI finish, architecture boundaries, data safety, spec and plan, the
-  handoff, and the installer.
+- **Eleven skills** the agent reads on its own: the operating contract, the interview, SOLID, the
+  risk-sized code review, the four cleanup lenses, UI finish, architecture boundaries, data safety,
+  spec and plan, the handoff, and the installer.
 - **A staged-diff gate** for debug output, suppressions, loose types, and unfinished markers in
   JavaScript/TypeScript, Python, Go, Rust, Ruby, Java/Kotlin, Swift, PHP, C#, and shell; UI rules for
   browser dialogs, raw colors, arbitrary sizes, and marketing cliches; configurable import boundary
@@ -257,17 +266,20 @@ claude plugin install staff-engineer@staff-engineer
 <summary><strong>What lands in your project</strong></summary>
 
 ```
-.staff-engineer/        vendored CLI, rules, templates, config.json, exceptions.json
-.agents/skills/         the ten skills, discovered by Claude Code, Codex, Cursor, and others
+.staff-engineer/        vendored CLI, rules, templates, config.json, exceptions.json, decisions.json
+.agents/skills/         the eleven skills, discovered by Claude Code, Codex, Cursor, and others
 AGENTS.md               a managed block with the contract; your own text is untouched
 CLAUDE.md               "@AGENTS.md" (created only if missing)
 .gitignore              a managed block for toolkit backups
+.claude/settings.json   hook entries, only with --with-claude-hooks (the plugin brings its own)
 ```
 
 Detection fills `config.json` for Node, Python, Go, Rust, Ruby, Java/Kotlin, Swift, PHP,
 Makefiles, and static sites; anything it cannot infer becomes a plain-language question the agent
-asks you. Session state, receipts, screenshots, and logs live under `.git/staff-engineer/`, never in
-history. Rerunning `install` upgrades only toolkit-owned files; `install --uninstall` removes them.
+asks you. Session state, receipts, review packets, screenshots, logs, operator messages, local
+settings, and the insight history live under `.git/staff-engineer/`, never in history. The
+decisions log is the one piece of toolkit data that is committed, because it belongs to the
+project. Rerunning `install` upgrades only toolkit-owned files; `install --uninstall` removes them.
 
 Compatibility defaults keep upgrades safe: `rules.testQuality.scope` is `changed`, which checks
 only staged assertion changes. Repositories that require a clean whole-test baseline can set it to
@@ -277,8 +289,9 @@ test. Projects that set `rules.requireSession` to `block` also make finalizing p
 complete context packet mandatory at lifecycle time.
 
 Automatic update behavior is configurable under `updates`: `revision` can pin a branch, tag, or
-commit; `timeoutMs` bounds each network and installer subprocess; and `offline` is `fail` by default
-or `allow` when work may continue with the installed copy. Successful installs record the resolved
+commit; `timeoutMs` bounds each network and installer subprocess; and `offline` is `allow` by
+default (work continues with the installed copy) or `fail` to require a successful check. How often
+`begin` checks (daily by default) is a local setting, `updates.checkEveryHours`. Successful installs record the resolved
 commit. Update writes are transactional over toolkit-owned destinations and managed blocks. For
 affected test commands, `{files}` must appear once as a top-level token outside quotes after a
 simple static runner command. Shell command-evaluation templates such as `sh -c`, `eval`, and
@@ -290,13 +303,15 @@ variable so file names cannot become shell syntax.
 
 staff-engineer is a cooperative workflow, not a security sandbox. The vendored CLI can enforce the
 rules of commands that pass through it: session transitions, protected staged batches, immutable
-verification inputs, receipts, approval flags, and guarded commits. Claude Code hooks are optional,
+verification inputs, receipts, review records, approvals, and guarded commits. Claude Code hooks are optional,
 harness-specific, and deliberately fail open if they break. Other agents follow the installed
 skills and `AGENTS.md`; they are not technically prevented from invoking git directly. The default
 `rules.requireSession: "warn"` also reports skipped session discipline without blocking standalone
 lifecycle use; set it to `"block"` when the project wants the CLI gate to require a finalized
-session and current context packet. Approval environment variables record what the cooperating
-agent heard from the operator; they are not authentication tokens.
+session and current context packet. Approvals are the operator's quoted words: in Claude Code they
+are checked against messages the hook recorded, elsewhere they are trusted as reported, and every
+commit says which (`Approval-Evidence`). They are an audit trail, not authentication. Likewise,
+the CLI can require and record a code review, but it cannot prove the review was thorough.
 
 For the curious: [docs/lifecycle.md](docs/lifecycle.md) walks through every step and what it
 refuses, [docs/design.md](docs/design.md) explains why, and [docs/faq.md](docs/faq.md) answers the

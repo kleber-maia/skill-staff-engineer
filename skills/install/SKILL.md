@@ -85,13 +85,14 @@ Do not list file paths or commands to a non-technical operator.
 
 ## Upgrade
 
-Every new concern starts with `begin`, which checks the recorded upstream repository
-before it opens a work session. When upstream is newer, it upgrades only toolkit-owned
-files, preserves config values and exceptions, and refuses to open the concern. Save
-that upgrade as its own change, then restart the concern. A failed upstream check also
-opens no session by default, so fix connectivity or use `update --from <path-or-url>` and retry.
-Projects may pin `updates.revision`, change the per-process `updates.timeoutMs`, or set
-`updates.offline` to `allow` when continuing with the installed copy is intentional. Updates
+Every new concern starts with `begin`, which (at most once a day by default, local setting
+`updates.checkEveryHours`) checks the recorded upstream repository before it opens a work
+session. When upstream is newer, it upgrades only toolkit-owned files, preserves config
+values, exceptions, and decisions, commits the upgrade as its own change, and opens the
+session on the refreshed code. Only when toolkit files had unsaved edits does it stop and
+ask for the upgrade to be saved separately. When upstream is unreachable, work continues
+with the installed copy unless `updates.offline` is `fail`. Projects may also pin
+`updates.revision` or change the per-process `updates.timeoutMs`. Updates
 record the resolved commit and roll back toolkit-owned destinations if installation fails.
 
 For a manual upgrade, run `node .staff-engineer/cli.mjs update --json`. It prefers the
