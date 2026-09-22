@@ -281,23 +281,10 @@ settings, and the insight history live under `.git/staff-engineer/`, never in hi
 decisions log is the one piece of toolkit data that is committed, because it belongs to the
 project. Rerunning `install` upgrades only toolkit-owned files; `install --uninstall` removes them.
 
-Compatibility defaults keep upgrades safe: `rules.testQuality.scope` is `changed`, which checks
-only staged assertion changes. Repositories that require a clean whole-test baseline can set it to
-`all`. `paths.documentable` separately names scripts, package/configuration files, CI, and any skills
-whose changes require documentation without treating them as product source or demanding a product
-test. Projects that set `rules.requireSession` to `block` also make finalizing phase and a current,
-complete context packet mandatory at lifecycle time.
-
-Automatic update behavior is configurable under `updates`: `revision` can pin a branch, tag, or
-commit; `timeoutMs` bounds each network and installer subprocess; and `offline` is `allow` by
-default (work continues with the installed copy) or `fail` to require a successful check. How often
-`begin` checks (daily by default) is a local setting, `updates.checkEveryHours`. Successful installs record the resolved
-commit. Update writes are transactional over toolkit-owned destinations and managed blocks. For
-affected test commands, `{files}` must appear once as a top-level token outside quotes after a
-simple static runner command. Shell command-evaluation templates such as `sh -c`, `eval`, and
-Windows `call` are unsupported; normal npm, Jest, Vitest, pytest,
-and similar runner commands remain supported. The CLI passes each path through an environment
-variable so file names cannot become shell syntax.
+Every option, with its default and meaning, is described in
+[schemas/config.schema.json](schemas/config.schema.json); per-machine preferences are listed by
+`node .staff-engineer/cli.mjs settings`. Upgrades keep compatible defaults, and
+[CHANGELOG.md](CHANGELOG.md) marks anything that changes behavior.
 
 ### Trust boundary
 

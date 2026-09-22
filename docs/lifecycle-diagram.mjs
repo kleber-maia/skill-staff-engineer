@@ -31,6 +31,13 @@ const STAGES = [
   ] },
 ];
 const FLOW_LABELS = { feedback: "looks good", approve: "yes" };
+// How each lane changes the standard flow above.
+const LANE_NOTES = [
+  ["trivial", "no interview; one preview asks \u201cship it?\u201d"],
+  ["standard", "the flow above, one independent reviewer"],
+  ["large", "an agreed plan first; detailed review"],
+];
+const LANE_LINE = 20;
 const LOOPS = [
   { from: "feedback", to: "code", label: "change this", lane: 0 },
   { from: "approve", to: "simplify", label: "hold", lane: 1 },
@@ -68,22 +75,31 @@ function layout() {
     bands.push({ title: stage.title, top: bandTop, bottom: y });
     y += BAND_GAP;
   }
-  return { bands, nodes, height: y - BAND_GAP + 8 };
+  const notes = { top: y, bottom: y + BAND_PAD_TOP + LANE_NOTES.length * LANE_LINE + BAND_PAD_BOTTOM - 6 };
+  y = notes.bottom + BAND_GAP;
+  return { bands, nodes, notes, height: y - BAND_GAP + 8 };
 }
 
 function render(palette) {
-  const { bands, nodes, height } = layout();
+  const { bands, nodes, notes, height } = layout();
   const p = PALETTES[palette];
   const out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${height}" width="${W}" height="${height}" role="img" aria-labelledby="title desc" font-family="${FONT}">`);
   out.push(`<title id="title">The staff-engineer lifecycle</title>`);
-  out.push(`<desc id="desc">Agree: begin, grill-me, brief. Build: implementation, regression tests, preview, operator feedback (change requests loop back). Finish: code review, docs, lifecycle gate and verify. Save: handoff, ship it approval (hold loops back to finishing), ship as one commit.</desc>`);
+  out.push(`<desc id="desc">Agree: begin, grill-me, brief. Build: implementation, regression tests, preview, operator feedback (change requests loop back). Finish: code review, docs, lifecycle gate and verify. Save: handoff, ship it approval (hold loops back to finishing), ship as one commit. Lanes: trivial skips the interview and asks ship it at a single preview; large adds an agreed plan and a detailed review.</desc>`);
   out.push(`<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="${p.arrow}"/></marker></defs>`);
 
   for (const band of bands) {
     out.push(`<rect x="8" y="${band.top}" width="${W - 16}" height="${band.bottom - band.top}" rx="12" fill="${p.band}" stroke="${p.bandStroke}"/>`);
     out.push(`<text x="24" y="${band.top + 22}" font-size="12" font-weight="700" letter-spacing="1.5" fill="${p.bandTitle}">${band.title.toUpperCase()}</text>`);
   }
+
+  out.push(`<rect x="8" y="${notes.top}" width="${W - 16}" height="${notes.bottom - notes.top}" rx="12" fill="${p.band}" stroke="${p.bandStroke}"/>`);
+  out.push(`<text x="24" y="${notes.top + 22}" font-size="12" font-weight="700" letter-spacing="1.5" fill="${p.bandTitle}">LANES</text>`);
+  LANE_NOTES.forEach(([lane, note], index) => {
+    const y = notes.top + BAND_PAD_TOP + 8 + index * LANE_LINE;
+    out.push(`<text x="24" y="${y}" font-size="12" fill="${p.sub}"><tspan font-weight="700" fill="${p.text}">${lane}</tspan>  ${escape(note)}</text>`);
+  });
 
   // Main flow arrows between consecutive nodes.
   const order = STAGES.flatMap((stage) => stage.nodes.map((node) => node.id));
