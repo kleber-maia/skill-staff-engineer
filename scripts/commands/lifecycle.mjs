@@ -8,9 +8,10 @@ import { readJson } from "../lib/fs-safe.mjs";
 import { stagedDiff, stagedFiles, stagedNumstat, unstagedFiles } from "../lib/git.mjs";
 import { failed, ok } from "../lib/output.mjs";
 import { classify, isDocumentable, isNeverStage, isProductSource, isProtected } from "../lib/paths.mjs";
+import { countGateBlocks } from "../lib/history.mjs";
 import { laneOf, laneOverflow } from "../lib/lanes.mjs";
 import { applyLineRules } from "../lib/rules.mjs";
-import { PHASES, readSession, requireOpenSession, STATUSES } from "../lib/session.mjs";
+import { PHASES, readSession, requireOpenSession, STATUSES, writeSession } from "../lib/session.mjs";
 import { assetPath } from "../lib/toolkit.mjs";
 import { checkBoundaries } from "../lib/boundaries.mjs";
 import { checkTestQuality } from "../lib/test-quality.mjs";
@@ -25,6 +26,7 @@ export default async function run({ cwd, env = process.env }) {
   const config = loadConfig(cwd);
   const report = runLifecycle(cwd, config, env);
   if (report.blocking.length) {
+    recordBlocks(cwd, report.blocking);
     throw failed(`The staged batch has ${report.blocking.length} issue${report.blocking.length === 1 ? "" : "s"} to fix before saving.`, {
       errors: report.blocking.map(formatFinding),
       agent: "Fix each finding, restage, and run lifecycle again. Do not bypass findings; use an exception with a reason only for a permanent, justified case.",
@@ -36,6 +38,12 @@ export default async function run({ cwd, env = process.env }) {
     agent: report.warnings.length ? `Warnings (non-blocking):\n${report.warnings.map(formatFinding).join("\n")}` : "Run verify --mode full next if not done yet.",
     data: report,
   });
+}
+
+// Counted per concern so insights can spot rules that keep blocking.
+export function recordBlocks(cwd, blocking) {
+  const session = readSession(cwd);
+  if (session && !session.cleared && session.status === STATUSES.OPEN) writeSession(cwd, countGateBlocks(session, blocking.map((finding) => finding.rule)));
 }
 
 export function runLifecycle(cwd, config, env = process.env) {

@@ -30,7 +30,7 @@ export default async function run({ cwd }) {
   const probes = plan.probes && brief.checks?.length ? await runProbes(cwd, config, session) : null;
   const selfCheck = probes ? { fingerprint: probes.fingerprint, results: probes.results } : session.selfCheck;
   if (probes?.failures.length) {
-    writeSession(cwd, { ...session, selfCheck });
+    writeSession(cwd, { ...session, selfCheck, probeFailures: (session.probeFailures ?? 0) + 1 });
     throw refused("The result did not pass the toolkit's own checks yet, so it is not ready to show.", {
       errors: probes.failures.map((failure) => `Acceptance check ${brief.checks[failure.index].accept + 1}: ${failure.detail}`),
       agent: "Fix what these checks found, then run preview again. Only the failing behavior needs attention.",

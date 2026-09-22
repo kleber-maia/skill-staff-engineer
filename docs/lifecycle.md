@@ -52,6 +52,19 @@ committed with the change. A newer decision on the same topic supersedes the old
 (by concern words) and `context` (by files, areas, and surfaces) show at most five active entries;
 `decisions --for "..."` searches on demand. Uninstalling keeps the file.
 
+## Insights
+
+`ship` and `abort` add a one-line summary of the concern to `.git/staff-engineer/history.json`
+(local, never committed): lane and lane moves, review rounds, probes, gate blocks, waivers, and
+approval evidence. Nobody has to ask for results:
+
+- `begin` shows the agent at most two findings, only after enough history (usually five saved
+  concerns): many review rounds, no automatic checks on web previews, a waiver or gate rule that
+  keeps firing, trivial concerns that keep outgrowing their lane, or a saved change that was later
+  reverted. A finding is shown once and repeats only when it changes, at most every 14 days.
+- `ship` adds a plain-language milestone for the operator every tenth saved change.
+- `stats` prints the summary for the agent.
+
 ## How approvals are checked
 
 The agent passes the operator's own words with `--approval-quote`. The CLI refuses questions and

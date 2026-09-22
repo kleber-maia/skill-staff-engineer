@@ -34,6 +34,11 @@ No, by default. Automatic checks run inside the toolkit, not the model, and skip
 nothing changed. Ask the agent to turn them off (`preview.selfCheck: off`) or up to `thorough`
 (it also looks at screenshots that changed). The setting stays on your machine.
 
+**How do I know the workflow is paying off?**
+You do not have to ask. Every tenth saved change, the agent tells you how many were right the first
+time you looked. Behind the scenes it also learns from this project's history (for example, when
+changes keep needing several rounds) and adjusts how it works. The history stays on your machine.
+
 **Will the agent keep asking me the same questions?**
 No. Decisions you make are saved with each change in `.staff-engineer/decisions.json`, and the
 agent sees the few that apply to a new request before it asks anything.

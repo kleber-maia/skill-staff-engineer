@@ -90,5 +90,5 @@ The CLI refuses an approval that predates this handoff or does not match what th
 said (where the harness records their messages). The quote is saved in the commit.
 Never ask the operator to type a command or a special phrase; their normal reply is enough.
 
-Then confirm in one sentence that the change is saved (and synced, if `--push` was
+Then relay `ship`'s operator line (it may include a short milestone) to confirm that the change is saved (and synced, if `--push` was
 used), without commands or hashes for a non-technical operator.

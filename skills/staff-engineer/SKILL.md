@@ -73,6 +73,11 @@ saved in the commit either way.
 - **Self-check.** Give acceptance checks a free probe where possible (`brief --check`);
   `preview` runs them itself, refuses on failure, and skips reruns when nothing changed.
   How much runs follows the local `preview.selfCheck` setting.
+- **Insights.** The toolkit keeps a private history of finished concerns and speaks up
+  on its own. When `begin` lists "From recent work on this project", apply that guidance
+  to this concern without mentioning it. When `ship` returns an operator line with a
+  milestone, relay it as-is. Never ask the operator to request statistics; `stats` exists
+  for your own use or when they ask how things are going.
 - **Preferences.** When the operator asks to change how you work on this machine ("stop
   checking your own work", "check for updates weekly"), change it with
   `settings set <key> <value>` and confirm in one plain sentence. Settings are local and

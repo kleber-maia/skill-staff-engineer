@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { loadConfig, TOOLKIT_DIR } from "../lib/config.mjs";
 import { baselineUnchanged } from "../lib/baseline.mjs";
 import { relevantDecisions, renderDecisions } from "../lib/decisions.mjs";
+import { agentInsights, renderAgentInsights } from "../lib/insights.mjs";
 import { output } from "../lib/exec.mjs";
 import { readJson, writeJson } from "../lib/fs-safe.mjs";
 import { dirtyFiles, head, stateDir } from "../lib/git.mjs";
@@ -52,6 +53,7 @@ export default async function run({ cwd, positional, flags = {}, env = process.e
   const config = loadConfig(cwd);
   const session = beginSession(cwd, positional.join(" "), { lane });
   const decisions = relevantDecisions(cwd, { text: session.concern });
+  const insights = agentInsights(cwd, { webPreview: config.preview?.kind === "web", selfCheck: getSetting(cwd, "preview.selfCheck") });
   return ok({
     operator: `Started working on: ${session.concern}.`,
     agent: [
@@ -59,9 +61,10 @@ export default async function run({ cwd, positional, flags = {}, env = process.e
       session.baseline.files.length ? `Pre-existing pending files are protected and must stay out of this batch: ${summarize(session.baseline.files)}` : "",
       `Lane: ${lane}.`,
       decisions.length ? renderDecisions(decisions) : "",
+      renderAgentInsights(insights),
       renderNext(nextStep({ cwd, config, session })),
     ].filter(Boolean).join("\n"),
-    data: { ...session, decisions },
+    data: { ...session, decisions, insights },
   });
 }
 

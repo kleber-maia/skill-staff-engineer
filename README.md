@@ -206,6 +206,9 @@ debug output, and mixed concern scope, plus a workflow that presents the result 
   installs and saves a changed toolkit before any session exists, and continues on the refreshed
   code. It follows the offline policy and never runs during the middle or end phases.
 - **A decisions log** committed with each change, so choices you made once are reused, not re-asked.
+- **Self-improving insights** from a private, local history: the agent is told when changes keep
+  needing extra rounds, a rule keeps being waived, or a saved change was reverted, and you get a
+  plain-language milestone every tenth save. Nobody has to ask for a report.
 - **Free self-checks**: acceptance checks can carry probes the CLI runs before you look, with no
   model tokens and no reruns when nothing changed. Personal preferences such as the self-check
   level live on your machine only (`settings`).

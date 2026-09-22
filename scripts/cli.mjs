@@ -14,6 +14,7 @@ export const COMMANDS = {
   config: { module: "./commands/config.mjs" },
   settings: { module: "./commands/settings.mjs" },
   status: { module: "./commands/status.mjs" },
+  stats: { module: "./commands/stats.mjs" },
   next: { module: "./commands/next.mjs" },
   lane: { module: "./commands/lane.mjs" },
   plan: { module: "./commands/plan.mjs" },
@@ -101,6 +102,7 @@ Lifecycle (one concern at a time; run next whenever unsure)
   ship --sync-only                    Push a saved batch that was not pushed yet
   abort [--discard-confirmed]         Close an abandoned session (never deletes files)
   status                              Show session, brief, and receipt state
+  stats                               Summary of finished concerns on this machine
   exception add --rule <id> --path <glob> --reason "..."
 
 Every command accepts --json for a machine-readable result.
