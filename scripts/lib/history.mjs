@@ -32,6 +32,7 @@ export function recordConcern(cwd, session, { outcome, commit = null, trailers =
     waivers: ["Test-Waiver", "Docs-Waiver", "Broad-Change-Reason"].filter((name) => trailers[name]),
     approvalEvidence: trailers["Approval-Evidence"] ?? null,
     decisions: (session.brief?.decisions?.length ?? 0) + (session.brief?.nonGoals?.length ?? 0),
+    review: session.review ? { level: session.review.level, required: session.review.required, found: session.review.found, fixed: session.review.fixed } : null,
     commit,
   };
   writeJson(historyPath(cwd), { version: 1, concerns: [...readHistory(cwd), entry].slice(-KEEP) });

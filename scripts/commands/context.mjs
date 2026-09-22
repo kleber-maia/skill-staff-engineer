@@ -14,6 +14,7 @@ import { relevantDecisions, renderDecisions } from "../lib/decisions.mjs";
 import { importsOfFile } from "../lib/imports.mjs";
 import { ok, refused } from "../lib/output.mjs";
 import { classify, isProtected } from "../lib/paths.mjs";
+import { DATA_PATTERNS } from "../lib/review.mjs";
 import { readSession, sessionConcernFiles } from "../lib/session.mjs";
 import { assetsDir } from "../lib/toolkit.mjs";
 import { isUiFile } from "../lib/ui-rules.mjs";
@@ -21,7 +22,6 @@ import { isUiFile } from "../lib/ui-rules.mjs";
 export const description = "Build the task-context packet for the planned files: skills by phase, related docs and tests, local dependencies.";
 export const usage = "context <planned files...>   (defaults to the open concern's changed files)";
 
-const DATA_PATTERNS = ["**/migrations/**", "**/*.sql", "**/schema*", "**/models/**", "**/seed*", "**/backup*", "**/*.db", "**/db/**", "**/database/**"];
 
 export default async function run({ cwd, positional }) {
   const config = loadConfig(cwd);
@@ -62,9 +62,9 @@ export function buildPacket(root, config, files, { now = new Date().toISOString(
   if (files.some((file) => matchesAny(file, DATA_PATTERNS) || isProtected(config, file))) skills.push("data-safety");
   if ((config.rules?.boundaries ?? []).length) skills.push("architecture-boundaries");
   if (new Set(files.filter((file) => kinds.get(file) === "source").map((file) => areaOf(file))).size > 2) skills.push("spec-and-plan");
-  skills.push("simplify", "handoff");
+  skills.push("code-review", "simplify", "handoff");
 
-  const phases = { before: ["grill-me"], build: skills.filter((name) => !["grill-me", "simplify", "handoff", "staff-engineer"].includes(name)), finish: ["simplify"], end: ["handoff"], always: ["staff-engineer"] };
+  const phases = { before: ["grill-me"], build: skills.filter((name) => !["grill-me", "code-review", "simplify", "handoff", "staff-engineer"].includes(name)), finish: ["code-review"], end: ["handoff"], always: ["staff-engineer"] };
   const skillEntries = skills.map((name) => {
     const path = skillPath(root, name);
     return { name, path, digest: path ? digestOf(readFileSync(join(root, path), "utf8")) : null, missing: !path };
@@ -120,7 +120,7 @@ function renderPacket(packet) {
   if (packet.tests.length) lines.push("", "Tests that cover these files:", ...packet.tests.map((test) => `- ${test}`));
   if (packet.dependencies.length) lines.push("", "Local modules they import (read before changing call sites):", ...packet.dependencies.map((dep) => `- ${dep}`));
   if (packet.decisions?.length) lines.push("", renderDecisions(packet.decisions));
-  lines.push("", "Phases: grill-me before building; solid" + (packet.skills.some((skill) => skill.name === "ui-quality") ? " and ui-quality" : "") + " while building; simplify only after acceptance; handoff at the end.");
+  lines.push("", "Phases: grill-me before building; solid" + (packet.skills.some((skill) => skill.name === "ui-quality") ? " and ui-quality" : "") + " while building; code-review (with the simplify lenses) after acceptance; handoff at the end.");
   lines.push("Rerun context if the planned scope or the local imports grow. The lifecycle gate refuses when a listed skill changed after this packet.");
   return lines.join("\n");
 }

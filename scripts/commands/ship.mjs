@@ -12,11 +12,13 @@ import { matchesAny } from "../lib/glob.mjs";
 import { isProductSource } from "../lib/paths.mjs";
 import { laneOf, sameFingerprint, sourceFingerprint } from "../lib/lanes.mjs";
 import { failed, ok, refused } from "../lib/output.mjs";
-import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
+import { codeTreeFingerprint, readReceipt, receiptMatches } from "../lib/receipt.mjs";
+import { rank, requiredReview } from "../lib/review.mjs";
 import { CLI, markSaved, markSynced, readSession, requireBrief, requireFinalizing, requireOpenSession, sessionTouchesSource, writeSession } from "../lib/session.mjs";
 import { assetPath } from "../lib/toolkit.mjs";
 import { validateReason, validateWaiver } from "../lib/waivers.mjs";
 import { formatFinding, recordBlocks, runLifecycle } from "./lifecycle.mjs";
+import { reviewTrailer } from "./review.mjs";
 
 export const description = "Save the verified batch as one commit after explicit operator approval.";
 export const usage = 'ship "<imperative message>" --approval-quote "<the operator\'s exact words>" [--push]  |  ship --sync-only';
@@ -55,6 +57,7 @@ export default async function run({ cwd, positional, flags, env = process.env })
     }
   }
   output("git", ["diff", "--cached", "--check"], { cwd });
+  const review = requireReview(cwd, config, session);
 
   const trailers = {};
   const categories = concernCategories(staged);
@@ -72,6 +75,10 @@ export default async function run({ cwd, positional, flags, env = process.env })
     if (waiver.ok) trailers[trailer] = waiver.value;
   }
   trailers["Brief-Outcome"] = session.brief.outcome;
+  if (review) {
+    trailers.Review = reviewTrailer(review);
+    if (review.reason) trailers["Review-Downgrade"] = review.reason;
+  }
   Object.assign(trailers, approvalTrailers(approval));
 
   // Decisions travel with the change that made them; the log is toolkit data, not verified code.
@@ -105,6 +112,22 @@ export default async function run({ cwd, positional, flags, env = process.env })
       : `Saved as ${savedCommit}. The session is complete; open the next concern with ${CLI} begin.`,
     data: { commit: savedCommit, pushed, status: updated.status, categories, trailers, decisionsRecorded: Boolean(decisionsFile) },
   });
+}
+
+// The review must cover this exact staged code at the level the change needs now.
+function requireReview(cwd, config, session) {
+  const required = requiredReview(cwd, config, session);
+  if (!required.level) return null;
+  const review = session.review;
+  if (!review || review.codeTree !== codeTreeFingerprint(cwd, config, "staged").digest) {
+    throw refused("The code has not been reviewed in its current form.", {
+      agent: `Run ${CLI} review${review ? " (it prepares only the changes since the last review)" : ""}, act on the findings, and record it with review done.`,
+    });
+  }
+  if (rank(review.level) < rank(required.level) && !review.reason) {
+    throw refused(`This change now needs a ${required.level} review (${required.reasons.join("; ")}).`, { agent: `Run ${CLI} review again at ${required.level}.` });
+  }
+  return review;
 }
 
 // Trivial lane: the preview asked the save question, so its approval stands while

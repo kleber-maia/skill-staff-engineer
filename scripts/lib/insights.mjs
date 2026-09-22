@@ -38,7 +38,8 @@ export function findAgentInsights(history, { reverted = [], webPreview = false, 
   const insights = [];
   const saved = history.filter((entry) => entry.outcome === "saved");
   for (const entry of saved.filter((item) => item.commit && reverted.includes(item.commit))) {
-    insights.push({ id: `reverted:${entry.commit}`, signature: entry.commit, message: `"${entry.concern}" was reverted after it was saved. Before building, find what it missed (an acceptance check, a test, an edge case) so this concern does not repeat it.` });
+    const reviewed = entry.review ? ` It was reviewed at ${entry.review.level}; review changes to the same area at ${entry.review.level === "detailed" ? "detailed with extra care for edge cases" : "a higher level (review done --level detailed)"}.` : "";
+    insights.push({ id: `reverted:${entry.commit}`, signature: entry.commit, message: `"${entry.concern}" was reverted after it was saved. Before building, find what it missed (an acceptance check, a test, an edge case) so this concern does not repeat it.${reviewed}` });
   }
   const recent = saved.slice(-RECENT);
   if (recent.length >= MIN_SAMPLE) {

@@ -9,6 +9,7 @@ import { stateDir } from "./git.mjs";
 import { refused } from "./output.mjs";
 
 export const SELF_CHECK_LEVELS = ["off", "auto", "thorough"];
+export const REVIEW_CAPS = ["minimum", "standard", "detailed"];
 
 export const SETTINGS = {
   "updates.checkEveryHours": {
@@ -25,6 +26,14 @@ export const SETTINGS = {
     description: "fail or allow when the upstream check is unreachable (unset follows the project config).",
     parse: (value) => {
       if (!["fail", "allow"].includes(value)) throw new Error("must be fail or allow");
+      return value;
+    },
+  },
+  "review.maxLevel": {
+    default: "detailed",
+    description: "Highest code-review level the toolkit may require on this machine: minimum, standard, or detailed. Lower it only when the operator asks to spend less.",
+    parse: (value) => {
+      if (!REVIEW_CAPS.includes(value)) throw new Error(`must be one of ${REVIEW_CAPS.join(", ")}`);
       return value;
     },
   },

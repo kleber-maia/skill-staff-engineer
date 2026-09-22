@@ -59,6 +59,7 @@ instead of reminders alone.
 | The agent guesses at what you meant | The agent asks at most three questions per round, each with a recommended answer, and records the agreed outcome and how you will check it |
 | "Done" means the tests pass | "Done" means **you** saw it working, said so, and then it got tested, cleaned up, documented, and checked |
 | Tests are treated as a substitute for product review | Existing tests, bug reproductions, and focused regressions run early; your acceptance still controls final completion |
+| Bugs, regressions, and missed requirements reach the product | Every code change gets a review sized to its risk, from a quick self-check to parallel specialists, before it can be saved |
 | Debug lines, `TODO`s, `any`, `eslint-disable`, oversized files slip through | A staged-diff gate refuses them, in ten languages, before anything is saved |
 | Unrelated changes ride along in one commit | One concern, one session, one commit. Files that were already dirty are fingerprinted and kept out |
 | Cross-feature imports and UI shortcuts accumulate | Architecture boundaries and UI finish rules are checked on every batch |
@@ -162,8 +163,12 @@ full loop below. `large` work also agrees a written plan before the first previe
   on SOLID principles, architecture, clean code, code smells, complexity, design patterns, object
   design, and testing. Existing tests, bug reproductions, and regression tests may run during
   implementation. `preview` presents the result and reads your checks back.
-- **Finish.** After acceptance, the `simplify` skill (four lenses: reuse, quality, efficiency, altitude,
-  every finding with `file:line` evidence and a SAFE/CAREFUL/RISKY tier), then docs. The
+- **Finish.** After acceptance, a **code review** sized to the change hunts for bugs, regressions,
+  edge cases, and missed requirements, and applies the four cleanup lenses (reuse, quality,
+  efficiency, altitude). Small work gets a quick self-check, normal work one independent reviewer,
+  and large or risky work (data, sign-in, money) parallel specialists whose findings are then
+  challenged. Every finding needs `file:line` evidence and a concrete failure. Later fixes are
+  reviewed as a delta, never the whole change again. The
   `lifecycle` gate inspects the staged diff. `verify` runs your project's own format, lint,
   typecheck, test, build, and end-to-end commands and writes a receipt for that exact verified batch.
 - **Save.** `handoff` prints the approval request. `ship` refuses without your "ship it" for that
@@ -218,8 +223,8 @@ debug output, and mixed concern scope, plus a workflow that presents the result 
 - **A session state machine** in `.git/staff-engineer/` that refuses out-of-order steps, protects
   work that was already pending when a concern began, and answers `next` with the one step the
   agent should take.
-- **A Claude Code plugin** with a slash command per step, subagents for the four simplify lenses plus
-  an explorer and a verifier, and hooks that inject session state and the next step, record your messages so approvals can be
+- **A Claude Code plugin** with a slash command per step, subagents for code review (an
+  independent reviewer, a refuter, and the four cleanup lenses) plus an explorer and a verifier, and hooks that inject session state and the next step, record your messages so approvals can be
   checked against them, deny dangerous commands,
   protect secrets, and block raw commits while a concern is open.
 - **Zero dependencies.** Node.js 20+ and git are all a project needs.

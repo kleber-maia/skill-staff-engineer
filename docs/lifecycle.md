@@ -16,21 +16,37 @@ operator). `status`, `begin`, `finalize`, and the Claude Code hooks show the sam
 | `preview` | `awaiting_feedback` | Refuses an empty concern, a `trivial` concern past its size cap, and a `large` concern without a plan. In `trivial`, asks the save question and fingerprints the presented source. Runs the brief's probes per `preview.selfCheck` and refuses on failure; an unchanged concern reuses the last passing result. Source and focused regression tests may be presented together on every review round. Web previews must respond; command previews must exit 0. Acceptance checks are read back to the operator. |
 | `revise` | `implementation` | Editing source while awaiting feedback is denied by the Claude hook until this runs. |
 | `finalize --approval-quote "..."` | `finalizing` | Needs the operator's words of acceptance, sent after the preview (checked against recorded operator messages when the harness records them). Simplification, final documentation, lifecycle, and the final full verification are unlocked. |
+| `review` / `review done` | unchanged | Prepares the review packet at the required level (trivial before its preview; otherwise after acceptance). `done` records found/fixed/reported counts bound to the reviewed code; a lower level needs `--reason`. |
 | `lifecycle` | unchanged | Blocking-session projects must be finalizing with current context coverage. The staged diff passes language and structural rules; the whole concern is staged; no protected or never-stage paths; docs and tests are present or waived. |
 | `verify --mode full` | unchanged | All configured gates pass without changing HEAD or their inputs; a receipt fingerprints executable, rule, dependency, and configuration files, including toolkit runtime/config. A new run invalidates an older receipt immediately. Prose-only docs and skill edits keep it valid. Durations go to a ledger; runs slower than usual are flagged. |
 | `handoff` | unchanged | Prefilled plain-language template from the brief and receipt. With a current receipt, binds the approval request to that receipt. |
-| `ship "<message>" --approval-quote "..."` | `saved` then `synced` | Needs finalizing phase, passing gate, matching receipt, category limit, and approval: the operator's words sent after a handoff of this exact receipt, or in `trivial` the preview acceptance while the source is byte-identical. Trailers record the outcome, the approval quote, its evidence, and any waiver. Decisions and non-goals are appended to `.staff-engineer/decisions.json` in the same commit. |
+| `ship "<message>" --approval-quote "..."` | `saved` then `synced` | Needs finalizing phase, passing gate, matching receipt, category limit, and approval: the operator's words sent after a handoff of this exact receipt, or in `trivial` the preview acceptance while the source is byte-identical. Needs a review record for this exact code at the required level. Trailers record the outcome, the approval quote, its evidence, the review, and any waiver. Decisions and non-goals are appended to `.staff-engineer/decisions.json` in the same commit. |
 
 ## Lanes
 
 | Lane | Operator touchpoints | Skips | Adds |
 |---|---|---|---|
-| `trivial` | One: the preview asks "ship it?" | Interview, context packet, simplify, handoff | Size cap (`rules.lanes.trivial`, default 3 source files and 40 added lines); tests and docs finish before the preview |
+| `trivial` | One: the preview asks "ship it?" | Interview, context packet, independent review, handoff | Size cap (`rules.lanes.trivial`, default 3 source files and 40 added lines); tests and docs finish before the preview |
 | `standard` | Brief, preview, handoff | Nothing | Nothing |
 | `large` | Brief, plan, preview, handoff | Nothing | An agreed spec and plan before the first preview |
 
 Every lane keeps the brief, a working preview, the lifecycle gate, the full check, and operator
 approval. Lifecycle blocks a `trivial` concern that outgrew its cap (`lane-exceeded`).
+
+## Code review levels
+
+| Level | Default for | Who reviews | Extra cost |
+|---|---|---|---|
+| `minimum` | trivial lane | the author, with a checklist: acceptance traced to code, edge cases, callers, tests, a quick cleanup pass | near zero |
+| `standard` | standard lane | one fresh-context `reviewer` covering bugs, regressions, requirements, and the four cleanup lenses | about one read of the diff |
+| `detailed` | large lane | parallel `reviewer` focuses (correctness, requirements, regressions, security when relevant) and the four `simplify-*` lenses, then `review-refuter` on every non-cleanup finding | about 4-6x |
+
+Paths that touch stored data, sign-in or secrets, or money raise the level to `detailed`; public
+interfaces and background work raise it to at least `standard`; more than 400 added lines raises it
+one level. The local `review.maxLevel` setting caps it on one machine. The CLI writes one packet
+(brief, acceptance checks, changed files, tests, callers of changed symbols, diff) so reviewers
+never crawl the repository. After a review, the packet holds only the delta since the reviewed
+snapshot. Documentation-only changes need no review.
 
 ## Self-check levels
 

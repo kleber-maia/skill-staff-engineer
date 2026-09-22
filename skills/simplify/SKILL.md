@@ -1,6 +1,6 @@
 ---
 name: simplify
-description: Four-lens cleanup review (Reuse, Quality, Efficiency, Altitude) of an accepted change before it is saved. Use only after the operator accepted the preview and the session is finalizing; it reduces duplication, complexity, waste, and wrong-depth fixes, then identifies documentation impact.
+description: The four cleanup lenses (Reuse, Quality, Efficiency, Altitude) used inside every code-review level. Use through the code-review skill; it reduces duplication, complexity, waste, and wrong-depth fixes, then identifies documentation impact.
 license: MIT
 metadata:
   version: "1.0.0"
@@ -13,9 +13,9 @@ metadata:
 
 # Simplify
 
-Use this skill only after the operator has accepted the working preview and the
-session is in the `finalizing` phase (`node .staff-engineer/cli.mjs status`). Never
-simplify an unreviewed first pass. This is a cleanup of code that already works: make
+These lenses run inside the `code-review` skill at every level: as a quick self-pass at
+**minimum**, inside the single reviewer at **standard**, and as four dedicated
+reviewers at **detailed**. Never simplify an unreviewed first pass. This is a cleanup of code that already works: make
 the change smaller, clearer, and easier to maintain without changing the visible
 outcome. It is not a bug hunt. If a lens finds a real bug, report it separately and
 prominently.
@@ -28,11 +28,10 @@ prominently.
 
 ## The four lenses
 
-Run all four over the complete diff. On harnesses with subagents, run the four
-lenses concurrently, each with the whole diff and read access to the repository; the
-Claude plugin ships them as the `simplify-reuse`, `simplify-quality`,
-`simplify-efficiency`, and `simplify-altitude` agents. Otherwise run them
-sequentially yourself and say so in the summary. Each lens must search the codebase
+Run all four over the review packet's diff. At the detailed level, run them
+concurrently, each with the packet path; the Claude plugin ships them as the
+`simplify-reuse`, `simplify-quality`, `simplify-efficiency`, and `simplify-altitude`
+agents. At the lower levels they are part of one pass. Each lens must search the codebase
 for evidence; a finding without a `file:line` pointer is noise and is dropped.
 
 **Reuse.** New code that duplicates something the repository already has: helpers,

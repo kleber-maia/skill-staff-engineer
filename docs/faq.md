@@ -39,6 +39,12 @@ You do not have to ask. Every tenth saved change, the agent tells you how many w
 time you looked. Behind the scenes it also learns from this project's history (for example, when
 changes keep needing several rounds) and adjusts how it works. The history stays on your machine.
 
+**Does every change get a code review? Isn't that expensive?**
+Every code change is reviewed, but the depth follows the risk. Small fixes get a quick checklist by
+the agent itself (almost free), normal work one independent reviewer, and large or risky work
+(stored data, sign-in, money) several specialists. Fixes after a review are reviewed as a delta
+only. Ask the agent to cap the level on your machine if you need to spend less.
+
 **Will the agent keep asking me the same questions?**
 No. Decisions you make are saved with each change in `.staff-engineer/decisions.json`, and the
 agent sees the few that apply to a new request before it asks anything.

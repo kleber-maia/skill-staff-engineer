@@ -1,6 +1,6 @@
 ---
 name: staff-engineer
-description: The operating contract for an AI agent maintaining software on behalf of an operator who may not be technical. Use at the start of every coding task and whenever deciding what to do next; the toolkit's next command sequences the other skills (grill-me, solid, simplify, handoff, data-safety, spec-and-plan) and the guarded commands.
+description: The operating contract for an AI agent maintaining software on behalf of an operator who may not be technical. Use at the start of every coding task and whenever deciding what to do next; the toolkit's next command sequences the other skills (grill-me, solid, code-review, simplify, handoff, data-safety, spec-and-plan) and the guarded commands.
 license: MIT
 metadata:
   version: "2.0.0"
@@ -48,6 +48,16 @@ Pass `--lane` to `begin`; it sizes the process to the work.
 When unsure, choose `standard`. Move with `lane <name>` when the work turns out bigger or
 riskier. A trivial concern that outgrows its cap is refused until you move it.
 
+## Code review
+
+Every change to code is reviewed before it is saved, at a level the toolkit sets:
+trivial work gets **minimum** (your own checklist pass, before its preview), standard
+work gets **standard** (one fresh-context reviewer), large work gets **detailed**
+(parallel specialists plus refutation). Stored data, sign-in, money, public interfaces,
+background work, and large diffs raise the level. Follow the `code-review` skill when
+`next` asks. The record binds to the reviewed code, so later fixes need only a delta
+review. Lower the level only with an honest `--reason`; the commit records it.
+
 ## Operator approvals
 
 Two approvals exist, and neither can be given for the operator:
@@ -82,6 +92,7 @@ saved in the commit either way.
   checking your own work", "check for updates weekly"), change it with
   `settings set <key> <value>` and confirm in one plain sentence. Settings are local and
   never committed. `settings` lists them: `preview.selfCheck` (off, auto, thorough),
+  `review.maxLevel` (lower only when the operator asks to spend less),
   `updates.checkEveryHours`, `updates.offline`.
 
 ## Operator communication
@@ -122,7 +133,8 @@ saved in the commit either way.
 - [ ] The brief records outcome, acceptance checks, non-goals, and surfaces.
 - [ ] The operator saw a working preview and accepted it in their own words.
 - [ ] Every changed source area has a changed or added test, or an honest waiver.
-- [ ] Standard and large: `simplify` ran on the full diff; RISKY findings are reported.
+- [ ] The code review ran at the required level on the final code (or its delta);
+      bugs, regressions, and missed requirements were fixed, RISKY cleanups reported.
 - [ ] Documentation describing the changed behavior is updated, or a waiver says why.
 - [ ] `lifecycle` passes and `verify --mode full` passed once on the final staged batch.
 - [ ] The operator approved saving in their own words, after a handoff of that exact

@@ -39,6 +39,9 @@ test("trivial lane: one operator touchpoint approves the preview and the save", 
     appendFileSync(join(dir, "tests/copy.test.mjs"), 'test("spelling", () => assert.equal(title, "Welcome"));\n');
     appendFileSync(join(dir, "README.md"), "The title reads Welcome.\n");
     assert.equal((await next(dir)).step, "build", "no context packet is needed in the trivial lane");
+    let review = await runCli(["review", "--json"], { cwd: dir });
+    assert.equal(review.json.data.required.level, "minimum");
+    await runCli(["review", "done", "--found", "0", "--fixed", "0"], { cwd: dir });
 
     result = await runCli(["preview", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr);
@@ -115,6 +118,9 @@ test("standard lane: saving needs a handoff of the verified batch, then the oper
     await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     appendFileSync(join(dir, "README.md"), "The title reads Welcome.\n");
     git(dir, "add", "-A");
+    assert.equal((await next(dir)).step, "review");
+    await runCli(["review"], { cwd: dir });
+    await runCli(["review", "done", "--found", "0", "--fixed", "0"], { cwd: dir });
     assert.equal((await next(dir)).step, "finish");
     await runCli(["verify", "--mode", "full"], { cwd: dir });
     assert.equal((await next(dir)).step, "handoff");
