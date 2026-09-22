@@ -80,11 +80,15 @@ Still ask before saving. The technical operator gets more detail, not fewer gate
 ## After approval
 
 Only an explicit "ship it" (or an unambiguous equivalent that clearly refers to the
-handoff just sent) authorizes:
+handoff just sent) authorizes the save. You run it, quoting the operator's reply verbatim:
 
 ```bash
-STAFF_ENGINEER_CHANGE_APPROVED=1 node .staff-engineer/cli.mjs ship "Imperative message" [--push]
+node .staff-engineer/cli.mjs ship "Imperative message" --approval-quote "<the operator's exact words>" [--push]
 ```
+
+The CLI refuses an approval that predates this handoff or does not match what the operator
+said (where the harness records their messages). The quote is saved in the commit.
+Never ask the operator to type a command or a special phrase; their normal reply is enough.
 
 Then confirm in one sentence that the change is saved (and synced, if `--push` was
 used), without commands or hashes for a non-technical operator.

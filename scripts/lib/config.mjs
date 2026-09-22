@@ -70,6 +70,7 @@ export function defaultConfig() {
       ui: { enabled: "auto" },
       boundaries: [],
       importAliases: { "@/": "src/", "~/": "src/" },
+      lanes: { trivial: { maxSourceFiles: 3, maxAddedLines: 40 } },
     },
     exceptionsFile: `${TOOLKIT_DIR}/exceptions.json`,
   };
@@ -139,6 +140,9 @@ export function validateConfig(config) {
   if (!TEST_QUALITY_SCOPES.includes(config.rules?.testQuality?.scope)) errors.push(`rules.testQuality.scope must be one of ${TEST_QUALITY_SCOPES.join(", ")}`);
   if (!Number.isInteger(config.rules?.maxAddedLinesPerFile) || config.rules.maxAddedLinesPerFile < 1) errors.push("rules.maxAddedLinesPerFile must be a positive integer");
   if (!Number.isInteger(config.rules?.maxConcernCategories) || config.rules.maxConcernCategories < 1) errors.push("rules.maxConcernCategories must be a positive integer");
+  const trivial = config.rules?.lanes?.trivial;
+  if (!Number.isInteger(trivial?.maxSourceFiles) || trivial.maxSourceFiles < 1) errors.push("rules.lanes.trivial.maxSourceFiles must be a positive integer");
+  if (!Number.isInteger(trivial?.maxAddedLines) || trivial.maxAddedLines < 1) errors.push("rules.lanes.trivial.maxAddedLines must be a positive integer");
   if (config.rules?.boundaries !== undefined) errors.push(...validateBoundaryRules(config.rules.boundaries));
   if (config.preview?.screenshotPaths !== undefined && !Array.isArray(config.preview.screenshotPaths)) errors.push("preview.screenshotPaths must be an array of paths");
   if (!UPDATE_OFFLINE_POLICIES.includes(config.updates?.offline)) errors.push(`updates.offline must be one of ${UPDATE_OFFLINE_POLICIES.join(", ")}`);

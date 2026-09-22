@@ -1,10 +1,12 @@
 // Guarded save: approval, finalizing phase, lifecycle gate, matching receipt,
 // concern categories, then commit with permanent trailers.
+import { approvalTrailers, checkApproval } from "../lib/approval.mjs";
 import { output } from "../lib/exec.mjs";
 import { isNonTechnical, loadConfig } from "../lib/config.mjs";
 import { readJson } from "../lib/fs-safe.mjs";
 import { commit, hasUnpushedCommits, head, push, stagedFiles } from "../lib/git.mjs";
 import { matchesAny } from "../lib/glob.mjs";
+import { laneOf, sameFingerprint, sourceFingerprint } from "../lib/lanes.mjs";
 import { failed, ok, refused } from "../lib/output.mjs";
 import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
 import { CLI, markSaved, markSynced, readSession, requireBrief, requireFinalizing, requireOpenSession, sessionTouchesSource, writeSession } from "../lib/session.mjs";
@@ -13,7 +15,7 @@ import { validateReason, validateWaiver } from "../lib/waivers.mjs";
 import { formatFinding, runLifecycle } from "./lifecycle.mjs";
 
 export const description = "Save the verified batch as one commit after explicit operator approval.";
-export const usage = 'STAFF_ENGINEER_CHANGE_APPROVED=1 ship "<imperative message>" [--push]  |  ship --sync-only';
+export const usage = 'ship "<imperative message>" --approval-quote "<the operator\'s exact words>" [--push]  |  ship --sync-only';
 
 export default async function run({ cwd, positional, flags, env = process.env }) {
   const config = loadConfig(cwd);
@@ -23,11 +25,8 @@ export default async function run({ cwd, positional, flags, env = process.env })
   requireBrief(session);
   requireFinalizing(session);
 
-  if (env.STAFF_ENGINEER_CHANGE_APPROVED !== "1") {
-    throw refused("Saving needs the operator's explicit approval of the finished batch.", {
-      agent: `Run ${CLI} handoff, send it, and wait for "ship it". Then: STAFF_ENGINEER_CHANGE_APPROVED=1 ${CLI} ship "Imperative message". Praise for the preview is not approval to save.`,
-    });
-  }
+  const receipt = readReceipt(cwd, "full");
+  const approval = saveApproval(cwd, config, session, receipt, flags["approval-quote"]);
   const message = positional.join(" ").trim();
   if (message.length < 10) throw refused("Give the saved change a short imperative message (at least 10 characters).", { agent: `Usage: ${usage}` });
 
@@ -43,7 +42,6 @@ export default async function run({ cwd, positional, flags, env = process.env })
     });
   }
 
-  const receipt = readReceipt(cwd, "full");
   if (sessionTouchesSource(session, config, cwd) || hasConfiguredGates(config)) {
     if (!receiptMatches(receipt, cwd, config, "staged")) {
       throw refused("The staged code has not passed the full check in its current form.", {
@@ -69,6 +67,7 @@ export default async function run({ cwd, positional, flags, env = process.env })
     if (waiver.ok) trailers[trailer] = waiver.value;
   }
   trailers["Brief-Outcome"] = session.brief.outcome;
+  Object.assign(trailers, approvalTrailers(approval));
 
   const savedCommit = commit(message, { cwd, trailers });
   let updated = markSaved(session, savedCommit);
@@ -92,6 +91,26 @@ export default async function run({ cwd, positional, flags, env = process.env })
       : `Saved as ${savedCommit}. The session is complete; open the next concern with ${CLI} begin.`,
     data: { commit: savedCommit, pushed, status: updated.status, categories, trailers },
   });
+}
+
+// Trivial lane: the preview asked the save question, so its approval stands while
+// the source is byte-identical to what the operator saw. Otherwise the approval
+// must answer a handoff of this exact verified receipt.
+function saveApproval(cwd, config, session, receipt, quote) {
+  if (laneOf(session) === "trivial" && session.presentedSource && session.acceptance) {
+    if (!sameFingerprint(session.presentedSource, sourceFingerprint(cwd, config, session))) {
+      throw refused("The change was edited after the operator approved it, so they have not seen this version.", {
+        agent: `Run ${CLI} revise, then preview the final version again.`,
+      });
+    }
+    return session.acceptance;
+  }
+  if (!receipt || session.handoff?.receiptAt !== receipt.at) {
+    throw refused("Saving needs the operator's approval of a handoff for this exact verified batch.", {
+      agent: `Run ${CLI} lifecycle and verify --mode full if needed, then ${CLI} handoff, send it, and wait. Praise for the preview is not approval to save.`,
+    });
+  }
+  return checkApproval(cwd, quote, { since: session.handoff.at, purpose: "Saving" });
 }
 
 function syncOnly(cwd, config) {

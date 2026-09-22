@@ -3,6 +3,7 @@ import { runShell } from "../lib/exec.mjs";
 import { failed, ok, refused } from "../lib/output.mjs";
 import { stateDir } from "../lib/git.mjs";
 import { captureScreenshots, shouldCapture } from "../lib/screenshots.mjs";
+import { laneOf, laneOverflow, sourceFingerprint } from "../lib/lanes.mjs";
 import { CLI, markAwaitingFeedback, requireBrief, requireOpenSession, sessionConcernFiles, writeSession } from "../lib/session.mjs";
 import { join } from "node:path";
 
@@ -15,9 +16,16 @@ export default async function run({ cwd }) {
   const brief = requireBrief(session);
   const files = sessionConcernFiles(session, cwd);
   assertPreviewableConcern(session, files, config);
+  const lane = laneOf(session);
+  const overflow = laneOverflow(cwd, config, session);
+  if (overflow) throw refused("This change is bigger than a quick fix, so it needs the full review steps.", { agent: overflow });
+  if (lane === "large" && !session.plan) {
+    throw refused("A large change needs an agreed plan before the first preview.", { agent: `Write the spec and plan (spec-and-plan skill), get agreement, then run ${CLI} plan <path>.` });
+  }
   const preview = config.preview ?? { kind: "manual" };
   const where = await confirmPreview(preview, config, cwd);
-  const updated = markAwaitingFeedback(session, files);
+  const combined = lane === "trivial";
+  const updated = markAwaitingFeedback(session, files, { presentedSource: combined ? sourceFingerprint(cwd, config, session) : undefined });
   writeSession(cwd, updated);
   const shots = preview.kind === "web" && shouldCapture(config)
     ? captureScreenshots(cwd, { url: preview.url, paths: preview.screenshotPaths ?? ["/"], outDir: join(stateDir(cwd), "preview", `round-${updated.reviewRound}`) })
@@ -29,7 +37,7 @@ export default async function run({ cwd }) {
     "Please check:",
     checks,
     brief.nonGoals.length ? `Left alone on purpose: ${brief.nonGoals.join("; ")}.` : "",
-    "Tell me what to change, or say it looks good.",
+    combined ? "If it is right, say \"ship it\" and I will run the checks and save it as it is. Otherwise tell me what to change." : "Tell me what to change, or say it looks good.",
   ].filter(Boolean).join("\n");
 
   return ok({
@@ -37,13 +45,14 @@ export default async function run({ cwd }) {
     agent: [
       `Round ${updated.reviewRound}. Stop now and wait for the operator's feedback. Do not continue editing while feedback is open.`,
       `Change requests: run ${CLI} revise, update, then preview again.`,
-      `Clear acceptance: STAFF_ENGINEER_PREVIEW_APPROVED=1 ${CLI} finalize`,
+      `Clear acceptance: ${CLI} finalize --approval-quote "<the operator's exact words>"`,
+      combined ? "Trivial lane: that acceptance also approves the save, as long as the source stays byte-identical. Tests and docs should already be done." : "",
       where.agent ?? "",
       shots.files.length ? `Screenshots (look at them before presenting; share them when the harness allows):\n${shots.files.map((file) => `- ${file}`).join("\n")}` : "",
       shots.skipped === false && !shots.ok ? `Screenshots failed (preview still presented): ${shots.reason}` : "",
       isNonTechnical(config) ? "Keep the message free of file names, commands, and tool output." : "",
     ].filter(Boolean).join("\n"),
-    data: { round: updated.reviewRound, files, preview: where, brief, screenshots: shots.files },
+    data: { round: updated.reviewRound, lane, combinedApproval: combined, files, preview: where, brief, screenshots: shots.files },
   });
 }
 

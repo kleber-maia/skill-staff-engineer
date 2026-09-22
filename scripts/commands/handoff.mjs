@@ -1,7 +1,7 @@
 import { isNonTechnical, loadConfig } from "../lib/config.mjs";
 import { ok } from "../lib/output.mjs";
 import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
-import { requireBrief, requireOpenSession, sessionConcernFiles } from "../lib/session.mjs";
+import { recordHandoff, requireBrief, requireOpenSession, sessionConcernFiles, writeSession } from "../lib/session.mjs";
 
 export const description = "Print a prefilled plain-language handoff for the operator.";
 export const usage = "handoff";
@@ -12,12 +12,16 @@ export default async function run({ cwd }) {
   const brief = requireBrief(session);
   const receipt = readReceipt(cwd);
   const current = receipt ? receiptMatches(receipt, cwd, config, "working") : false;
+  // Only a handoff of the verified batch can be answered with approval to save.
+  if (current) writeSession(cwd, recordHandoff(session, receipt.at));
   const preview = config.preview?.kind === "web" ? (config.operator?.previewPublicUrl ?? config.preview.url) : null;
   const checked = describeChecks(receipt, current, config);
   const text = renderHandoff({ brief, preview, checked, technical: !isNonTechnical(config), files: sessionConcernFiles(session, cwd) });
   return ok({
     operator: text,
-    agent: current ? "Fill the placeholders, send it, and wait. Only an explicit \"ship it\" authorizes the approved ship command." : "No current full verification receipt: run lifecycle and verify --mode full before sending this.",
+    agent: current
+      ? "Fill the placeholders, send it, and stop. Only an explicit approval to save sent after this handoff counts; pass the operator's words to ship with --approval-quote."
+      : "No current full verification receipt: run lifecycle and verify --mode full before sending this.",
     data: { brief, receiptCurrent: current, preview },
   });
 }

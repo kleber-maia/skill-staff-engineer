@@ -76,7 +76,7 @@ test("with a session: early tests are allowed, commits go through ship, source w
     assert.equal(decision(decide("PreToolUse", edit(join(dir, "src/app.mjs"), dir), dir)), "deny", "awaiting feedback");
     assert.equal(decide("PreToolUse", edit(join(dir, "README.md"), dir), dir), null, "docs edits fine while awaiting");
 
-    await runCli(["finalize"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     assert.equal(decide("PreToolUse", bash("npm test", dir), dir), null, "tests allowed after acceptance");
     assert.equal(decide("PreToolUse", edit(join(dir, "tests/app.test.mjs"), dir), dir), null);
 
@@ -118,6 +118,41 @@ test("the hook command fails open on a corrupt config and stays silent without a
     assert.equal(result.status, 0);
     assert.equal(result.stdout, "");
     cleanup(plain);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("operator messages are recorded so approvals must quote a real reply", async () => {
+  const dir = await setup();
+  try {
+    await runCli(["begin", "Guarded approval"], { cwd: dir });
+    await runCli(["brief", "--outcome", "The app shows a friendly greeting.", "--accept", "Open the app and read the greeting"], { cwd: dir });
+    await runCli(["context", "src/app.mjs"], { cwd: dir });
+    appendFileSync(join(dir, "src/app.mjs"), "export const greeting = \"hi\";\n");
+    await runCli(["preview"], { cwd: dir });
+
+    const response = decide("UserPromptSubmit", { prompt: "Looks good to me", cwd: dir }, dir);
+    assert.match(response.hookSpecificOutput.additionalContext, /await-feedback/);
+    assert.match(response.hookSpecificOutput.additionalContext, /operator's reply/);
+
+    let result = await runCli(["finalize", "--approval-quote", "ship it", "--json"], { cwd: dir });
+    assert.equal(result.code, 1, "the operator never said those words");
+    result = await runCli(["finalize", "--approval-quote", "looks good", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    assert.equal(result.json.data.acceptance.evidence, "operator-log");
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("the agent cannot write the operator log or other repository internals", async () => {
+  const dir = await setup();
+  try {
+    assert.equal(decision(decide("PreToolUse", edit(join(dir, ".git/staff-engineer/operator-messages.json"), dir), dir)), "deny");
+    assert.equal(decision(decide("PreToolUse", edit(join(dir, ".git/staff-engineer/session.json"), dir), dir)), "deny");
+    assert.equal(decision(decide("PreToolUse", bash("echo '{}' > .git/staff-engineer/operator-messages.json", dir), dir)), "deny");
+    assert.equal(decide("PreToolUse", bash("cat .git/staff-engineer/operator-messages.json", dir), dir), null, "reading is fine");
   } finally {
     cleanup(dir);
   }

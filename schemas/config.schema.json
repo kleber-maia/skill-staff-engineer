@@ -274,6 +274,20 @@
           },
           "description": "Import prefix to path prefix, e.g. {\"@/\": \"src/\"}."
         },
+        "lanes": {
+          "type": "object",
+          "description": "Size limits per lane. A trivial concern that grows past them must move to the standard lane.",
+          "properties": {
+            "trivial": {
+              "type": "object",
+              "properties": {
+                "maxSourceFiles": { "type": "integer", "minimum": 1 },
+                "maxAddedLines": { "type": "integer", "minimum": 1 }
+              },
+              "required": ["maxSourceFiles", "maxAddedLines"]
+            }
+          }
+        },
         "boundaries": {
           "type": "array",
           "items": {
