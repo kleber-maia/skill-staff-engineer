@@ -24,7 +24,9 @@ export const COMMANDS = {
   preview: { module: "./commands/preview.mjs" },
   revise: { module: "./commands/revise.mjs" },
   finalize: { module: "./commands/finalize.mjs" },
-  review: { module: "./commands/review.mjs" },
+  review: { module: "./commands/review.mjs", multi: ["issue"] },
+  repro: { module: "./commands/repro.mjs" },
+  issues: { module: "./commands/issues.mjs" },
   lifecycle: { module: "./commands/lifecycle.mjs" },
   verify: { module: "./commands/verify.mjs" },
   handoff: { module: "./commands/handoff.mjs" },
@@ -37,7 +39,7 @@ export const COMMANDS = {
   hook: { module: "./commands/hook.mjs" },
 };
 
-const BOOLEANS = ["json", "dry-run", "yes", "reconfigure", "replace-existing-skills", "with-claude-hooks", "init-git", "uninstall", "push", "sync-only", "discard-confirmed", "which", "force"];
+const BOOLEANS = ["bug", "json", "dry-run", "yes", "reconfigure", "replace-existing-skills", "with-claude-hooks", "init-git", "uninstall", "push", "sync-only", "discard-confirmed", "which", "force"];
 
 export async function main(argv = process.argv.slice(2), { cwd = process.cwd(), env = process.env, stdout = process.stdout, stderr = process.stderr, services = {} } = {}) {
   const [name, ...rest] = argv;
@@ -88,7 +90,7 @@ Setup
 
 Lifecycle (one concern at a time; run next whenever unsure)
   next                                The one next step: command, skills to read, whether to wait
-  begin "<short concern>" [--lane trivial|standard|large]
+  begin "<short concern>" [--lane trivial|standard|large] [--bug]
                                       Check upstream, then open exactly one work session
   lane trivial|standard|large         Move the open concern to another lane
   plan <path>                         Record the agreed plan (large lane, before preview)
@@ -99,8 +101,12 @@ Lifecycle (one concern at a time; run next whenever unsure)
   preview                             Present the working result; reads the acceptance checks back
   revise                              Return to implementation after feedback
   finalize --approval-quote "..."     Record the operator's acceptance in their own words
-  review | review done --found <n> --fixed <n> [--reported <n>] [--level ...] [--reason "..."]
+  review | review done --found <n> --fixed <n> [--reported <n> --issue "file:line problem"] [--level ...] [--reason "..."]
                                       Code review at the level the change needs
+  repro "<test command>" | repro --waiver "..."
+                                      Bug fixes: the test must fail on the original code and pass now
+  issues [--for "<files>"] | issues resolve <id>
+                                      Known issues reported but not fixed
   lifecycle                           Gate the staged batch
   verify --mode fast|full             Run the configured checks; full writes a receipt
   handoff                             Print a plain-language handoff draft

@@ -17,6 +17,8 @@ operator). `status`, `begin`, `finalize`, and the Claude Code hooks show the sam
 | `revise` | `implementation` | Editing source while awaiting feedback is denied by the Claude hook until this runs. |
 | `finalize --approval-quote "..."` | `finalizing` | Needs the operator's words of acceptance, sent after the preview (checked against recorded operator messages when the harness records them). The code review, final documentation, lifecycle, and the final full verification are unlocked. |
 | `review` / `review done` | unchanged | Prepares the review packet at the required level (trivial before its preview; otherwise after acceptance). `done` records found/fixed/reported counts bound to the reviewed code; a lower level needs `--reason`. |
+| `repro "<test command>"` | unchanged | Bug fixes (`begin --bug`) only. Runs the command on the original code (a temporary worktree at the base commit, with this change's tests copied in and ignored dependencies linked) and on the current code. It must fail before for a real reason, not setup, and pass after. Preview needs the failing proof; ship needs a current passing one (or `--waiver "reason"`), recorded as `Repro` / `Repro-Waiver`. |
+| `issues` / `issues resolve <id>` | unchanged | Lists open known issues; `resolve` marks one fixed by this concern when it is saved. |
 | `exception add --rule --path --reason` | unchanged | Records a justified, permanent exception to one gate rule for matching paths; lifecycle blocks exceptions that no longer match any file. |
 | `lifecycle` | unchanged | Blocking-session projects must be finalizing with current context coverage. The staged diff passes language and structural rules; the whole concern is staged; no protected or never-stage paths; docs and tests are present or waived. |
 | `verify --mode full` | unchanged | All configured gates pass without changing HEAD or their inputs; a receipt fingerprints executable, rule, dependency, and configuration files, including toolkit runtime/config. A new run invalidates an older receipt immediately. Prose-only docs and skill edits keep it valid. Durations go to a ledger; runs slower than usual are flagged. |
@@ -47,7 +49,10 @@ interfaces and background work raise it to at least `standard`; more than 400 ad
 one level. The local `review.maxLevel` setting caps it on one machine. The CLI writes one packet
 (brief, acceptance checks, changed files, tests, callers of changed symbols, diff) so reviewers
 never crawl the repository. After a review, the packet holds only the delta since the reviewed
-snapshot. Documentation-only changes need no review.
+snapshot. Documentation-only changes need no review. Reported findings must be recorded with
+`review done --issue "file:line problem"`; `ship` commits them to `.staff-engineer/known-issues.json`,
+`context` and later review packets show the open ones for the files being changed, and the handoff
+tells the operator when known weak spots remain near a change.
 
 ## Self-check levels
 

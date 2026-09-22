@@ -20,6 +20,8 @@ skills guide the work between them. Before changing anything, read `.agents/skil
 - Build the smallest working first pass, then `preview` and **stop for feedback**. The code review,
   final docs, lifecycle, and full verification wait for acceptance (trivial work finishes tests,
   docs, and its minimum review before its preview).
+- Bug reports open with `begin "..." --bug`; the fix needs `repro`: a test that fails on the original
+  code and passes on the fixed code.
 - Every code change is reviewed at the level `review` prints (minimum, standard, detailed; follow
   the `code-review` skill). Fixes after a review need only a delta review.
 - Approvals quote the operator verbatim, from a reply sent after that step was presented:

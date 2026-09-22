@@ -70,4 +70,7 @@ wrong result) is dropped. Style preferences are not findings.
    Report RISKY ones instead of applying them.
 4. If a fix changes what the operator sees, run `revise` and preview again.
 5. Record counts honestly: found = surviving findings, fixed = applied, reported = left
-   for the operator or a later concern. Mention reported ones in the handoff.
+   for the operator or a later concern. Record each reported one as a known issue:
+   `review done ... --reported 1 --issue "file:line what is wrong and why it matters"`.
+6. The packet lists known issues already open in the changed files. Say whether each is
+   still present; if this change fixed one, run `issues resolve <id>`.

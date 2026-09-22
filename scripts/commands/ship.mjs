@@ -2,6 +2,7 @@
 // concern categories, then commit with permanent trailers.
 import { approvalTrailers, checkApproval } from "../lib/approval.mjs";
 import { appendDecisions } from "../lib/decisions.mjs";
+import { applyIssues } from "../lib/issues.mjs";
 import { output } from "../lib/exec.mjs";
 import { recordConcern } from "../lib/history.mjs";
 import { operatorInsight } from "../lib/insights.mjs";
@@ -18,6 +19,7 @@ import { CLI, markSaved, markSynced, readSession, requireBrief, requireFinalizin
 import { assetPath } from "../lib/toolkit.mjs";
 import { validateReason, validateWaiver } from "../lib/waivers.mjs";
 import { formatFinding, recordBlocks, runLifecycle } from "./lifecycle.mjs";
+import { reproIsCurrent, reproTrailers } from "./repro.mjs";
 import { reviewTrailer } from "./review.mjs";
 
 export const description = "Save the verified batch as one commit after explicit operator approval.";
@@ -58,6 +60,11 @@ export default async function run({ cwd, positional, flags, env = process.env })
   }
   output("git", ["diff", "--cached", "--check"], { cwd });
   const review = requireReview(cwd, config, session);
+  if (session.kind === "bug" && !reproIsCurrent(cwd, config, session, "staged")) {
+    throw refused("This bug fix has no current proof that its test fails without the fix and passes with it.", {
+      agent: `Run ${CLI} repro "<test command>" on the final code, then ship again.`,
+    });
+  }
 
   const trailers = {};
   const categories = concernCategories(staged);
@@ -75,6 +82,7 @@ export default async function run({ cwd, positional, flags, env = process.env })
     if (waiver.ok) trailers[trailer] = waiver.value;
   }
   trailers["Brief-Outcome"] = session.brief.outcome;
+  if (session.kind === "bug") Object.assign(trailers, reproTrailers(session.repro));
   if (review) {
     trailers.Review = reviewTrailer(review);
     if (review.reason) trailers["Review-Downgrade"] = review.reason;
@@ -84,6 +92,8 @@ export default async function run({ cwd, positional, flags, env = process.env })
   // Decisions travel with the change that made them; the log is toolkit data, not verified code.
   const decisionsFile = appendDecisions(cwd, session, { files: staged.filter((file) => isProductSource(config, file)) });
   if (decisionsFile) output("git", ["add", "--", decisionsFile], { cwd });
+  const issuesFile = applyIssues(cwd, session);
+  if (issuesFile) output("git", ["add", "--", issuesFile], { cwd });
 
   const savedCommit = commit(message, { cwd, trailers });
   let updated = markSaved(session, savedCommit);

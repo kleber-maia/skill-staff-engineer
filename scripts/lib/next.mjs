@@ -5,6 +5,7 @@ import { stagedFiles } from "./git.mjs";
 import { laneOf, laneOverflow, sameFingerprint, sourceFingerprint } from "./lanes.mjs";
 import { readReceipt, receiptMatches } from "./receipt.mjs";
 import { requiredReview, reviewIsCurrent } from "./review.mjs";
+import { reproIsCurrent } from "../commands/repro.mjs";
 import { CLI, PHASES, STATUSES } from "./session.mjs";
 
 const QUOTE = `--approval-quote "<the operator's exact words>"`;
@@ -24,6 +25,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
         "- standard: anything else of normal size.",
         "- large: more than two areas, new data shapes, or more than a day of work.",
         "When unsure, choose standard. The lane can change later with the lane command.",
+        "When the operator reports something broken, add --bug: the fix must be proven by a test that fails on the original code.",
         `Only for product changes the operator asked for. Installing, updating, or configuring the toolkit is maintenance: use install, update, config, or save-toolkit, never a concern.`,
       ].join("\n"),
     });
@@ -42,6 +44,12 @@ export function nextStep({ cwd, config, session, quick = false }) {
   if (open.phase === PHASES.IMPLEMENTATION) {
     const overflow = laneOverflow(cwd, config, open);
     if (overflow) return step("lane", { command: `${CLI} lane standard`, guidance: overflow });
+    if (open.kind === "bug" && !open.repro?.failsAtBase && !open.repro?.waiver) {
+      return step("repro", {
+        command: `${CLI} repro "<command that runs the reproducing test>"`,
+        guidance: "Bug fix: first write a test that shows the reported bug, and run repro before fixing. It must fail on the original code for the bug's reason. Then fix it and run repro again until it passes. Only when a test truly cannot show the bug, use repro --waiver \"reason\".",
+      });
+    }
     if (lane !== "trivial" && !contextIsCurrent(cwd, open)) {
       return step("context", { command: `${CLI} context <planned files...>`, guidance: "Build and read the task-context packet before editing. Rerun it when the scope or imports grow." });
     }
@@ -79,6 +87,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
     }
     if (quick) return step("finish", { guidance: `Stage the whole concern, run ${CLI} lifecycle and ${CLI} verify --mode full, then ship. Run ${CLI} next for the exact step.` });
     if (needsReview(cwd, config, open)) return reviewStep("minimum");
+    if (open.kind === "bug" && !reproIsCurrent(cwd, config, open)) return reproStep();
     if (!staged.length || !receiptMatches(readReceipt(cwd, "full"), cwd, config, "staged")) {
       return step("check", { command: `${CLI} lifecycle && ${CLI} verify --mode full`, guidance: "Stage the entire concern, then run lifecycle and the full check once." });
     }
@@ -86,6 +95,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
   }
   if (quick) return step("finish", { skills: ["code-review", "handoff"], guidance: `Finish tests and docs, run the code review, stage everything, run lifecycle and verify --mode full, then handoff. Run ${CLI} next for the exact step.` });
   if (needsReview(cwd, config, open)) return reviewStep(requiredReview(cwd, config, open).level, Boolean(open.review));
+  if (open.kind === "bug" && !reproIsCurrent(cwd, config, open)) return reproStep();
   const receipt = readReceipt(cwd, "full");
   if (!staged.length || !receiptMatches(receipt, cwd, config, "staged")) {
     return step("finish", {
@@ -117,6 +127,10 @@ export function renderNext(next) {
 
 function needsReview(cwd, config, session) {
   return Boolean(requiredReview(cwd, config, session).level) && !reviewIsCurrent(cwd, config, session);
+}
+
+function reproStep() {
+  return step("repro", { command: `${CLI} repro "<the same test command>"`, guidance: "The code changed since the last passing reproduction (or it has not passed yet). Run repro again: it must still fail on the original code and pass now." });
 }
 
 function reviewStep(level, delta = false) {

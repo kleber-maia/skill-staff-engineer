@@ -52,6 +52,14 @@ Pass `--lane` to `begin`; it sizes the process to the work.
 When unsure, choose `standard`. Move with `lane <name>` when the work turns out bigger or
 riskier. A trivial concern that outgrows its cap is refused until you move it.
 
+## Bug fixes
+
+When the operator reports something broken, open it with `begin "..." --bug`. Before
+fixing, write a test that shows the bug and run `repro "<command that runs it>"`: it must
+fail on the original code for the bug's reason. Fix, then run `repro` again until it
+passes. The proof is saved with the change. Only when a test truly cannot show the bug,
+use `repro --waiver "reason"` and repeat the reason in the handoff.
+
 ## Code review
 
 Every change to code is reviewed before it is saved, at a level the toolkit sets:
@@ -60,7 +68,10 @@ work gets **standard** (one fresh-context reviewer), large work gets **detailed*
 (parallel specialists plus refutation). Stored data, sign-in, money, public interfaces,
 background work, and large diffs raise the level. Follow the `code-review` skill when
 `next` asks. The record binds to the reviewed code, so later fixes need only a delta
-review. Lower the level only with an honest `--reason`; the commit records it.
+review. Lower the level only with an honest `--reason`; the commit records it. Every
+finding you report instead of fixing is recorded with `review done --issue "file:line
+problem"`, so it becomes a known issue later concerns see. When you fix one that
+`context` or the packet lists, run `issues resolve <id>`.
 
 ## Operator approvals
 

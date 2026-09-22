@@ -17,7 +17,7 @@ import { pendingToolkitFiles, saveToolkit } from "../lib/maintenance.mjs";
 import { updateToolkit } from "./update.mjs";
 
 export const description = "Open exactly one work session for one concern.";
-export const usage = 'begin "<short concern>" [--lane trivial|standard|large]';
+export const usage = 'begin "<short concern>" [--lane trivial|standard|large] [--bug]';
 
 // Set only for the refreshed CLI that begin re-runs right after an upgrade.
 const UPDATED_ENV = "STAFF_ENGINEER_UPDATE_CHECKED";
@@ -46,12 +46,12 @@ export default async function run({ cwd, positional, flags = {}, env = process.e
           data: { update: update.data, sessionOpened: false, restartRequired: true },
         });
       }
-      return beginWithRefreshedToolkit(cwd, positional, lane, upgrade);
+      return beginWithRefreshedToolkit(cwd, [...positional, ...(flags.bug ? ["--bug"] : [])], lane, upgrade);
     }
   }
 
   const config = loadConfig(cwd);
-  const session = beginSession(cwd, positional.join(" "), { lane });
+  const session = beginSession(cwd, positional.join(" "), { lane, kind: flags.bug ? "bug" : "change" });
   const decisions = relevantDecisions(cwd, { text: session.concern });
   const insights = agentInsights(cwd, { webPreview: config.preview?.kind === "web", selfCheck: getSetting(cwd, "preview.selfCheck") });
   return ok({
@@ -59,7 +59,7 @@ export default async function run({ cwd, positional, flags = {}, env = process.e
     agent: [
       "All changes for this concern must be staged and saved together as one batch.",
       session.baseline.files.length ? `Pre-existing pending files are protected and must stay out of this batch: ${summarize(session.baseline.files)}` : "",
-      `Lane: ${lane}.`,
+      `Lane: ${lane}.${flags.bug ? " Bug fix: prove it with a test that fails on the original code (repro)." : ""}`,
       decisions.length ? renderDecisions(decisions) : "",
       renderAgentInsights(insights),
       renderNext(nextStep({ cwd, config, session })),

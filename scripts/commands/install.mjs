@@ -6,6 +6,7 @@ import { dirname, join, relative, resolve } from "node:path";
 
 import { CONFIG_FILE, configPath, defaultConfig, TOOLKIT_DIR } from "../lib/config.mjs";
 import { DECISIONS_FILE } from "../lib/decisions.mjs";
+import { ISSUES_FILE } from "../lib/issues.mjs";
 import { detectStack } from "../lib/detect.mjs";
 import { output } from "../lib/exec.mjs";
 import { assertInsideRoot, backupFile, copyDir, ensureDir, readJson, readText, removeDir, timestamp, writeAtomic, writeJson } from "../lib/fs-safe.mjs";
@@ -385,17 +386,16 @@ function uninstall(target, flags) {
     removed.push(".claude/settings.json (hook entries)");
   }
   if (existsSync(resolve(root, TOOLKIT_DIR))) {
-    // The decisions log is the project's own record, so it outlives the toolkit.
-    const decisions = resolve(root, DECISIONS_FILE);
-    const kept = existsSync(decisions) ? readFileSync(decisions, "utf8") : null;
+    // Decisions and known issues are the project's own record, so they outlive the toolkit.
+    const kept = [DECISIONS_FILE, ISSUES_FILE].filter((file) => existsSync(resolve(root, file))).map((file) => [file, readFileSync(resolve(root, file), "utf8")]);
     if (!flags["dry-run"]) {
       rmSync(resolve(root, TOOLKIT_DIR), { recursive: true, force: true });
-      if (kept !== null) {
-        ensureDir(dirname(decisions));
-        writeAtomic(decisions, kept);
+      for (const [file, text] of kept) {
+        ensureDir(dirname(resolve(root, file)));
+        writeAtomic(resolve(root, file), text);
       }
     }
-    removed.push(kept === null ? `${TOOLKIT_DIR}/` : `${TOOLKIT_DIR}/ (kept ${DECISIONS_FILE})`);
+    removed.push(kept.length ? `${TOOLKIT_DIR}/ (kept ${kept.map(([file]) => file).join(", ")})` : `${TOOLKIT_DIR}/`);
   }
   return ok({
     operator: flags["dry-run"] ? `Dry run: would remove ${removed.length} item${removed.length === 1 ? "" : "s"}.` : "The toolkit was removed from this project. Your own files were left untouched.",

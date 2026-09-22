@@ -11,6 +11,7 @@ import { readJson, writeJson } from "../lib/fs-safe.mjs";
 import { stateDir } from "../lib/git.mjs";
 import { matchesAny, normalize } from "../lib/glob.mjs";
 import { relevantDecisions, renderDecisions } from "../lib/decisions.mjs";
+import { openIssuesFor, renderIssues } from "../lib/issues.mjs";
 import { importsOfFile } from "../lib/imports.mjs";
 import { ok, refused } from "../lib/output.mjs";
 import { classify, isProtected } from "../lib/paths.mjs";
@@ -35,7 +36,7 @@ export default async function run({ cwd, positional }) {
   }
   const session = readSession(cwd);
   const brief = session && !session.cleared ? session.brief : null;
-  const packet = { ...buildPacket(cwd, config, files), decisions: relevantDecisions(cwd, { text: [session?.concern, brief?.outcome].filter(Boolean).join(" "), files, surfaces: brief?.surfaces ?? [] }) };
+  const packet = { ...buildPacket(cwd, config, files), issues: openIssuesFor(cwd, files, { resolved: session?.resolvedIssues ?? [] }).slice(0, 10), decisions: relevantDecisions(cwd, { text: [session?.concern, brief?.outcome].filter(Boolean).join(" "), files, surfaces: brief?.surfaces ?? [] }) };
   writeJson(contextPath(cwd), packet);
   return ok({
     operator: "Gathered the guidance and related material for this change.",
@@ -120,6 +121,7 @@ function renderPacket(packet) {
   if (packet.tests.length) lines.push("", "Tests that cover these files:", ...packet.tests.map((test) => `- ${test}`));
   if (packet.dependencies.length) lines.push("", "Local modules they import (read before changing call sites):", ...packet.dependencies.map((dep) => `- ${dep}`));
   if (packet.decisions?.length) lines.push("", renderDecisions(packet.decisions));
+  if (packet.issues?.length) lines.push("", renderIssues(packet.issues));
   lines.push("", "Phases: grill-me before building; solid" + (packet.skills.some((skill) => skill.name === "ui-quality") ? " and ui-quality" : "") + " while building; code-review (with the simplify lenses) after acceptance; handoff at the end.");
   lines.push("Rerun context if the planned scope or the local imports grow. The lifecycle gate refuses when a listed skill changed after this packet.");
   return lines.join("\n");

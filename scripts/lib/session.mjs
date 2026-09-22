@@ -41,7 +41,7 @@ export function clearSession(cwd) {
 }
 
 // ---------- begin ----------
-export function beginSession(cwd, concern, { lane = "standard", now = new Date().toISOString() } = {}) {
+export function beginSession(cwd, concern, { lane = "standard", kind = "change", now = new Date().toISOString() } = {}) {
   assertConcern(concern);
   const existing = readSession(cwd);
   const currentHead = head(cwd);
@@ -53,6 +53,7 @@ export function beginSession(cwd, concern, { lane = "standard", now = new Date()
     concern: concern.trim(),
     lane,
     initialLane: lane,
+    kind,
     baseCommit: currentHead,
     startedAt: now,
     reviewRound: 0,

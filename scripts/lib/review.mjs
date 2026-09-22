@@ -13,6 +13,7 @@ import { laneOf } from "./lanes.mjs";
 import { classify, isProtected } from "./paths.mjs";
 import { codeTreeFingerprint } from "./receipt.mjs";
 import { sessionConcernFiles } from "./session.mjs";
+import { openIssuesFor } from "./issues.mjs";
 import { getSetting } from "./settings.mjs";
 
 export const REVIEW_LEVELS = ["minimum", "standard", "detailed"];
@@ -92,6 +93,7 @@ export function buildPacket(cwd, config, session, required, { now = new Date().t
     ...(brief.acceptance ?? []).map((item, index) => `Acceptance ${index + 1}: ${item}`),
     ...(brief.nonGoals ?? []).map((item) => `Non-goal: ${item}`),
     ...(brief.decisions ?? []).map((item) => `Decision: ${item}`),
+    ...(session.repro?.command ? [`Bug reproduction: ${session.repro.command} (fails on the original code)`] : []),
     "",
     "## Changed files",
     ...files.map((file) => `- ${file}`),
@@ -102,6 +104,9 @@ export function buildPacket(cwd, config, session, required, { now = new Date().t
     "## Callers of changed symbols outside this change",
     ...(callers.length ? callers.map((caller) => `- ${caller}`) : ["- (none found)"]),
     "",
+    "## Known issues in these files",
+    ...(knownIssues(cwd, session, files)),
+    "",
     "## Diff",
     "```diff",
     diff.trim() || "(no textual changes)",
@@ -111,6 +116,11 @@ export function buildPacket(cwd, config, session, required, { now = new Date().t
   const path = join(dir, `packet-${now.replace(/[:.]/g, "-")}.md`);
   writeFileSync(path, `${lines.join("\n")}\n`, "utf8");
   return { path, delta, files, callers: callers.length };
+}
+
+function knownIssues(cwd, session, files) {
+  const issues = openIssuesFor(cwd, files, { resolved: session.resolvedIssues ?? [] }).filter((issue) => files.includes(issue.file));
+  return issues.length ? issues.map((issue) => `- #${issue.id} ${issue.file}:${issue.line} ${issue.summary} (still present? fixed by this change?)`) : ["- (none)"];
 }
 
 function fullDiff(cwd, session, files) {

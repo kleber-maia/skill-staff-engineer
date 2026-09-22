@@ -22,6 +22,7 @@ export function recordConcern(cwd, session, { outcome, commit = null, trailers =
     concern: session.concern,
     outcome,
     lane: session.lane ?? "standard",
+    kind: session.kind ?? "change",
     initialLane: session.initialLane ?? session.lane ?? "standard",
     startedAt: session.startedAt,
     endedAt: now,
