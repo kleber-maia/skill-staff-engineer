@@ -107,6 +107,40 @@ for (const file of files(join(root, "commands"), ".md")) {
   if (!/cli\.mjs|skill/i.test(text)) problems.push(`${relative(root, file)}: should reference the CLI or a skill`);
 }
 
+// 9. Documentation drift: facts the docs repeat must match the code.
+const { helpText } = await import("./cli.mjs");
+const help = helpText();
+for (const name of Object.keys(COMMANDS).filter((name) => name !== "hook")) {
+  if (!new RegExp(`^\\s+${name}\\b`, "m").test(help)) problems.push(`cli.mjs: command "${name}" is missing from the help text`);
+}
+const lifecycleSection = help.slice(help.indexOf("Lifecycle"), help.indexOf("\n\n", help.indexOf("Lifecycle")));
+const lifecycleDoc = readFileSync(join(root, "docs/lifecycle.md"), "utf8");
+for (const name of new Set([...lifecycleSection.matchAll(/^\s{2}([a-z]+)\b/gm)].map((match) => match[1]))) {
+  if (COMMANDS[name] && !lifecycleDoc.includes(`\`${name}`)) problems.push(`docs/lifecycle.md: lifecycle command "${name}" is not described`);
+}
+for (const file of files(join(root, "commands"), ".md")) {
+  for (const match of readFileSync(file, "utf8").matchAll(/cli\.mjs"? ([a-z]+)/g)) {
+    if (!COMMANDS[match[1]]) problems.push(`${relative(root, file)}: references unknown command "${match[1]}"`);
+  }
+}
+const NUMBERS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"];
+const skillCount = dirs(join(root, "skills")).length;
+const readme = readFileSync(join(root, "README.md"), "utf8");
+for (const match of readme.matchAll(/\b([A-Za-z]+) skills\b/g)) {
+  const index = NUMBERS.indexOf(match[1].toLowerCase());
+  if (index !== -1 && index !== skillCount) problems.push(`README.md: says "${match[0]}" but there are ${skillCount} skills`);
+}
+const { SETTINGS } = await import("./lib/settings.mjs");
+const contract = readFileSync(join(root, "skills/staff-engineer/SKILL.md"), "utf8");
+for (const key of Object.keys(SETTINGS)) if (!contract.includes(key)) problems.push(`skills/staff-engineer/SKILL.md: setting ${key} is not mentioned`);
+const schema = JSON.parse(readFileSync(join(root, "schemas/config.schema.json"), "utf8"));
+for (const group of ["operator", "preview", "updates", "paths", "rules"]) {
+  for (const [key, spec] of Object.entries(schema.properties[group]?.properties ?? {})) {
+    if (!spec.description) problems.push(`schemas/config.schema.json: ${group}.${key} needs a description`);
+  }
+}
+if (!readFileSync(join(root, "CHANGELOG.md"), "utf8").includes(`**${pkg.version}**`)) problems.push(`CHANGELOG.md: no entry for version ${pkg.version}`);
+
 if (problems.length) {
   console.error(`lint-toolkit: ${problems.length} problem(s)`);
   for (const problem of problems) console.error(`- ${problem}`);

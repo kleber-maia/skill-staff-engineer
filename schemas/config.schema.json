@@ -71,10 +71,12 @@
             "properties": {
               "cmd": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "Command the gate runs; exit code 0 passes."
               },
               "fix": {
-                "type": "string"
+                "type": "string",
+                "description": "Optional command that fixes what the gate reports (for example a formatter)."
               },
               "affected": {
                 "type": "string",
@@ -82,7 +84,8 @@
               },
               "timeoutMs": {
                 "type": "integer",
-                "minimum": 1000
+                "minimum": 1000,
+                "description": "Per-gate timeout."
               }
             }
           }
@@ -100,19 +103,24 @@
             "web",
             "command",
             "manual"
-          ]
+          ],
+          "description": "web (a URL the toolkit checks), command (a demo command whose output the operator reads), or manual (instructions only)."
         },
         "cmd": {
-          "type": "string"
+          "type": "string",
+          "description": "Starts the web preview, or is the demo command for kind command."
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "Internal address the toolkit probes before presenting a web preview."
         },
         "readyPattern": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional output text that signals the preview command is ready."
         },
         "timeoutMs": {
-          "type": "integer"
+          "type": "integer",
+          "description": "How long to wait for the preview to respond or finish."
         },
         "instructions": {
           "type": "string",
@@ -140,12 +148,18 @@
       "description": "Controls the automatic upstream check performed by begin.",
       "properties": {
         "revision": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Optional branch, tag, or commit to pin. null follows the remote default branch."
         },
         "offline": {
-          "enum": ["fail", "allow"],
-          "description": "fail blocks begin when upstream cannot be checked; allow continues with the installed toolkit."
+          "enum": [
+            "fail",
+            "allow"
+          ],
+          "description": "allow (default) continues with the installed toolkit when upstream cannot be checked; fail blocks begin. A machine-local setting of the same name overrides it."
         },
         "timeoutMs": {
           "type": "integer",
@@ -161,19 +175,22 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Globs for product source; changes here need a test in the same batch."
         },
         "tests": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Globs for test files."
         },
         "docs": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Globs for documentation; prose-only edits keep the verification receipt and review valid."
         },
         "documentable": {
           "type": "array",
@@ -186,25 +203,29 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Generated output; edits are refused and it never counts as a change."
         },
         "protected": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Secrets and keys the agent must never edit or stage."
         },
         "neverStage": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Files that must never be saved (logs, env files, caches, backups)."
         },
         "allowDebug": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Paths where debug output such as console.log is allowed."
         }
       }
     },
@@ -213,24 +234,29 @@
       "properties": {
         "maxAddedLinesPerFile": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "description": "Largest number of lines one batch may add to a single source file."
         },
         "requireTestPerSourceChange": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Source changes need a changed or added test, or STAFF_ENGINEER_TEST_WAIVER."
         },
         "requireDocsImpact": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Source or documentable changes need a docs update, or STAFF_ENGINEER_DOCS_WAIVER."
         },
         "maxConcernCategories": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "description": "Source areas one batch may touch before needing STAFF_ENGINEER_BROAD_CHANGE_REASON."
         },
         "requireSession": {
           "enum": [
             "warn",
             "block",
             "off"
-          ]
+          ],
+          "description": "warn reports missing session discipline; block makes lifecycle require a finalized session and a current context packet; off disables both."
         },
         "testQuality": {
           "type": "object",
@@ -245,13 +271,15 @@
               ],
               "description": "changed checks weak assertions touched by the staged diff; all scans every staged test file in the repository."
             }
-          }
+          },
+          "description": "Test-quality scanning; scope changed (default) checks staged assertions only, all checks the whole test tree."
         },
         "disable": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Rule ids to turn off entirely."
         },
         "ui": {
           "type": "object",
@@ -281,10 +309,20 @@
             "trivial": {
               "type": "object",
               "properties": {
-                "maxSourceFiles": { "type": "integer", "minimum": 1 },
-                "maxAddedLines": { "type": "integer", "minimum": 1 }
+                "maxSourceFiles": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "maxAddedLines": {
+                  "type": "integer",
+                  "minimum": 1
+                }
               },
-              "required": ["maxSourceFiles", "maxAddedLines"]
+              "required": [
+                "maxSourceFiles",
+                "maxAddedLines"
+              ],
+              "description": "A trivial concern may touch at most maxSourceFiles source files and add maxAddedLines lines."
             }
           }
         },
