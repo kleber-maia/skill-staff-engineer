@@ -24,6 +24,7 @@ export const COMMANDS = {
   preview: { module: "./commands/preview.mjs" },
   revise: { module: "./commands/revise.mjs" },
   finalize: { module: "./commands/finalize.mjs" },
+  review: { module: "./commands/review.mjs" },
   lifecycle: { module: "./commands/lifecycle.mjs" },
   verify: { module: "./commands/verify.mjs" },
   handoff: { module: "./commands/handoff.mjs" },
@@ -94,6 +95,8 @@ Lifecycle (one concern at a time; run next whenever unsure)
   preview                             Present the working result; reads the acceptance checks back
   revise                              Return to implementation after feedback
   finalize --approval-quote "..."     Record the operator's acceptance in their own words
+  review | review done --found <n> --fixed <n> [--reported <n>] [--level ...] [--reason "..."]
+                                      Code review at the level the change needs
   lifecycle                           Gate the staged batch
   verify --mode fast|full             Run the configured checks; full writes a receipt
   handoff                             Print a plain-language handoff draft

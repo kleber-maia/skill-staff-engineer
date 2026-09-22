@@ -4,6 +4,7 @@ import { readContext } from "../commands/context.mjs";
 import { stagedFiles } from "./git.mjs";
 import { laneOf, laneOverflow, sameFingerprint, sourceFingerprint } from "./lanes.mjs";
 import { readReceipt, receiptMatches } from "./receipt.mjs";
+import { requiredReview, reviewIsCurrent } from "./review.mjs";
 import { CLI, PHASES, STATUSES } from "./session.mjs";
 
 const QUOTE = `--approval-quote "<the operator's exact words>"`;
@@ -49,8 +50,8 @@ export function nextStep({ cwd, config, session, quick = false }) {
       guidance: [
         "Build the smallest working version that satisfies the brief. Run the relevant existing checks and add a focused regression test where it helps.",
         lane === "trivial"
-          ? "For trivial work, finish tests and docs now: the preview doubles as the save question, and the source must not change after the operator approves it."
-          : "Do not simplify, finish docs, or run the full check yet.",
+          ? `For trivial work, finish tests and docs now, then run the minimum review (${CLI} review, then review done): the preview doubles as the save question, and the source must not change after the operator approves it.`
+          : "Do not review, finish docs, or run the full check yet.",
         "Then run preview and share it with the operator.",
       ].join("\n"),
     });
@@ -76,21 +77,21 @@ export function nextStep({ cwd, config, session, quick = false }) {
       return step("revise", { command: `${CLI} revise`, guidance: "The source changed after the operator approved it. Return to the preview so they see the final version." });
     }
     if (quick) return step("finish", { guidance: `Stage the whole concern, run ${CLI} lifecycle and ${CLI} verify --mode full, then ship. Run ${CLI} next for the exact step.` });
+    if (needsReview(cwd, config, open)) return reviewStep("minimum");
     if (!staged.length || !receiptMatches(readReceipt(cwd, "full"), cwd, config, "staged")) {
       return step("check", { command: `${CLI} lifecycle && ${CLI} verify --mode full`, guidance: "Stage the entire concern, then run lifecycle and the full check once." });
     }
     return step("ship", { command: `${CLI} ship "<imperative message>" [--push]`, guidance: "The operator already approved this exact version at the preview. Save it and tell them it is saved, in plain language." });
   }
-  if (quick) return step("finish", { skills: ["simplify", "handoff"], guidance: `Finish tests, simplify, and docs; stage everything; run lifecycle and verify --mode full; then handoff. Run ${CLI} next for the exact step.` });
+  if (quick) return step("finish", { skills: ["code-review", "handoff"], guidance: `Finish tests and docs, run the code review, stage everything, run lifecycle and verify --mode full, then handoff. Run ${CLI} next for the exact step.` });
+  if (needsReview(cwd, config, open)) return reviewStep(requiredReview(cwd, config, open).level, Boolean(open.review));
   const receipt = readReceipt(cwd, "full");
   if (!staged.length || !receiptMatches(receipt, cwd, config, "staged")) {
     return step("finish", {
       command: `${CLI} lifecycle && ${CLI} verify --mode full`,
-      skills: ["simplify"],
       guidance: [
-        "Complete the remaining test coverage, apply simplify to the whole diff (SAFE and CAREFUL findings), and update the docs that describe the change.",
         "Stage the entire concern, run lifecycle and fix every finding, then run the full check once.",
-        `If finishing work changes anything the operator can see, run ${CLI} revise and preview again.`,
+        `If fixes change code after the review, run ${CLI} review again for the delta. If they change anything the operator can see, run ${CLI} revise and preview again.`,
       ].join("\n"),
     });
   }
@@ -111,6 +112,21 @@ export function renderNext(next) {
     next.skills.length ? `Read: ${next.skills.map((name) => `.agents/skills/${name}/SKILL.md`).join(", ")}` : "",
     next.guidance,
   ].filter(Boolean).join("\n");
+}
+
+function needsReview(cwd, config, session) {
+  return Boolean(requiredReview(cwd, config, session).level) && !reviewIsCurrent(cwd, config, session);
+}
+
+function reviewStep(level, delta = false) {
+  return step("review", {
+    command: `${CLI} review`,
+    skills: ["code-review"],
+    guidance: [
+      delta ? "Code changed after the last review: review only the delta the packet shows." : "Complete the remaining test coverage and the docs that describe the change first; the review checks them too.",
+      `Expected level: ${level}. The review command prints the packet and who reviews it. Act on the findings, then record them with review done.`,
+    ].join("\n"),
+  });
 }
 
 function step(name, { waitFor = "agent", command = null, skills = [], guidance = "" } = {}) {

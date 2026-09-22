@@ -11,6 +11,7 @@ import { nextStep, renderNext } from "../lib/next.mjs";
 import { EXIT } from "../lib/output.mjs";
 import { classify, isGenerated, isProtected, isToolkitPath } from "../lib/paths.mjs";
 import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
+import { requiredReview, reviewIsCurrent } from "../lib/review.mjs";
 import { CLI, PHASES, readSession, sessionConcernFiles } from "../lib/session.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
 
@@ -179,6 +180,7 @@ function stop(config, session, root) {
   if (session.phase === PHASES.IMPLEMENTATION && files.length && !session.brief) notes.push("Files changed but no brief is recorded; agree the outcome with the operator and record it.");
   if (session.phase === PHASES.IMPLEMENTATION && files.length && (session.reviewRound ?? 0) === 0) notes.push(`Files changed but no preview was presented yet (${CLI} preview).`);
   if (session.phase === PHASES.FINALIZING) {
+    if (requiredReview(root, config, session).level && !reviewIsCurrent(root, config, session)) notes.push(`The code review for the final version is not recorded yet (${CLI} review).`);
     const receipt = readReceipt(root, "full");
     if (!receiptMatches(receipt, root, config, "working")) notes.push("Finalizing without a current full verification receipt; run lifecycle and verify --mode full before the handoff.");
   }

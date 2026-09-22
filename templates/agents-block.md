@@ -14,9 +14,11 @@ skills guide the work between them. Before changing anything, read `.agents/skil
   `brief --decision "Topic: choice"`; `ship` saves them to `.staff-engineer/decisions.json`.
 - When the operator asks to change how you work on this machine, use `settings set`; settings
   are local and never committed.
-- Build the smallest working first pass, then `preview` and **stop for feedback**. Simplification,
-  final docs, lifecycle, and full verification wait for acceptance (trivial work finishes tests and
-  docs before its preview).
+- Build the smallest working first pass, then `preview` and **stop for feedback**. The code review,
+  final docs, lifecycle, and full verification wait for acceptance (trivial work finishes tests,
+  docs, and its minimum review before its preview).
+- Every code change is reviewed at the level `review` prints (minimum, standard, detailed; follow
+  the `code-review` skill). Fixes after a review need only a delta review.
 - Approvals quote the operator verbatim, from a reply sent after that step was presented:
   `finalize --approval-quote "<their words>"` after preview acceptance, and
   `ship "Imperative message" --approval-quote "<their words>"` after they approve the handoff.

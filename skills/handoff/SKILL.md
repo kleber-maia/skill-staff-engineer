@@ -72,7 +72,7 @@ question. You may add, after the template:
 
 - a diff summary (files changed, tests added, notable design decisions);
 - the exact gates that ran and their results, with the verify mode;
-- RISKY simplify findings left for review;
+- review findings reported but not fixed (RISKY cleanups, out-of-scope issues);
 - the commands the operator can run to reproduce the checks.
 
 Still ask before saving. The technical operator gets more detail, not fewer gates.

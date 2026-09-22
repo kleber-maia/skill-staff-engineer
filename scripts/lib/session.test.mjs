@@ -83,6 +83,12 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     result = await runCli(["lifecycle", "--json"], { cwd: dir });
     assert.equal(result.code, 0, JSON.stringify(result.json?.errors));
 
+    result = await runCli(["review", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    assert.equal(result.json.data.required.level, "standard");
+    result = await runCli(["review", "done", "--found", "1", "--fixed", "1", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+
     result = await runCli(["ship", "Add multiply to the demo", "--approval-quote", "ship it", "--json"], { cwd: dir });
     assert.equal(result.code, 1, "ship needs a matching full receipt");
 
@@ -119,6 +125,7 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     assert.match(message, /^Add multiply to the demo/);
     assert.match(message, /Brief-Outcome: People can multiply two numbers\./);
     assert.match(message, /Operator-Approval: ship it/);
+    assert.match(message, /Review: standard \(required standard\), 1 found, 1 fixed/);
     assert.match(message, /Approval-Evidence: agent-reported/);
     assert.equal(git(dir, "status", "--short"), "");
     assert.match(git(dir, "show", "--name-only", "--format=", "HEAD"), /\.staff-engineer\/decisions\.json/, "decisions are saved with the change");
