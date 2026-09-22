@@ -6,4 +6,4 @@ Make sure the preview is running (for web projects start the configured command 
 
 `node .staff-engineer/cli.mjs preview --json`
 
-Send the operator line as-is (plain language, no file names or commands). Then STOP and wait for feedback. Do not write tests, review, simplify, document, or verify while feedback is open. On change requests run `/staff-engineer:revise`; on clear acceptance run `/staff-engineer:finalize`.
+Send the operator line as-is (plain language, no file names or commands). Then STOP and wait for feedback. Do not continue editing while feedback is open. On change requests run `/staff-engineer:revise`, update code and regression tests, and preview again; on clear acceptance run `/staff-engineer:finalize`.

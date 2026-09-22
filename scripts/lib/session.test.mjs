@@ -40,7 +40,10 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     appendFileSync(join(dir, "src/math.mjs"), "export const mul = (a, b) => a * b;\n");
 
     result = await runCli(["verify", "--mode", "fast", "--json"], { cwd: dir });
-    assert.equal(result.code, 1, "tests wait for feedback when source changed");
+    assert.equal(result.code, 0, "regression checks may run before preview");
+
+    result = await runCli(["verify", "--mode", "full", "--json"], { cwd: dir });
+    assert.equal(result.code, 1, "the final full check still waits for preview acceptance");
 
     result = await runCli(["finalize", "--json"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
     assert.equal(result.code, 1, "finalize needs a presented preview");
@@ -124,7 +127,7 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
   }
 });
 
-test("pre-acceptance previews reject empty work and source mixed with tests, while tooling tests remain valid", async () => {
+test("pre-acceptance previews allow source with regression tests and remain repeatable after revise", async () => {
   const dir = await setup();
   try {
     await runCli(["begin", "Preview ordering"], { cwd: dir });
@@ -134,19 +137,14 @@ test("pre-acceptance previews reject empty work and source mixed with tests, whi
     assert.match(result.json.operator, /no working result/i);
 
     appendFileSync(join(dir, "src/math.mjs"), "export const twice = (n) => n * 2;\n");
-    appendFileSync(join(dir, "tests/math.test.mjs"), "// premature product test\n");
-    result = await runCli(["preview", "--json"], { cwd: dir });
-    assert.equal(result.code, 1);
-    assert.match(result.json.operator, /tests must wait/i);
-
-    writeFileSync(join(dir, "tests/math.test.mjs"), PROJECT["tests/math.test.mjs"]);
+    appendFileSync(join(dir, "tests/math.test.mjs"), "// regression test authored during implementation\n");
     result = await runCli(["preview", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr);
     await runCli(["revise"], { cwd: dir });
-    appendFileSync(join(dir, "tests/math.test.mjs"), "// still premature after revise\n");
+    appendFileSync(join(dir, "tests/math.test.mjs"), "// revised regression coverage\n");
     result = await runCli(["preview", "--json"], { cwd: dir });
-    assert.equal(result.code, 1);
-    assert.match(result.json.operator, /tests must wait/i);
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(result.json.data.round, 2);
   } finally {
     cleanup(dir);
   }
@@ -254,6 +252,37 @@ test("pre-existing dirty files are protected from the batch", async () => {
     result = await runCli(["preview", "--json"], { cwd: dir });
     assert.equal(result.code, 1, "changing a baseline file is refused");
     assert.match(result.json.operator, /already pending/);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("pre-existing staged files remain outside the concern commit", async () => {
+  const dir = await setup();
+  try {
+    await runCli(["config", "set", "rules.requireTestPerSourceChange", "false"], { cwd: dir });
+    writeFiles(dir, { "other.md": "original\n" });
+    commitAll(dir, "add unrelated file");
+    writeFiles(dir, { "other.md": "unrelated staged work\n" });
+    git(dir, "add", "other.md");
+    await runCli(["begin", "Protect staged baseline"], { cwd: dir });
+    await runCli(["brief", "--outcome", "The demo adds a small isolated helper.", "--accept", "Run the demo and see the helper"], { cwd: dir });
+    writeFiles(dir, { "src/helper.mjs": "export const helper = true;\n" });
+    await runCli(["preview"], { cwd: dir });
+    await runCli(["finalize"], { cwd: dir, env: { STAFF_ENGINEER_PREVIEW_APPROVED: "1" } });
+    git(dir, "add", "src/helper.mjs");
+
+    let result = await runCli(["lifecycle", "--json"], { cwd: dir });
+    assert.equal(result.code, 3);
+    assert.ok(result.json.data.blocking.some((finding) => finding.rule === "baseline-swept" && finding.file.includes("other.md")));
+
+    result = await runCli(["verify", "--mode", "full", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    const before = git(dir, "rev-parse", "HEAD");
+    result = await runCli(["ship", "Add isolated helper", "--json"], { cwd: dir, env: { STAFF_ENGINEER_CHANGE_APPROVED: "1" } });
+    assert.equal(result.code, 3, "ship re-runs lifecycle and refuses the staged baseline");
+    assert.equal(git(dir, "rev-parse", "HEAD"), before);
+    assert.match(git(dir, "diff", "--cached", "--name-only"), /other\.md/);
   } finally {
     cleanup(dir);
   }

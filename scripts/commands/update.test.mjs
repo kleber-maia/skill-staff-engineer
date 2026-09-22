@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -160,5 +160,100 @@ test("update checks do not run during an open concern or later lifecycle command
     assert.equal(checks, 1, "a second begin during active work refuses before checking upstream");
   } finally {
     cleanup(dir);
+  }
+});
+
+test("a pinned revision is installed reproducibly and its resolved commit is recorded", async () => {
+  const dir = await installedProject();
+  const source = toolkitRepository("7.7.1");
+  try {
+    const pinned = git(source.dir, "rev-parse", "HEAD");
+    const pkg = JSON.parse(readFileSync(join(source.dir, "package.json"), "utf8"));
+    const plugin = JSON.parse(readFileSync(join(source.dir, ".claude-plugin", "plugin.json"), "utf8"));
+    writeFiles(source.dir, {
+      "package.json": `${JSON.stringify({ ...pkg, version: "7.7.2" }, null, 2)}\n`,
+      ".claude-plugin/plugin.json": `${JSON.stringify({ ...plugin, version: "7.7.2" }, null, 2)}\n`,
+    });
+    commitAll(source.dir, "toolkit 7.7.2");
+
+    const manifestPath = join(dir, ".staff-engineer", "install.json");
+    const manifest = readJson(manifestPath);
+    const configPath = join(dir, ".staff-engineer", "config.json");
+    const config = readJson(configPath);
+    config.updates.revision = pinned;
+    writeFiles(dir, {
+      ".staff-engineer/install.json": `${JSON.stringify({ ...manifest, source: { dir: null, url: pathToFileURL(source.dir).href, commit: manifest.source.commit } }, null, 2)}\n`,
+      ".staff-engineer/config.json": `${JSON.stringify(config, null, 2)}\n`,
+    });
+
+    let result = await runCli(["begin", "Use pinned toolkit", "--json"], { cwd: dir, services: {} });
+    assert.equal(result.code, 1, result.stderr || result.stdout);
+    assert.equal(readFileSync(join(dir, ".staff-engineer", "VERSION"), "utf8").trim(), "7.7.1");
+    assert.equal(readJson(manifestPath).source.commit, pinned);
+    assert.equal(readJson(configPath).updates.revision, pinned, "the pin survives installation");
+
+    result = await runCli(["begin", "Use pinned toolkit", "--json"], { cwd: dir, services: {} });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+  } finally {
+    cleanup(dir);
+    cleanup(source.parent);
+  }
+});
+
+test("offline allow policy opens work with the installed toolkit", async () => {
+  const dir = await installedProject();
+  try {
+    const manifestPath = join(dir, ".staff-engineer", "install.json");
+    const manifest = readJson(manifestPath);
+    const configPath = join(dir, ".staff-engineer", "config.json");
+    const config = readJson(configPath);
+    config.updates.offline = "allow";
+    writeFiles(dir, {
+      ".staff-engineer/install.json": `${JSON.stringify({ ...manifest, source: { dir: null, url: pathToFileURL(join(dir, "missing-upstream.git")).href } }, null, 2)}\n`,
+      ".staff-engineer/config.json": `${JSON.stringify(config, null, 2)}\n`,
+    });
+    const result = await runCli(["begin", "Work intentionally offline", "--json"], { cwd: dir, services: {} });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    assert.equal(result.json.data.concern, "Work intentionally offline");
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("failed and timed-out installers restore toolkit-owned destinations", async () => {
+  const dir = await installedProject();
+  const broken = toolkitRepository("9.8.7");
+  const hanging = makeTempDir("staff-engineer-hanging-");
+  try {
+    const versionPath = join(dir, ".staff-engineer", "VERSION");
+    const agentsPath = join(dir, "AGENTS.md");
+    const before = { version: readFileSync(versionPath, "utf8"), agents: readFileSync(agentsPath, "utf8") };
+    rmSync(join(broken.dir, "rules"), { recursive: true, force: true });
+    let result = await runCli(["update", "--from", broken.dir, "--json"], { cwd: dir });
+    assert.equal(result.code, 2, result.stderr || result.stdout);
+    assert.equal(readFileSync(versionPath, "utf8"), before.version);
+    assert.equal(readFileSync(agentsPath, "utf8"), before.agents);
+
+    writeFiles(hanging, { "scripts/cli.mjs": [
+      "import { writeFileSync } from 'node:fs';",
+      "import { join } from 'node:path';",
+      "const args = process.argv.slice(2);",
+      "const target = args[args.indexOf('--target') + 1];",
+      "writeFileSync(join(target, '.staff-engineer', 'VERSION'), 'partial-timeout\\n');",
+      "setTimeout(() => {}, 10000);",
+    ].join("\n") });
+    const configPath = join(dir, ".staff-engineer", "config.json");
+    const config = readJson(configPath);
+    config.updates.timeoutMs = 1000;
+    writeFiles(dir, { ".staff-engineer/config.json": `${JSON.stringify(config, null, 2)}\n` });
+    const expectedConfig = readFileSync(configPath, "utf8");
+    result = await runCli(["update", "--from", hanging, "--json"], { cwd: dir });
+    assert.equal(result.code, 2, result.stderr || result.stdout);
+    assert.equal(readFileSync(versionPath, "utf8"), before.version);
+    assert.equal(readFileSync(configPath, "utf8"), expectedConfig);
+  } finally {
+    cleanup(dir);
+    cleanup(broken.parent);
+    cleanup(hanging);
   }
 });

@@ -38,5 +38,6 @@ test("verification documentation excludes prose without exempting toolkit runtim
     ".agents/skills/solid/rules/config.yaml",
     "docs/example.mjs",
     "docs/config.json",
+    "docs/interactive.mdx",
   ]) assert.equal(isVerificationDocumentation(config, file), false, file);
 });

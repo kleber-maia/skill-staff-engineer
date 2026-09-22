@@ -20,7 +20,7 @@ export function isVerificationDocumentation(config, file) {
   return file === "AGENTS.md"
     || file === "CLAUDE.md"
     || /^\.agents\/skills\/[^/]+\/agents\/openai\.ya?ml$/i.test(file)
-    || (isDocsFile(config, file) && /\.(?:mdx?|adoc|rst|txt)$/i.test(file));
+    || (isDocsFile(config, file) && /\.(?:md|adoc|rst|txt)$/i.test(file));
 }
 
 export function isDocumentable(config, file) {

@@ -9,7 +9,7 @@ import { normalize } from "../lib/glob.mjs";
 import { EXIT } from "../lib/output.mjs";
 import { classify, isGenerated, isProtected, isToolkitPath } from "../lib/paths.mjs";
 import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
-import { CLI, PHASES, readSession, sessionConcernFiles, sessionTouchesSource } from "../lib/session.mjs";
+import { CLI, PHASES, readSession, sessionConcernFiles } from "../lib/session.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
 
 export const description = "Internal: handle a Claude Code hook event from stdin.";
@@ -92,11 +92,8 @@ const DANGEROUS = [
   { pattern: /\bgit\s+commit\b[^|;&]*--no-verify/, reason: "Commit hooks must not be bypassed." },
 ];
 
-const TEST_RUNNERS = /\b(npm\s+(run\s+)?test|pnpm\s+(run\s+)?test|yarn\s+test|bun\s+test|npx\s+(vitest|jest|mocha|playwright|cypress)|vitest|jest|pytest|python\s+-m\s+pytest|go\s+test|cargo\s+test|bundle\s+exec\s+(rspec|rake\s+test)|rspec|phpunit|pest|swift\s+test|gradlew?\s+test|mvn\s+(-q\s+)?test|dotnet\s+test)\b/;
-
 export function guardBash(config, session, root, command) {
   if (!command.trim()) return null;
-  if (command.includes(`${TOOLKIT_DIR}/cli.mjs`) || /\/scripts\/cli\.mjs\b/.test(command)) return null;
 
   for (const { pattern, reason } of DANGEROUS) {
     if (pattern.test(command)) return deny(reason);
@@ -104,24 +101,24 @@ export function guardBash(config, session, root, command) {
 
   const writesProtected = protectedTargets(config, root, command);
   if (writesProtected.length) return deny(`This command writes to a protected file (${writesProtected.join(", ")}). Secrets, keys, and environment files are off limits.`);
+  if (isStandaloneToolkitCommand(command)) return null;
 
   const gated = session || config.rules.requireSession === "block";
   if (gated && /\bgit\s+commit\b/.test(command)) return deny(`Commits go through the guarded save: STAFF_ENGINEER_CHANGE_APPROVED=1 ${CLI} ship "message" after the operator approved the handoff.`);
   if (gated && /\bgit\s+push\b/.test(command)) return deny(`Pushes go through ${CLI} ship --push or ship --sync-only.`);
 
-  if (session && session.phase !== PHASES.FINALIZING && isTestCommand(config, command) && sessionTouchesSource(session, config, root)) {
-    return deny(`Tests wait for the operator's feedback on the preview. Run ${CLI} preview, wait, then STAFF_ENGINEER_PREVIEW_APPROVED=1 ${CLI} finalize before running tests.`);
-  }
   return null;
 }
 
-function isTestCommand(config, command) {
-  for (const name of ["test", "e2e"]) {
-    const gate = config.gates?.[name];
-    if (gate?.cmd && command.includes(gate.cmd.trim())) return true;
-    if (gate?.affected && command.includes(gate.affected.split("{files}")[0].trim())) return true;
-  }
-  return TEST_RUNNERS.test(command);
+export function isStandaloneToolkitCommand(command) {
+  const trimmed = command.trim();
+  if (/[;&|`\r\n]|\$\(/.test(trimmed)) return false;
+  const withoutEnv = trimmed.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S+)\s+)*/, "");
+  const withoutNode = withoutEnv.replace(/^node(?:\.exe)?\s+/, "");
+  const first = withoutNode.match(/^(?:"([^"]+)"|'([^']+)'|(\S+))/)?.slice(1).find(Boolean) ?? "";
+  return first.replaceAll("\\", "/").endsWith(`/${TOOLKIT_DIR}/cli.mjs`)
+    || first.replaceAll("\\", "/").endsWith("/scripts/cli.mjs")
+    || first === `${TOOLKIT_DIR}/cli.mjs`;
 }
 
 function protectedTargets(config, root, command) {
@@ -147,9 +144,6 @@ export function guardEdit(config, session, root, filePath) {
     return null;
   }
   const kind = classify(config, rel);
-  if (session.phase === PHASES.IMPLEMENTATION && kind === "tests" && sessionTouchesSource(session, config, root)) {
-    return deny(`Tests wait for the operator's feedback on the preview. Build the working first pass, run ${CLI} preview, and write tests after STAFF_ENGINEER_PREVIEW_APPROVED=1 ${CLI} finalize.`);
-  }
   if (session.phase === PHASES.AWAITING_FEEDBACK && (kind === "source" || kind === "other")) {
     return deny(`The preview is waiting for the operator's feedback. Run ${CLI} revise before changing ${rel}, or wait for acceptance.`);
   }

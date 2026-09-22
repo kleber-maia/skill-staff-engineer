@@ -1,14 +1,26 @@
 import { spawnSync } from "node:child_process";
 
 // Run a program directly (no shell). Throws on non-zero exit.
-export function output(command, args = [], { cwd = process.cwd(), env = process.env, allowFailure = false } = {}) {
-  const result = spawnSync(command, args, { cwd, env, encoding: "utf8", windowsHide: true });
+export function output(command, args = [], { cwd = process.cwd(), env = process.env, allowFailure = false, timeoutMs } = {}) {
+  const result = spawnSync(command, args, { cwd, env, encoding: "utf8", windowsHide: true, timeout: timeoutMs });
   if (result.error) throw result.error;
   if (result.status !== 0 && !allowFailure) {
     const detail = (result.stderr || result.stdout || "").trim();
     throw new Error(`${command} ${args.join(" ")} failed (${result.status})${detail ? `: ${detail}` : ""}`);
   }
   return (result.stdout ?? "").trim();
+}
+
+// Like output(), but preserves every byte represented by the UTF-8 string. Git's
+// NUL-delimited path formats rely on the trailing NUL and may contain whitespace.
+export function outputRaw(command, args = [], { cwd = process.cwd(), env = process.env, allowFailure = false, timeoutMs } = {}) {
+  const result = spawnSync(command, args, { cwd, env, encoding: "utf8", windowsHide: true, timeout: timeoutMs });
+  if (result.error) throw result.error;
+  if (result.status !== 0 && !allowFailure) {
+    const detail = (result.stderr || result.stdout || "").trim();
+    throw new Error(`${command} ${args.join(" ")} failed (${result.status})${detail ? `: ${detail}` : ""}`);
+  }
+  return result.stdout ?? "";
 }
 
 // Run a user-configured command line through the platform shell, capturing output.

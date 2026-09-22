@@ -2,11 +2,12 @@
 
 ## Principles
 
-1. **Scripts enforce; prose explains.** Every rule that matters has a refusal in a script or a
-   deny in a hook. Skills tell the agent why and what to do instead.
+1. **CLI checks; prose guides.** Stateful lifecycle, staged-batch, verification, and save rules
+   have refusals in the CLI. Skills tell a cooperating agent how to work between those commands.
+   Optional Claude Code hooks provide earlier feedback but fail open and are not a security boundary.
 2. **One concern, one batch.** Mixed batches are how unrelated breakage ships. The session baseline
    makes sweeping in pre-existing work impossible without noticing.
-3. **Preview before tests.** See `docs/lifecycle.md`.
+3. **Regression tests during implementation, preview before completion.** See `docs/lifecycle.md`.
 4. **Acceptance is not approval.** Two separate environment flags, set by the agent only after two
    separate, explicit operator statements.
 5. **Stack-agnostic through configuration, not abstraction.** The toolkit never runs a linter or
@@ -21,6 +22,19 @@
 8. **Separate behavior surfaces from product source.** `paths.documentable` makes scripts,
    configuration, CI, and skills require a documentation companion without also triggering the
    product-source test-pairing rule.
+9. **Reproducible, bounded updates.** Projects may pin `updates.revision`, bound each subprocess
+   with `updates.timeoutMs`, and explicitly choose whether an unavailable upstream blocks `begin`.
+   Install and update rollback snapshots cover only toolkit-owned destinations and managed files.
+
+## Trust boundary
+
+The CLI enforces properties only when it is invoked. It validates state transitions, exact staged
+scope, immutable verification inputs, matching receipts, and approval indicators before its own
+commit operation. It cannot authenticate the human behind an environment variable or prevent a
+repository owner, agent, or harness from running git or editing files outside the CLI. Claude Code
+hooks improve feedback for one harness and intentionally fail open. `rules.requireSession` defaults
+to `warn` for compatibility; projects that want lifecycle to refuse missing/finalization state use
+`block`.
 
 ## Why Node
 

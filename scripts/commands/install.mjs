@@ -1,7 +1,8 @@
 // Install or upgrade the toolkit inside a target project. Idempotent; never edits
 // user content outside managed blocks; backs up every pre-existing file it changes.
-import { existsSync, lstatSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { cpSync, existsSync, lstatSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, relative, resolve } from "node:path";
 
 import { CONFIG_FILE, configPath, defaultConfig, TOOLKIT_DIR } from "../lib/config.mjs";
 import { detectStack } from "../lib/detect.mjs";
@@ -26,15 +27,15 @@ export default async function run({ cwd, flags, env = process.env }) {
   if (flags.uninstall) return uninstall(target, flags);
 
   const source = toolkitSource();
-  if (!isRepo(target)) {
+  const needsGitInit = !isRepo(target);
+  if (needsGitInit) {
     if (!flags["init-git"]) {
       throw tooling("The project is not a git repository yet, and the lifecycle needs one to protect and save work.", {
         agent: `Ask the operator, then run install again with --init-git to create one (or run git init yourself).`,
       });
     }
-    output("git", ["init", "--quiet"], { cwd: target });
   }
-  const root = repoRoot(target);
+  const root = needsGitInit ? target : repoRoot(target);
   const plan = buildPlan(root, source, flags, env);
 
   if (flags["dry-run"]) {
@@ -51,21 +52,32 @@ export default async function run({ cwd, flags, env = process.env }) {
     });
   }
 
+  if (needsGitInit) output("git", ["init", "--quiet"], { cwd: target });
+
   const stamp = timestamp();
   const changed = [];
-  for (const action of plan.actions) {
-    if (action.kind === "unchanged") continue;
-    if (action.backup && existsSync(resolve(root, action.path))) backupFile(root, action.path, resolve(root, BACKUPS_DIR), stamp);
-    action.apply();
-    changed.push(action);
-  }
-
-  const version = toolkitVersion();
   const manifestPath = resolve(root, TOOLKIT_DIR, "install.json");
-  const previous = readJson(manifestPath, { created: [] }) ?? { created: [] };
-  const created = new Set([...(previous.created ?? []), ...changed.filter((action) => action.kind === "create" && ["CLAUDE.md", "AGENTS.md", ".gitignore"].includes(action.path)).map((action) => action.path)]);
-  const manifest = { version, created: [...created].sort(), source: { dir: source.dir, url: originUrl(source.dir) } };
-  if (JSON.stringify({ version: previous.version, created: previous.created ?? [], source: previous.source ?? null }) !== JSON.stringify(manifest)) writeJson(manifestPath, manifest);
+  const transactionTargets = [...new Set([...plan.actions.filter((action) => action.kind !== "unchanged").map((action) => action.path), `${TOOLKIT_DIR}/install.json`])];
+  try {
+    withInstallTransaction(root, transactionTargets, () => {
+      for (const action of plan.actions) {
+        if (action.kind === "unchanged") continue;
+        if (action.backup && existsSync(resolve(root, action.path))) backupFile(root, action.path, resolve(root, BACKUPS_DIR), stamp);
+        action.apply();
+        changed.push(action);
+      }
+
+      const version = toolkitVersion();
+      const previous = readJson(manifestPath, { created: [] }) ?? { created: [] };
+      const created = new Set([...(previous.created ?? []), ...changed.filter((action) => action.kind === "create" && ["CLAUDE.md", "AGENTS.md", ".gitignore"].includes(action.path)).map((action) => action.path)]);
+      const manifest = { version, created: [...created].sort(), source: { dir: source.dir, url: originUrl(source.dir), commit: sourceRevision(source.dir) } };
+      if (JSON.stringify({ version: previous.version, created: previous.created ?? [], source: previous.source ?? null }) !== JSON.stringify(manifest)) writeJson(manifestPath, manifest);
+    });
+  } catch (error) {
+    if (needsGitInit) rmSync(resolve(target, ".git"), { recursive: true, force: true });
+    throw error;
+  }
+  const version = toolkitVersion();
   return ok({
     operator: describeInstall(plan, changed),
     agent: [
@@ -267,6 +279,52 @@ function originUrl(dir) {
     return output("git", ["-C", dir, "remote", "get-url", "origin"], { allowFailure: true }) || null;
   } catch {
     return null;
+  }
+}
+
+function sourceRevision(dir) {
+  try {
+    return output("git", ["-C", dir, "rev-parse", "HEAD"], { allowFailure: true }) || null;
+  } catch {
+    return null;
+  }
+}
+
+// Roll back only paths the install plan owns. This protects project files and
+// managed blocks without taking a snapshot of unrelated work in the repository.
+export function withInstallTransaction(root, targets, apply, { copy = cpSync } = {}) {
+  const normalized = [...new Set(targets.map((target) => target.replace(/[\\/]+$/, "")))]
+    .sort((a, b) => a.length - b.length)
+    .filter((target, index, all) => !all.slice(0, index).some((parent) => target === parent || target.startsWith(`${parent}/`) || target.startsWith(`${parent}\\`)));
+  for (const rel of normalized) assertInsideRoot(root, rel);
+  const snapshot = mkdtempSync(join(tmpdir(), "staff-engineer-install-"));
+  const existing = new Set();
+  let snapshotReady = false;
+  try {
+    for (const rel of normalized) {
+      const source = resolve(root, rel);
+      if (!existsSync(source)) continue;
+      existing.add(rel);
+      const destination = resolve(snapshot, rel);
+      ensureDir(dirname(destination));
+      copy(source, destination, { recursive: true, dereference: false, preserveTimestamps: true });
+    }
+    snapshotReady = true;
+  } finally {
+    if (!snapshotReady) rmSync(snapshot, { recursive: true, force: true });
+  }
+  try {
+    apply();
+  } catch (error) {
+    for (const rel of [...normalized].sort((a, b) => b.length - a.length)) rmSync(resolve(root, rel), { recursive: true, force: true });
+    for (const rel of existing) {
+      const destination = resolve(root, rel);
+      ensureDir(dirname(destination));
+      copy(resolve(snapshot, rel), destination, { recursive: true, dereference: false, preserveTimestamps: true });
+    }
+    throw error;
+  } finally {
+    rmSync(snapshot, { recursive: true, force: true });
   }
 }
 

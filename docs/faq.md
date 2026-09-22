@@ -1,8 +1,14 @@
 # FAQ
 
-**The agent says tests are blocked. Why?**
-The concern changed product source and the operator has not accepted a preview yet. Run
-`preview`, wait for feedback, then `STAFF_ENGINEER_PREVIEW_APPROVED=1 ... finalize`.
+**Can the agent write and run tests before I review the preview?**
+Yes. Existing checks, bug reproductions, and focused regression tests can run during implementation.
+They do not replace your review: the concern still needs a working preview and clear acceptance
+before final lifecycle, full verification, and saving.
+
+**What happens when the update server is unavailable?**
+The default `updates.offline` value is `fail`, so `begin` opens no session. Set it to `allow` only
+when the project deliberately permits work with the installed toolkit. Use `updates.revision` to
+pin a branch, tag, or commit and `updates.timeoutMs` to bound each subprocess.
 
 **My project has no tests, linter, or build. Can I still use this?**
 Yes. Set the gates to `null` (`config set gates.test null`). Verification then only records that
@@ -41,7 +47,8 @@ the commit as `Broad-Change-Reason`.
 
 **Does this work without Claude Code?**
 Yes. The skills in `.agents/skills/` and the block in `AGENTS.md` carry the contract; the CLI
-enforces it. Only the slash commands, subagents, and hooks are Claude Code specific.
+enforces the lifecycle operations invoked through it. Only the slash commands, subagents, and hooks
+are Claude Code specific.
 
 **How do I uninstall?**
 `node <toolkit>/scripts/cli.mjs install --target . --uninstall`. Only toolkit-owned files and the

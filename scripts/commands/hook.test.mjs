@@ -54,7 +54,7 @@ test("without a session: commits allowed, edits get a warning context", async ()
   }
 });
 
-test("with a session: tests wait, commits go through ship, source waits during feedback", async () => {
+test("with a session: early tests are allowed, commits go through ship, source waits during feedback", async () => {
   const dir = await setup();
   try {
     await runCli(["begin", "Guarded concern"], { cwd: dir });
@@ -64,9 +64,9 @@ test("with a session: tests wait, commits go through ship, source waits during f
     assert.equal(decide("PreToolUse", bash("npm test", dir), dir), null, "no source changed yet: tests allowed");
 
     appendFileSync(join(dir, "src/app.mjs"), "export const b = 2;\n");
-    assert.equal(decision(decide("PreToolUse", bash("npm test", dir), dir)), "deny");
-    assert.equal(decision(decide("PreToolUse", bash("npx vitest run", dir), dir)), "deny");
-    assert.equal(decision(decide("PreToolUse", edit(join(dir, "tests/app.test.mjs"), dir), dir)), "deny");
+    assert.equal(decide("PreToolUse", bash("npm test", dir), dir), null);
+    assert.equal(decide("PreToolUse", bash("npx vitest run", dir), dir), null);
+    assert.equal(decide("PreToolUse", edit(join(dir, "tests/app.test.mjs"), dir), dir), null);
     assert.equal(decide("PreToolUse", edit(join(dir, "src/app.mjs"), dir), dir), null, "source edits fine in implementation");
 
     const stop = decide("Stop", {}, dir);
@@ -82,6 +82,22 @@ test("with a session: tests wait, commits go through ship, source waits during f
 
     const start = decide("SessionStart", {}, dir);
     assert.match(start.hookSpecificOutput.additionalContext, /Guarded concern/);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("toolkit command exemption applies only to a standalone safe invocation", async () => {
+  const dir = await setup();
+  try {
+    await runCli(["begin", "Guard compound shell"], { cwd: dir });
+    assert.equal(decide("PreToolUse", bash("node .staff-engineer/cli.mjs status", dir), dir), null);
+    for (const command of [
+      "node .staff-engineer/cli.mjs status; git reset --hard HEAD",
+      "node .staff-engineer/cli.mjs status && git push --force",
+      "echo .staff-engineer/cli.mjs; git clean -fd",
+      "node .staff-engineer/cli.mjs status $(git reset --hard HEAD)",
+    ]) assert.equal(decision(decide("PreToolUse", bash(command, dir), dir)), "deny", command);
   } finally {
     cleanup(dir);
   }

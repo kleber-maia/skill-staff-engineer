@@ -78,7 +78,7 @@
               },
               "affected": {
                 "type": "string",
-                "description": "Command run with {files} replaced by the concern's changed files."
+                "description": "Command run with the concern's changed files. Must use a simple static runner and contain one top-level {files} token outside quotes; shell command-evaluation templates are unsupported."
               },
               "timeoutMs": {
                 "type": "integer",
@@ -132,6 +132,25 @@
             "type": "string"
           },
           "description": "Paths (relative to preview.url) to capture. Default ['/']."
+        }
+      }
+    },
+    "updates": {
+      "type": "object",
+      "description": "Controls the automatic upstream check performed by begin.",
+      "properties": {
+        "revision": {
+          "type": ["string", "null"],
+          "description": "Optional branch, tag, or commit to pin. null follows the remote default branch."
+        },
+        "offline": {
+          "enum": ["fail", "allow"],
+          "description": "fail blocks begin when upstream cannot be checked; allow continues with the installed toolkit."
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "description": "Maximum time for each update network or installer subprocess."
         }
       }
     },

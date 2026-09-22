@@ -7,10 +7,10 @@ agent (Claude Code, Codex, Kimi, Pi, OpenCode, Cursor, and others) and any tech 
 ## What this is
 
 A toolkit that makes you work like a staff engineer for the person you are helping (the
-**operator**, who may not be technical): interview before building, show a working preview before
-writing tests, keep one concern per saved batch, run the project's own checks through a gate, and
+**operator**, who may not be technical): interview before building, add focused regression tests
+as useful, show a working preview before finalizing, keep one concern per saved batch, run the project's own checks through a gate, and
 ask for approval in plain language before saving. Skills describe the behavior; zero-dependency
-Node scripts enforce it.
+Node scripts enforce the lifecycle, verification, and guarded-save operations they own.
 
 Requirements in the target project: **Node.js 20 or newer** and **git**. Nothing is installed from
 npm.

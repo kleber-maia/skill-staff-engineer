@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { listFiles } from "../lib/fs-safe.mjs";
 import { cleanup, git, installInto, makeTempDir, makeTempRepo, runCli, writeFiles } from "../lib/test-helpers.mjs";
-import { configFromDetection } from "./install.mjs";
+import { configFromDetection, withInstallTransaction } from "./install.mjs";
 
 const USER_AGENTS = "# My project\n\nMy own instructions stay here.\n";
 const USER_IGNORE = "node_modules/\ndist/\n";
@@ -59,6 +59,46 @@ test("dry run writes nothing", async () => {
     assert.equal(result.json.data.dryRun, true);
     assert.ok(result.json.data.actions.length > 5);
     assert.deepEqual(listFiles(dir), before);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("--init-git dry run leaves a non-repository completely unchanged", async () => {
+  const dir = makeTempDir();
+  writeFiles(dir, { "README.md": "# untouched\n" });
+  try {
+    const before = snapshotFiles(dir);
+    const result = await runCli(["install", "--target", dir, "--init-git", "--dry-run", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    assert.equal(existsSync(join(dir, ".git")), false);
+    assert.deepEqual(snapshotFiles(dir), before);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("install transaction never rolls back from an incomplete snapshot and restores apply failures", () => {
+  const dir = makeTempDir();
+  writeFiles(dir, { "AGENTS.md": "agents original\n", "CLAUDE.md": "claude original\n" });
+  try {
+    let copies = 0;
+    assert.throws(() => withInstallTransaction(dir, ["AGENTS.md", "CLAUDE.md"], () => assert.fail("apply must not run"), {
+      copy(source, destination, options) {
+        copies += 1;
+        if (copies === 2) throw new Error("injected snapshot failure");
+        cpSync(source, destination, options);
+      },
+    }), /snapshot failure/);
+    assert.equal(readFileSync(join(dir, "AGENTS.md"), "utf8"), "agents original\n");
+    assert.equal(readFileSync(join(dir, "CLAUDE.md"), "utf8"), "claude original\n");
+
+    assert.throws(() => withInstallTransaction(dir, ["AGENTS.md", "CLAUDE.md"], () => {
+      writeFiles(dir, { "AGENTS.md": "partial update\n", "CLAUDE.md": "partial update\n" });
+      throw new Error("injected apply failure");
+    }), /apply failure/);
+    assert.equal(readFileSync(join(dir, "AGENTS.md"), "utf8"), "agents original\n");
+    assert.equal(readFileSync(join(dir, "CLAUDE.md"), "utf8"), "claude original\n");
   } finally {
     cleanup(dir);
   }

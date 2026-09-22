@@ -121,16 +121,8 @@ export function requireFinalizing(session) {
   }
 }
 
-// Tests and verification wait for operator feedback when the concern touches
-// product source. A concern that changes only docs/tooling/tests has nothing to preview.
 export function sessionTouchesSource(session, config, cwd) {
   return concernFiles(session.baseline, cwd).some((file) => isProductSource(config, file));
-}
-
-export function assertMayRunChecks(session, config, cwd) {
-  if (session.phase === PHASES.FINALIZING) return;
-  if (!sessionTouchesSource(session, config, cwd)) return;
-  requireFinalizing(session);
 }
 
 // ---------- transitions ----------

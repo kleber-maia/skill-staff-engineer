@@ -12,7 +12,7 @@ export default async function run({ cwd }) {
   writeSession(cwd, updated);
   return ok({
     operator: "Working on your feedback.",
-    agent: `Back in implementation. Update the same concern, then run ${CLI} preview again. Still no tests or final checks.`,
+    agent: `Back in implementation. Update the same concern and its focused regression tests, then run ${CLI} preview again. Final lifecycle and full verification still wait for acceptance.`,
     data: { phase: updated.phase, round: updated.reviewRound },
   });
 }

@@ -2,7 +2,6 @@ import { isNonTechnical, loadConfig } from "../lib/config.mjs";
 import { runShell } from "../lib/exec.mjs";
 import { failed, ok, refused } from "../lib/output.mjs";
 import { stateDir } from "../lib/git.mjs";
-import { classify, isProductSource } from "../lib/paths.mjs";
 import { captureScreenshots, shouldCapture } from "../lib/screenshots.mjs";
 import { CLI, markAwaitingFeedback, requireBrief, requireOpenSession, sessionConcernFiles, writeSession } from "../lib/session.mjs";
 import { join } from "node:path";
@@ -36,7 +35,7 @@ export default async function run({ cwd }) {
   return ok({
     operator,
     agent: [
-      `Round ${updated.reviewRound}. Stop now and wait for the operator's feedback. Do not write tests or start final checks.`,
+      `Round ${updated.reviewRound}. Stop now and wait for the operator's feedback. Do not continue editing while feedback is open.`,
       `Change requests: run ${CLI} revise, update, then preview again.`,
       `Clear acceptance: STAFF_ENGINEER_PREVIEW_APPROVED=1 ${CLI} finalize`,
       where.agent ?? "",
@@ -52,13 +51,6 @@ export function assertPreviewableConcern(session, files, config) {
   if (!files.length) {
     throw refused("There is no working result to present yet.", {
       agent: "Make the first reviewable change, then run preview again.",
-    });
-  }
-  const tests = files.filter((file) => classify(config, file) === "tests");
-  const productSource = files.filter((file) => isProductSource(config, file));
-  if (productSource.length && tests.length) {
-    throw refused("Product tests must wait until the operator accepts the working preview.", {
-      agent: `Set aside or restore these test changes, present the product change, then add tests after finalizing: ${tests.join(", ")}`,
     });
   }
 }

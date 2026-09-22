@@ -11,7 +11,19 @@ test("legacy configs inherit compatible lifecycle hardening defaults", () => {
   });
   assert.equal(config.rules.testQuality.scope, "changed");
   assert.ok(config.paths.documentable.includes("scripts/**"));
+  assert.deepEqual(config.updates, { revision: null, offline: "fail", timeoutMs: 60000 });
   assert.deepEqual(validateConfig(config), []);
+});
+
+test("update policy and affected-file placeholders are validated", () => {
+  const config = defaultConfig();
+  config.updates.offline = "sometimes";
+  config.updates.timeoutMs = 10;
+  config.gates.test = { cmd: "npm test", affected: 'npm test "{files}"' };
+  const errors = validateConfig(config);
+  assert.ok(errors.some((error) => /updates\.offline/.test(error)));
+  assert.ok(errors.some((error) => /updates\.timeoutMs/.test(error)));
+  assert.ok(errors.some((error) => /outside shell quotes/.test(error)));
 });
 
 test("test quality scope is validated", () => {

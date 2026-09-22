@@ -1,11 +1,11 @@
 // Parse `git diff --cached --unified=0` into added lines per file.
-export function parseUnifiedDiff(text) {
+export function parseUnifiedDiff(text, exactPaths = []) {
   const files = [];
   let current = null;
   let newLine = 0;
   for (const raw of text.split(/\r?\n/)) {
     if (raw.startsWith("diff --git ")) {
-      current = { file: null, status: "M", added: [] };
+      current = { file: exactPaths[files.length] ?? null, status: "M", added: [] };
       files.push(current);
       continue;
     }
@@ -15,7 +15,7 @@ export function parseUnifiedDiff(text) {
     else if (raw.startsWith("rename to ")) current.status = "R";
     else if (raw.startsWith("+++ ")) {
       const target = raw.slice(4);
-      current.file = target === "/dev/null" ? current.file : target.replace(/^b\//, "");
+      if (!current.file) current.file = target === "/dev/null" ? current.file : target.replace(/^b\//, "");
     } else if (raw.startsWith("--- ")) {
       const source = raw.slice(4);
       if (source !== "/dev/null" && !current.file) current.file = source.replace(/^a\//, "");

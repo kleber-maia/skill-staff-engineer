@@ -70,7 +70,8 @@ export function runLifecycle(cwd, config, env = process.env) {
   }
 
   // Added-line rules per language, UI finish rules, and architecture boundaries.
-  const parsed = parseUnifiedDiff(stagedDiff(cwd));
+  const diff = stagedDiff(cwd);
+  const parsed = parseUnifiedDiff(diff, staged);
   findings.push(...applyLineRules(config, parsed, { exceptions }));
   findings.push(...applyUiRules(config, parsed, { exceptions }));
   findings.push(...checkTestQuality(cwd, config, parsed, { exceptions }));
@@ -94,7 +95,7 @@ export function runLifecycle(cwd, config, env = process.env) {
     if (pending.length) {
       findings.push({ rule: "partial-staging", severity: "block", file: pending.join(", "), line: 0, message: "The concern is only partly staged. Stage the entire verified concern together." });
     }
-    const swept = staged.filter((file) => baselineFiles.has(file) && !(session.baseline.stagedFiles ?? []).includes(file));
+    const swept = staged.filter((file) => baselineFiles.has(file));
     if (swept.length) {
       findings.push({ rule: "baseline-swept", severity: "block", file: swept.join(", "), line: 0, message: "Files that were pending before this concern were staged. Keep them separate." });
     }
@@ -151,7 +152,8 @@ function summarize(findings) {
 }
 
 function isNewFile(cwd, file) {
-  return stagedNumstat(cwd).some((entry) => entry.file === file) && parseUnifiedDiff(stagedDiff(cwd)).some((entry) => entry.file === file && entry.status === "A");
+  const staged = stagedFiles(cwd);
+  return stagedNumstat(cwd).some((entry) => entry.file === file) && parseUnifiedDiff(stagedDiff(cwd), staged).some((entry) => entry.file === file && entry.status === "A");
 }
 
 export function formatFinding(finding) {
