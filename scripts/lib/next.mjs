@@ -31,7 +31,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
   if (!open.brief) {
     return lane === "trivial"
       ? step("brief", { command: briefCommand(), guidance: "Record a one-line brief straight from the request; interview only if something is genuinely ambiguous." })
-      : step("brief", { command: briefCommand(), skills: ["grill-me"], guidance: "Inspect read-only, interview the operator with grill-me (at most three questions per round, each with a recommendation), then record the agreed brief." });
+      : step("brief", { command: briefCommand(), skills: ["grill-me"], guidance: "Inspect read-only, interview the operator with grill-me (at most three questions per round, each with a recommendation; never re-ask an earlier decision), then record the agreed brief with each settled decision." });
   }
   if (lane === "large" && !open.plan) {
     return step("plan", { command: `${CLI} plan <path to the agreed plan>`, skills: ["spec-and-plan"], guidance: "Write the spec and plan, get the operator's agreement in plain language, then record the plan." });
@@ -118,7 +118,7 @@ function step(name, { waitFor = "agent", command = null, skills = [], guidance =
 }
 
 function briefCommand() {
-  return `${CLI} brief --outcome "..." --accept "..." [--accept "..."] [--non-goal "..."] [--surface "..."]`;
+  return `${CLI} brief --outcome "..." --accept "..." [--accept "..."] [--non-goal "..."] [--surface "..."] [--decision "Topic: choice"] [--check "<n>: page <path> contains <text>"]`;
 }
 
 function contextIsCurrent(cwd, session) {

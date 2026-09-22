@@ -131,7 +131,7 @@ export function recordBrief(session, brief, { now = new Date().toISOString() } =
   return { ...session, brief: { ...normalizeBrief(brief), recordedAt: now } };
 }
 
-export function normalizeBrief({ outcome, accept = [], nonGoals = [], surfaces = [] } = {}) {
+export function normalizeBrief({ outcome, accept = [], nonGoals = [], surfaces = [], decisions = [], checks = [] } = {}) {
   const cleanOutcome = String(outcome ?? "").trim();
   if (cleanOutcome.length < 12) {
     throw refused("The brief needs a one-sentence outcome in plain language.", { agent: "Pass --outcome \"What the operator gets, in one sentence\"." });
@@ -140,7 +140,7 @@ export function normalizeBrief({ outcome, accept = [], nonGoals = [], surfaces =
   if (!acceptance.length) {
     throw refused("The brief needs at least one acceptance check the operator can perform.", { agent: "Pass --accept \"Open ... and confirm ...\" (repeatable)." });
   }
-  return { outcome: cleanOutcome, acceptance, nonGoals: cleanList(nonGoals), surfaces: cleanList(surfaces) };
+  return { outcome: cleanOutcome, acceptance, nonGoals: cleanList(nonGoals), surfaces: cleanList(surfaces), decisions: cleanList(decisions), checks };
 }
 
 // presentedSource is set only when a trivial preview doubles as the save question.

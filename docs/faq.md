@@ -21,10 +21,22 @@ Yes: the `trivial` lane. The agent picks it for obvious, low-risk changes within
 "ship it?", and the change is saved exactly as you saw it. Anything that grows past the cap moves
 to the normal path automatically.
 
-**What happens when the update server is unavailable?**
-The default `updates.offline` value is `fail`, so `begin` opens no session. Set it to `allow` only
-when the project deliberately permits work with the installed toolkit. Use `updates.revision` to
-pin a branch, tag, or commit and `updates.timeoutMs` to bound each subprocess.
+**How often does the toolkit check for updates, and what if it is offline?**
+At most once a day, when a new concern begins (`settings set updates.checkEveryHours <hours>`; `0`
+checks every time). A clean upgrade is saved as its own change and work continues on the refreshed
+toolkit. When the update server is unreachable, work continues with the installed toolkit by
+default (`updates.offline: allow`); set it to `fail` in config, or on one machine with
+`settings set updates.offline fail`, to require a successful check. Use `updates.revision` to pin
+a branch, tag, or commit and `updates.timeoutMs` to bound each subprocess.
+
+**Does the agent checking its own work cost a lot of tokens?**
+No, by default. Automatic checks run inside the toolkit, not the model, and skip reruns when
+nothing changed. Ask the agent to turn them off (`preview.selfCheck: off`) or up to `thorough`
+(it also looks at screenshots that changed). The setting stays on your machine.
+
+**Will the agent keep asking me the same questions?**
+No. Decisions you make are saved with each change in `.staff-engineer/decisions.json`, and the
+agent sees the few that apply to a new request before it asks anything.
 
 **My project has no tests, linter, or build. Can I still use this?**
 Yes. Set the gates to `null` (`config set gates.test null`). Verification then only records that

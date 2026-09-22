@@ -1,11 +1,13 @@
 // Guarded save: approval, finalizing phase, lifecycle gate, matching receipt,
 // concern categories, then commit with permanent trailers.
 import { approvalTrailers, checkApproval } from "../lib/approval.mjs";
+import { appendDecisions } from "../lib/decisions.mjs";
 import { output } from "../lib/exec.mjs";
 import { isNonTechnical, loadConfig } from "../lib/config.mjs";
 import { readJson } from "../lib/fs-safe.mjs";
 import { commit, hasUnpushedCommits, head, push, stagedFiles } from "../lib/git.mjs";
 import { matchesAny } from "../lib/glob.mjs";
+import { isProductSource } from "../lib/paths.mjs";
 import { laneOf, sameFingerprint, sourceFingerprint } from "../lib/lanes.mjs";
 import { failed, ok, refused } from "../lib/output.mjs";
 import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
@@ -69,6 +71,10 @@ export default async function run({ cwd, positional, flags, env = process.env })
   trailers["Brief-Outcome"] = session.brief.outcome;
   Object.assign(trailers, approvalTrailers(approval));
 
+  // Decisions travel with the change that made them; the log is toolkit data, not verified code.
+  const decisionsFile = appendDecisions(cwd, session, { files: staged.filter((file) => isProductSource(config, file)) });
+  if (decisionsFile) output("git", ["add", "--", decisionsFile], { cwd });
+
   const savedCommit = commit(message, { cwd, trailers });
   let updated = markSaved(session, savedCommit);
   writeSession(cwd, updated);
@@ -89,7 +95,7 @@ export default async function run({ cwd, positional, flags, env = process.env })
     agent: updated.status === "saved"
       ? `Saved as ${savedCommit}. Run ${CLI} ship --sync-only to push before opening another concern.`
       : `Saved as ${savedCommit}. The session is complete; open the next concern with ${CLI} begin.`,
-    data: { commit: savedCommit, pushed, status: updated.status, categories, trailers },
+    data: { commit: savedCommit, pushed, status: updated.status, categories, trailers, decisionsRecorded: Boolean(decisionsFile) },
   });
 }
 

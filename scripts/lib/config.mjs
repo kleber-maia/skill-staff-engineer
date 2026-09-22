@@ -48,7 +48,7 @@ export function defaultConfig() {
     packageManager: null,
     gates: {},
     preview: { kind: "manual", screenshots: "auto", screenshotPaths: ["/"] },
-    updates: { revision: null, offline: "fail", timeoutMs: 60000 },
+    updates: { revision: null, offline: "allow", timeoutMs: 60000 },
     paths: {
       source: [],
       tests: ["**/*.test.*", "**/*.spec.*", "**/*_test.*", "tests/**", "test/**", "__tests__/**", "spec/**"],

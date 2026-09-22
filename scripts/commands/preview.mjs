@@ -3,6 +3,8 @@ import { runShell } from "../lib/exec.mjs";
 import { failed, ok, refused } from "../lib/output.mjs";
 import { stateDir } from "../lib/git.mjs";
 import { captureScreenshots, shouldCapture } from "../lib/screenshots.mjs";
+import { runProbes, screenshotChanges, selfCheckPlan } from "../lib/self-check.mjs";
+import { getSetting } from "../lib/settings.mjs";
 import { laneOf, laneOverflow, sourceFingerprint } from "../lib/lanes.mjs";
 import { CLI, markAwaitingFeedback, requireBrief, requireOpenSession, sessionConcernFiles, writeSession } from "../lib/session.mjs";
 import { join } from "node:path";
@@ -24,12 +26,23 @@ export default async function run({ cwd }) {
   }
   const preview = config.preview ?? { kind: "manual" };
   const where = await confirmPreview(preview, config, cwd);
+  const plan = selfCheckPlan(getSetting(cwd, "preview.selfCheck"), lane);
+  const probes = plan.probes && brief.checks?.length ? await runProbes(cwd, config, session) : null;
+  const selfCheck = probes ? { fingerprint: probes.fingerprint, results: probes.results } : session.selfCheck;
+  if (probes?.failures.length) {
+    writeSession(cwd, { ...session, selfCheck });
+    throw refused("The result did not pass the toolkit's own checks yet, so it is not ready to show.", {
+      errors: probes.failures.map((failure) => `Acceptance check ${brief.checks[failure.index].accept + 1}: ${failure.detail}`),
+      agent: "Fix what these checks found, then run preview again. Only the failing behavior needs attention.",
+    });
+  }
   const combined = lane === "trivial";
-  const updated = markAwaitingFeedback(session, files, { presentedSource: combined ? sourceFingerprint(cwd, config, session) : undefined });
-  writeSession(cwd, updated);
+  const updated = markAwaitingFeedback({ ...session, selfCheck }, files, { presentedSource: combined ? sourceFingerprint(cwd, config, session) : undefined });
   const shots = preview.kind === "web" && shouldCapture(config)
     ? captureScreenshots(cwd, { url: preview.url, paths: preview.screenshotPaths ?? ["/"], outDir: join(stateDir(cwd), "preview", `round-${updated.reviewRound}`) })
     : { skipped: true, files: [] };
+  const shotChanges = screenshotChanges(shots.files ?? [], session.screenshots);
+  writeSession(cwd, shots.files?.length ? { ...updated, screenshots: shotChanges.hashes } : updated);
 
   const checks = brief.acceptance.map((item, index) => `${index + 1}. ${item}`).join("\n");
   const operator = [
@@ -48,7 +61,9 @@ export default async function run({ cwd }) {
       `Clear acceptance: ${CLI} finalize --approval-quote "<the operator's exact words>"`,
       combined ? "Trivial lane: that acceptance also approves the save, as long as the source stays byte-identical. Tests and docs should already be done." : "",
       where.agent ?? "",
-      shots.files.length ? `Screenshots (look at them before presenting; share them when the harness allows):\n${shots.files.map((file) => `- ${file}`).join("\n")}` : "",
+      probes ? `Self-check: ${probes.cached ? "unchanged since the last passing run" : `${probes.results.length} automatic check${probes.results.length === 1 ? "" : "s"} passed`}.` : "",
+      plan.screenshots && shotChanges.changed.length ? `Look at these changed screenshots before presenting:\n${shotChanges.changed.map((file) => `- ${file}`).join("\n")}` : "",
+      shots.files.length ? `Screenshots to share when the harness allows:\n${shots.files.map((file) => `- ${file}`).join("\n")}` : "",
       shots.skipped === false && !shots.ok ? `Screenshots failed (preview still presented): ${shots.reason}` : "",
       isNonTechnical(config) ? "Keep the message free of file names, commands, and tool output." : "",
     ].filter(Boolean).join("\n"),

@@ -11,7 +11,7 @@ test("legacy configs inherit compatible lifecycle hardening defaults", () => {
   });
   assert.equal(config.rules.testQuality.scope, "changed");
   assert.ok(config.paths.documentable.includes("scripts/**"));
-  assert.deepEqual(config.updates, { revision: null, offline: "fail", timeoutMs: 60000 });
+  assert.deepEqual(config.updates, { revision: null, offline: "allow", timeoutMs: 60000 });
   assert.deepEqual(validateConfig(config), []);
 });
 

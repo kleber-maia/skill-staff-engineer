@@ -12,12 +12,14 @@ export const COMMANDS = {
   install: { module: "./commands/install.mjs", multi: ["skip"] },
   doctor: { module: "./commands/doctor.mjs" },
   config: { module: "./commands/config.mjs" },
+  settings: { module: "./commands/settings.mjs" },
   status: { module: "./commands/status.mjs" },
   next: { module: "./commands/next.mjs" },
   lane: { module: "./commands/lane.mjs" },
   plan: { module: "./commands/plan.mjs" },
+  decisions: { module: "./commands/decisions.mjs" },
   begin: { module: "./commands/begin.mjs" },
-  brief: { module: "./commands/brief.mjs", multi: ["accept", "non-goal", "surface"] },
+  brief: { module: "./commands/brief.mjs", multi: ["accept", "non-goal", "surface", "decision", "check"] },
   preview: { module: "./commands/preview.mjs" },
   revise: { module: "./commands/revise.mjs" },
   finalize: { module: "./commands/finalize.mjs" },
@@ -75,6 +77,7 @@ Setup
   install [--target <dir>] [--dry-run] [--yes] [--reconfigure] [--replace-existing-skills] [--with-claude-hooks] [--init-git] [--uninstall]
   doctor [--which]                    Check the installation and list questions for the operator
   config get|set|unset <dotpath> [value]
+  settings [get|set|unset <key> [value]]  This machine's preferences (never committed)
   update [--from <path|git-url>]      Upgrade the vendored toolkit
 
 Lifecycle (one concern at a time; run next whenever unsure)
@@ -83,8 +86,10 @@ Lifecycle (one concern at a time; run next whenever unsure)
                                       Check upstream, then open exactly one work session
   lane trivial|standard|large         Move the open concern to another lane
   plan <path>                         Record the agreed plan (large lane, before preview)
+  decisions [--for "<words or files>"] Earlier operator decisions relevant to a concern
   context <planned files...>          Build the task-context packet (skills, docs, tests, dependencies)
   brief --outcome "..." --accept "..." [--accept "..."] [--non-goal "..."] [--surface "..."]
+        [--decision "Topic: choice"] [--check "<n>: page <path> contains <text>" | "<n>: run <cmd> contains <text>"]
   preview                             Present the working result; reads the acceptance checks back
   revise                              Return to implementation after feedback
   finalize --approval-quote "..."     Record the operator's acceptance in their own words
