@@ -121,9 +121,11 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     assert.match(message, /Operator-Approval: ship it/);
     assert.match(message, /Approval-Evidence: agent-reported/);
     assert.equal(git(dir, "status", "--short"), "");
+    assert.match(git(dir, "show", "--name-only", "--format=", "HEAD"), /\.staff-engineer\/decisions\.json/, "decisions are saved with the change");
 
-    result = await runCli(["begin", "Second concern", "--json"], { cwd: dir });
+    result = await runCli(["begin", "Second concern: add division", "--json"], { cwd: dir });
     assert.equal(result.code, 0, "a new concern can start after ship");
+    assert.match(result.json.agent, /Left out: Division/, "earlier decisions come back without being asked for");
     result = await runCli(["abort", "--json"], { cwd: dir });
     assert.equal(result.code, 0);
   } finally {

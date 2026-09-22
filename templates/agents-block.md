@@ -8,8 +8,12 @@ skills guide the work between them. Before changing anything, read `.agents/skil
   the operator.
 - The **first workflow command** for every new concern is
   `node .staff-engineer/cli.mjs begin "Short concern" --lane trivial|standard|large`. It checks
-  upstream before opening a session. If it updates the toolkit, save that upgrade separately and
-  restart. Pick `trivial` only for obvious, low-risk edits; when unsure, `standard`.
+  for toolkit updates at most once a day and saves a clean upgrade as its own change. Pick
+  `trivial` only for obvious, low-risk edits; when unsure, `standard`.
+- Never re-ask a decision `begin` or `context` lists as earlier. Record new ones with
+  `brief --decision "Topic: choice"`; `ship` saves them to `.staff-engineer/decisions.json`.
+- When the operator asks to change how you work on this machine, use `settings set`; settings
+  are local and never committed.
 - Build the smallest working first pass, then `preview` and **stop for feedback**. Simplification,
   final docs, lifecycle, and full verification wait for acceptance (trivial work finishes tests and
   docs before its preview).

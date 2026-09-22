@@ -71,7 +71,7 @@ test("begin checks for updates before it creates the session, then current versi
   }
 });
 
-test("a newer recorded repository updates first, opens no session, and requires a fresh begin", async () => {
+test("an upgrade over unsaved toolkit edits opens no session and requires a fresh begin", async () => {
   const dir = await installedProject();
   const stale = toolkitRepository("0.1.0");
   const latest = toolkitRepository("9.9.9");
@@ -110,6 +110,7 @@ test("an upstream lookup failure fails closed and leaves no session", async () =
       ".staff-engineer/install.json": `${JSON.stringify({ ...manifest, source: { dir: REPO_ROOT, url: pathToFileURL(join(dir, "missing-upstream.git")).href } }, null, 2)}\n`,
     });
     const before = readFileSync(join(dir, ".staff-engineer", "VERSION"), "utf8");
+    await runCli(["settings", "set", "updates.offline", "fail"], { cwd: dir });
     const result = await runCli(["begin", "Cannot start offline", "--json"], { cwd: dir, services: {} });
     assert.equal(result.code, 2);
     assert.match(result.json.operator, /could not check its upstream repository/i);
@@ -255,5 +256,47 @@ test("failed and timed-out installers restore toolkit-owned destinations", async
     cleanup(dir);
     cleanup(broken.parent);
     cleanup(hanging);
+  }
+});
+
+test("a clean upgrade is saved as its own change and the refreshed toolkit opens the session", async () => {
+  const latest = toolkitRepository("9.9.9");
+  const dir = makeTempRepo({ files: { "README.md": "# demo\n" } });
+  try {
+    await installInto(dir);
+    const manifestPath = join(dir, ".staff-engineer", "install.json");
+    const manifest = readJson(manifestPath);
+    writeFiles(dir, { ".staff-engineer/install.json": `${JSON.stringify({ ...manifest, source: { dir: null, url: pathToFileURL(latest.dir).href } }, null, 2)}\n` });
+    commitAll(dir, "install toolkit");
+
+    const result = await runCli(["begin", "Use fresh workflow", "--lane", "trivial", "--json"], { cwd: dir, services: {} });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    assert.equal(result.json.data.concern, "Use fresh workflow");
+    assert.equal(result.json.data.lane, "trivial");
+    assert.equal(result.json.data.toolkitUpgrade.version, "9.9.9");
+    assert.match(git(dir, "log", "-1", "--format=%B"), /Upgrade the staff-engineer toolkit to 9\.9\.9[\s\S]*Toolkit-Upgrade: .* -> 9\.9\.9/);
+    assert.equal(git(dir, "status", "--short"), "", "the upgrade commit leaves nothing pending");
+    assert.equal(readJson(sessionPath(dir)).baseCommit, git(dir, "rev-parse", "HEAD"), "the session starts after the upgrade commit");
+  } finally {
+    cleanup(dir);
+    cleanup(latest.parent);
+  }
+});
+
+test("upstream checks are throttled by the local check interval", async () => {
+  const dir = await installedProject();
+  let checks = 0;
+  const services = { updateToolkit: async () => { checks += 1; return { data: { updated: false } }; } };
+  try {
+    await runCli(["begin", "First concern here"], { cwd: dir, services });
+    await runCli(["abort"], { cwd: dir, services });
+    await runCli(["begin", "Second concern here"], { cwd: dir, services });
+    await runCli(["abort"], { cwd: dir, services });
+    assert.equal(checks, 1, "the default interval skips a second check the same day");
+    await runCli(["settings", "set", "updates.checkEveryHours", "0"], { cwd: dir });
+    await runCli(["begin", "Third concern here"], { cwd: dir, services });
+    assert.equal(checks, 2, "an interval of zero checks every time");
+  } finally {
+    cleanup(dir);
   }
 });

@@ -8,6 +8,7 @@ import { loadConfig, TOOLKIT_DIR } from "../lib/config.mjs";
 import { output } from "../lib/exec.mjs";
 import { readJson, readText, writeJson } from "../lib/fs-safe.mjs";
 import { ok, tooling } from "../lib/output.mjs";
+import { getSetting } from "../lib/settings.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
 import { withInstallTransaction } from "./install.mjs";
 
@@ -40,7 +41,7 @@ export async function updateToolkit({ cwd, flags = {}, services = {} }) {
       try {
         materializeRevision(url, temp, revision, timeoutMs);
       } catch (error) {
-        if (config.updates.offline === "allow") {
+        if ((getSetting(cwd, "updates.offline") ?? config.updates.offline) === "allow") {
           return ok({
             operator: "The upstream check was unavailable, so work is continuing with the installed toolkit.",
             agent: "Offline policy is allow. No toolkit files changed.",
@@ -111,10 +112,11 @@ function gitRevision(dir, timeoutMs) {
   }
 }
 
-function updateTransactionTargets(cwd, sourceDir) {
+// Every path an install or upgrade may own; sourceDir adds skills new in that version.
+export function updateTransactionTargets(cwd, sourceDir = null) {
   const installedSkills = readJson(resolve(cwd, TOOLKIT_DIR, "skills.json"), null)?.skills ?? [];
-  const sourceSkillsDir = resolve(sourceDir, "skills");
-  const sourceSkills = existsSync(sourceSkillsDir)
+  const sourceSkillsDir = sourceDir ? resolve(sourceDir, "skills") : null;
+  const sourceSkills = sourceSkillsDir && existsSync(sourceSkillsDir)
     ? readdirSync(sourceSkillsDir, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name)
     : [];
   return [

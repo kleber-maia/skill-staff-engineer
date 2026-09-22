@@ -152,11 +152,10 @@ Work is sized into **lanes**. A `trivial` change (a typo, a color, a one-line fi
 gets one check-in: the preview asks "ship it?" and your yes covers both. `standard` work gets the
 full loop below. `large` work also agrees a written plan before the first preview.
 
-- **Agree.** As its first action, `begin` checks the recorded upstream repository. If a newer
-  toolkit is found, it upgrades the toolkit but opens no work session, so that upgrade can be saved
-  separately and the concern restarted under the new workflow. A failed lookup also stops before a
-  session. When already current, `begin` opens exactly one work session and fingerprints anything
-  already pending so it cannot be swept in. The `grill-me` skill runs the interview. `brief`
+- **Agree.** At most once a day, `begin` first checks the recorded upstream repository; a newer
+  toolkit is saved as its own change and the refreshed workflow continues. `begin` opens exactly
+  one work session, fingerprints anything already pending so it cannot be swept in, and lists
+  earlier decisions that apply, so you are not asked twice. The `grill-me` skill runs the interview. `brief`
   records the outcome and the acceptance checks you will perform. `context` gathers the skills,
   docs, tests, and dependencies relevant to the planned files.
 - **Build.** The `solid` skill governs the code and focused tests, with reference notes
@@ -202,10 +201,14 @@ debug output, and mixed concern scope, plus a workflow that presents the result 
   review also protects unique safety coverage, real state transitions, device-specific behavior,
   and independent fresh data.
   Every rule can be disabled or given a justified exception.
-- **A begin-time upstream guard** that uses the repository URL recorded at installation (with a
-  canonical fallback), resolves an optional pinned revision, installs a changed toolkit before any
-  session exists, and requires a restart. It follows the explicit offline policy and never runs
-  during the middle or end phases.
+- **A begin-time upstream check**, at most once a day by default, that uses the repository URL
+  recorded at installation (with a canonical fallback), resolves an optional pinned revision,
+  installs and saves a changed toolkit before any session exists, and continues on the refreshed
+  code. It follows the offline policy and never runs during the middle or end phases.
+- **A decisions log** committed with each change, so choices you made once are reused, not re-asked.
+- **Free self-checks**: acceptance checks can carry probes the CLI runs before you look, with no
+  model tokens and no reruns when nothing changed. Personal preferences such as the self-check
+  level live on your machine only (`settings`).
 - **A verification wrapper** that runs your project's own commands, stops at the first failure with
   a focused `file:line` report, keeps a timing ledger, and writes a receipt so the full check runs
   once per batch.

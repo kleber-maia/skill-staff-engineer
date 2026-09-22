@@ -29,9 +29,11 @@ memorize it.
 4. Repeat until the concern is saved. If a command refuses, its message says how to
    recover; `next` always says where you are.
 
-Start every new concern with `begin` before inspecting, interviewing, or editing. It
-checks for toolkit updates first; if it installs one, save that upgrade as its own change
-and restart the concern.
+Start every new concern with `begin` before inspecting, interviewing, or editing. At
+most once a day (`updates.checkEveryHours`) it checks for a toolkit update first, saves a
+clean upgrade as its own change, and continues on the refreshed toolkit. Only when
+toolkit files had unsaved edits does it stop: save the upgrade separately, then run
+`begin` again.
 
 ## Choose the lane
 
@@ -62,13 +64,28 @@ requests are not approval: keep working and ask again. Where the harness records
 messages, the CLI checks the quote against them; the quote and how it was checked are
 saved in the commit either way.
 
+## Decisions and preferences
+
+- **Decisions.** Record each choice the operator settles with `brief --decision "Topic:
+  choice"`. `ship` saves decisions and non-goals to `.staff-engineer/decisions.json` with
+  the change; `begin` and `context` show the few that apply to a new concern. Keep them
+  unless the operator changes their mind; never ask again.
+- **Self-check.** Give acceptance checks a free probe where possible (`brief --check`);
+  `preview` runs them itself, refuses on failure, and skips reruns when nothing changed.
+  How much runs follows the local `preview.selfCheck` setting.
+- **Preferences.** When the operator asks to change how you work on this machine ("stop
+  checking your own work", "check for updates weekly"), change it with
+  `settings set <key> <value>` and confirm in one plain sentence. Settings are local and
+  never committed. `settings` lists them: `preview.selfCheck` (off, auto, thorough),
+  `updates.checkEveryHours`, `updates.offline`.
+
 ## Operator communication
 
 - Read `operator.mode` in `.staff-engineer/config.json`. When it is `non-technical`,
   write every operator-facing message in plain language: no version control,
   terminal, database, file, or code jargon. Describe outcomes, not steps.
 - Show results where the operator can see them: the preview address for web projects,
-  the output or document otherwise. Look at your own screenshots before presenting.
+  the output or document otherwise. Look at screenshots only when `preview` asks you to.
 - Ask for approval once, for the whole verified batch, using the `handoff` skill.
 - Never ask the operator to run a command, set a variable, or type a special phrase
   into a tool. If a decision is theirs, ask the question in plain language.

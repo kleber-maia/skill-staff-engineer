@@ -24,6 +24,14 @@ Skip the interview for a small, unambiguous request: a typo, a wording change, a
 one-element style fix, or a request that already states the outcome and how to check
 it. Say in one sentence that the request is clear and go straight to the brief.
 
+## Earlier decisions
+
+`begin` (and later `context`) lists the few earlier decisions that apply to this
+concern. Treat each as settled: do not ask it again. State it as the default in one
+line ("Last time you chose CSV; I will keep that"), and ask only if the new request
+clearly contradicts it. `decisions --for "<words>"` finds more when the operator asks
+what was decided before.
+
 ## How the interview works
 
 Treat the plan as a **design tree**. Each decision opens smaller decisions beneath
@@ -77,6 +85,11 @@ When the frontier is empty, write the brief in plain language:
   starting with a verb.
 - **Non-goals:** what this change deliberately leaves alone.
 - **Surfaces:** the screens, commands, APIs, or documents that will change.
+- **Decisions:** each choice the operator settled in the interview, as `Topic: choice`.
+  They are saved with the change and offered back to future concerns.
+- **Automatic checks (optional):** for acceptance checks the toolkit can verify on its
+  own, add a probe so the preview is checked before the operator looks, at no cost:
+  `<n>: page <path> contains <text>` (web previews) or `<n>: run <command> contains <text>`.
 
 Record it so `preview` and `handoff` can read it back:
 
@@ -87,10 +100,13 @@ node .staff-engineer/cli.mjs brief \
   --accept "Export and confirm the file opens with one row per order" \
   --accept "Confirm orders from other accounts never appear in the file" \
   --non-goal "Scheduled or emailed exports" \
-  --surface "Orders"
+  --surface "Orders" \
+  --decision "Export format: CSV" \
+  --decision "Export range: chosen dates, all time by default" \
+  --check "1: page /orders contains Export"
 ```
 
-Repeat `--accept`, `--non-goal`, and `--surface` as needed. Confirm the brief to the
+Repeat `--accept`, `--non-goal`, `--surface`, `--decision`, and `--check` as needed. Confirm the brief to the
 operator in one short message and start building. If feedback later narrows or
 widens the goal, rerun `brief` with the updated content before `revise`.
 

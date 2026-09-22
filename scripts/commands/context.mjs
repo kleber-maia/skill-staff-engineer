@@ -10,6 +10,7 @@ import { output } from "../lib/exec.mjs";
 import { readJson, writeJson } from "../lib/fs-safe.mjs";
 import { stateDir } from "../lib/git.mjs";
 import { matchesAny, normalize } from "../lib/glob.mjs";
+import { relevantDecisions, renderDecisions } from "../lib/decisions.mjs";
 import { importsOfFile } from "../lib/imports.mjs";
 import { ok, refused } from "../lib/output.mjs";
 import { classify, isProtected } from "../lib/paths.mjs";
@@ -32,7 +33,9 @@ export default async function run({ cwd, positional }) {
   if (!files.length) {
     throw refused("Name the files you plan to change so the packet can be built.", { agent: `Usage: node .staff-engineer/cli.mjs ${usage}` });
   }
-  const packet = buildPacket(cwd, config, files);
+  const session = readSession(cwd);
+  const brief = session && !session.cleared ? session.brief : null;
+  const packet = { ...buildPacket(cwd, config, files), decisions: relevantDecisions(cwd, { text: [session?.concern, brief?.outcome].filter(Boolean).join(" "), files, surfaces: brief?.surfaces ?? [] }) };
   writeJson(contextPath(cwd), packet);
   return ok({
     operator: "Gathered the guidance and related material for this change.",
@@ -116,6 +119,7 @@ function renderPacket(packet) {
   if (packet.docs.length) lines.push("", "Documentation that describes these files (update it in the same batch if behavior changes):", ...packet.docs.map((doc) => `- ${doc}`));
   if (packet.tests.length) lines.push("", "Tests that cover these files:", ...packet.tests.map((test) => `- ${test}`));
   if (packet.dependencies.length) lines.push("", "Local modules they import (read before changing call sites):", ...packet.dependencies.map((dep) => `- ${dep}`));
+  if (packet.decisions?.length) lines.push("", renderDecisions(packet.decisions));
   lines.push("", "Phases: grill-me before building; solid" + (packet.skills.some((skill) => skill.name === "ui-quality") ? " and ui-quality" : "") + " while building; simplify only after acceptance; handoff at the end.");
   lines.push("Rerun context if the planned scope or the local imports grow. The lifecycle gate refuses when a listed skill changed after this packet.");
   return lines.join("\n");
