@@ -10,6 +10,9 @@ export default async function run({ cwd, flags }) {
   if (!session || session.cleared || session.status === "synced") {
     return ok({ operator: "There is no work session to close.", data: {} });
   }
+  if (session.status === "saved" || session.shipping) {
+    throw refused("This concern has a pending save or delivery that cannot be abandoned by clearing its record.", { agent: "Run ship --sync-only to recover delivery. If commit hooks changed the batch, follow ship's recovery instructions." });
+  }
   const pending = session.status === "open" ? sessionConcernFiles(session, cwd) : [];
   if (pending.length && !flags["discard-confirmed"]) {
     throw refused(`The concern "${session.concern}" still has ${pending.length} changed file${pending.length === 1 ? "" : "s"}.`, {

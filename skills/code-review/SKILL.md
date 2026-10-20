@@ -69,8 +69,10 @@ wrong result) is dropped. Style preferences are not findings.
    `node .staff-engineer/cli.mjs verify --mode fast` after each; revert any that break.
    Report RISKY ones instead of applying them.
 4. If a fix changes what the operator sees, run `revise` and preview again.
-5. Record counts honestly: found = surviving findings, fixed = applied, reported = left
-   for the operator or a later concern. Record each reported one as a known issue:
+5. Record counts honestly: found = all findings assessed, fixed = applied, reported = left
+   for the operator or a later concern, refuted = disproved with evidence. Record each reported one as a known issue:
    `review done ... --reported 1 --issue "file:line what is wrong and why it matters"`.
 6. The packet lists known issues already open in the changed files. Say whether each is
    still present; if this change fixed one, run `issues resolve <id>`.
+
+Every finding must be fixed, reported as a known issue, or refuted with evidence. Record disproved findings with `review done --refuted <n>` and one `--refutation "reason"` per finding. The disposition counts must sum to `--found`; unresolved findings cannot disappear from the record.

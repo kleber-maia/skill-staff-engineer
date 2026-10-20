@@ -49,6 +49,7 @@ export function defaultConfig() {
     gates: {},
     preview: { kind: "manual", screenshots: "auto", screenshotPaths: ["/"] },
     updates: { revision: null, offline: "allow", timeoutMs: 60000 },
+    shipping: { mode: "auto", remote: null, branch: null, timeoutMs: 60000 },
     paths: {
       source: [],
       tests: ["**/*.test.*", "**/*.spec.*", "**/*_test.*", "tests/**", "test/**", "__tests__/**", "spec/**"],
@@ -112,6 +113,7 @@ export function mergeConfig(defaults, overrides = {}) {
   merged.rules = { ...defaults.rules, ...(overrides.rules ?? {}) };
   merged.preview = { ...defaults.preview, ...(overrides.preview ?? {}) };
   merged.updates = { ...defaults.updates, ...(overrides.updates ?? {}) };
+  merged.shipping = { ...defaults.shipping, ...(overrides.shipping ?? {}) };
   merged.gates = { ...(overrides.gates ?? {}) };
   return merged;
 }
@@ -148,6 +150,11 @@ export function validateConfig(config) {
   if (!UPDATE_OFFLINE_POLICIES.includes(config.updates?.offline)) errors.push(`updates.offline must be one of ${UPDATE_OFFLINE_POLICIES.join(", ")}`);
   if (config.updates?.revision !== null && (typeof config.updates?.revision !== "string" || !config.updates.revision.trim())) errors.push("updates.revision must be null or a non-empty git revision");
   if (!Number.isInteger(config.updates?.timeoutMs) || config.updates.timeoutMs < 1000) errors.push("updates.timeoutMs must be an integer of at least 1000");
+  if (!["auto", "local"].includes(config.shipping?.mode)) errors.push("shipping.mode must be auto or local");
+  for (const key of ["remote", "branch"]) {
+    if (config.shipping?.[key] !== null && (typeof config.shipping?.[key] !== "string" || !config.shipping[key].trim())) errors.push(`shipping.${key} must be null or a non-empty string`);
+  }
+  if (!Number.isInteger(config.shipping?.timeoutMs) || config.shipping.timeoutMs < 1000) errors.push("shipping.timeoutMs must be an integer of at least 1000");
   return errors;
 }
 

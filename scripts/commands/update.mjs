@@ -8,7 +8,7 @@ import { loadConfig, TOOLKIT_DIR } from "../lib/config.mjs";
 import { output } from "../lib/exec.mjs";
 import { readJson, readText, writeJson } from "../lib/fs-safe.mjs";
 import { ok, refused, tooling } from "../lib/output.mjs";
-import { pendingToolkitFiles, saveToolkit, toolkitPaths } from "../lib/maintenance.mjs";
+import { pendingToolkitFiles, resumeToolkitSave, saveToolkit, toolkitPaths } from "../lib/maintenance.mjs";
 import { readSession } from "../lib/session.mjs";
 import { getSetting } from "../lib/settings.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
@@ -22,11 +22,12 @@ export const CANONICAL_REPOSITORY_URL = "https://github.com/kleber-maia/skill-st
 export default async function run(options) {
   const { cwd, flags = {} } = options;
   const session = readSession(cwd);
-  if (session && !session.cleared && session.status === "open") {
+  if (session && !session.cleared && ["open", "saved"].includes(session.status)) {
     throw refused("A work session is open, so the toolkit is not updated in the middle of it.", {
       agent: "Finish or abort the open concern first. New concerns check for updates on their own at begin.",
     });
   }
+  if (!flags["dry-run"]) resumeToolkitSave(cwd);
   const pending = flags["dry-run"] ? [] : pendingToolkitFiles(cwd);
   const result = await updateToolkit(options);
   if (flags["dry-run"] || !result.data.updated) return result;

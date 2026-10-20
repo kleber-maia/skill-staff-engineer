@@ -24,7 +24,7 @@ export const COMMANDS = {
   preview: { module: "./commands/preview.mjs" },
   revise: { module: "./commands/revise.mjs" },
   finalize: { module: "./commands/finalize.mjs" },
-  review: { module: "./commands/review.mjs", multi: ["issue"] },
+  review: { module: "./commands/review.mjs", multi: ["issue", "refutation"] },
   repro: { module: "./commands/repro.mjs" },
   issues: { module: "./commands/issues.mjs" },
   lifecycle: { module: "./commands/lifecycle.mjs" },
@@ -39,7 +39,7 @@ export const COMMANDS = {
   hook: { module: "./commands/hook.mjs" },
 };
 
-const BOOLEANS = ["bug", "json", "dry-run", "yes", "reconfigure", "replace-existing-skills", "with-claude-hooks", "init-git", "uninstall", "push", "sync-only", "discard-confirmed", "which", "force"];
+const BOOLEANS = ["bug", "json", "dry-run", "yes", "reconfigure", "replace-existing-skills", "with-claude-hooks", "init-git", "uninstall", "push", "sync-only", "recover", "discard-confirmed", "which", "force"];
 
 export async function main(argv = process.argv.slice(2), { cwd = process.cwd(), env = process.env, stdout = process.stdout, stderr = process.stderr, services = {} } = {}) {
   const [name, ...rest] = argv;
@@ -67,7 +67,12 @@ export async function main(argv = process.argv.slice(2), { cwd = process.cwd(), 
     if (name !== "hook") render(result, { json, stream: stdout, errStream: stderr });
     return result.code ?? EXIT.OK;
   } catch (error) {
-    if (name === "hook") return EXIT.OK; // hooks always fail open
+    if (name === "hook") {
+      // Remain fail-open, but make a broken guard visible without leaking payloads.
+      const event = rest[0];
+      if (["SessionStart", "UserPromptSubmit", "PreToolUse"].includes(event)) stdout.write(`${JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: "staff-engineer guardrails are unavailable. Run doctor before relying on them; the hook allowed this step." } })}\n`);
+      return EXIT.OK;
+    }
     render(fromError(error), { json, stream: stdout, errStream: stderr });
     return error?.code ?? EXIT.TOOLING;
   }
@@ -101,7 +106,8 @@ Lifecycle (one concern at a time; run next whenever unsure)
   preview                             Present the working result; reads the acceptance checks back
   revise                              Return to implementation after feedback
   finalize --approval-quote "..."     Record the operator's acceptance in their own words
-  review | review done --found <n> --fixed <n> [--reported <n> --issue "file:line problem"] [--level ...] [--reason "..."]
+  review | review done --found <n> --fixed <n> [--reported <n> --issue "file:line problem"]
+                      [--refuted <n> --refutation "evidence"] [--level ...] [--reason "..."]
                                       Code review at the level the change needs
   repro "<test command>" | repro --waiver "..."
                                       Bug fixes: the test must fail on the original code and pass now
@@ -110,9 +116,10 @@ Lifecycle (one concern at a time; run next whenever unsure)
   lifecycle                           Gate the staged batch
   verify --mode fast|full             Run the configured checks; full writes a receipt
   handoff                             Print a plain-language handoff draft
-  ship "<imperative message>" --approval-quote "..." [--push]
-                                      Guarded save after the operator approved the handoff
-  ship --sync-only                    Push a saved batch that was not pushed yet
+  ship "<imperative message>" --approval-quote "..."
+                                      Guarded save and confirmed delivery after approval
+  ship --sync-only                    Resume delivery of the same saved batch
+  ship --recover                      Return an interrupted batch to review after a soft reset
   abort [--discard-confirmed]         Close an abandoned session (never deletes files)
   status                              Show session, brief, and receipt state
   stats                               Summary of finished concerns on this machine

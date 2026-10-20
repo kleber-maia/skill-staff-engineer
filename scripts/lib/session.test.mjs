@@ -119,6 +119,11 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
     assert.equal(result.code, 1, "ship needs approval");
 
     result = await runCli(["ship", "Add multiply to the demo", "--approval-quote", "ship it", "--json"], { cwd: dir });
+    assert.equal(result.code, 1, "changed prose preserves verification but needs a current handoff");
+    result = await runCli(["handoff", "--json"], { cwd: dir });
+    assert.equal(result.code, 0);
+
+    result = await runCli(["ship", "Add multiply to the demo", "--approval-quote", "ship it", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr);
     assert.equal(result.json.data.status, "synced", "no remote means synced immediately");
     const message = git(dir, "log", "-1", "--format=%B");

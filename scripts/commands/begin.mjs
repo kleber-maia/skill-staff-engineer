@@ -13,7 +13,7 @@ import { nextStep, renderNext } from "../lib/next.mjs";
 import { ok, refused, ToolkitError, tooling } from "../lib/output.mjs";
 import { assertCanBegin, beginSession, readSession } from "../lib/session.mjs";
 import { getSetting } from "../lib/settings.mjs";
-import { pendingToolkitFiles, saveToolkit } from "../lib/maintenance.mjs";
+import { pendingToolkitFiles, resumeToolkitSave, saveToolkit } from "../lib/maintenance.mjs";
 import { updateToolkit } from "./update.mjs";
 
 export const description = "Open exactly one work session for one concern.";
@@ -28,6 +28,7 @@ export default async function run({ cwd, positional, flags = {}, env = process.e
   // upstream so an update can never land in the middle of active work.
   const existing = readSession(cwd);
   assertCanBegin(existing, head(cwd), existing ? baselineUnchanged(existing.baseline, cwd) : true);
+  resumeToolkitSave(cwd);
 
   if (env[UPDATED_ENV] !== "1" && updateCheckDue(cwd)) {
     const pendingToolkit = pendingToolkitFiles(cwd);
@@ -80,14 +81,10 @@ export function updateCheckDue(cwd, now = Date.now()) {
 }
 
 // Save the upgrade as its own commit, touching only toolkit-owned paths that
-// were clean before it. Returns null when it cannot, so begin can stop instead.
+// were clean before it. Delivery failures retain their actionable recovery result.
 function saveUpgrade(cwd, update) {
-  try {
-    const saved = saveToolkit(cwd, `Upgrade the staff-engineer toolkit to ${update.version}`, { "Toolkit-Upgrade": `${update.previousVersion} -> ${update.version}` });
-    return { version: update.version, previousVersion: update.previousVersion, commit: saved?.commit ?? null, files: saved?.files ?? [] };
-  } catch {
-    return null;
-  }
+  const saved = saveToolkit(cwd, `Upgrade the staff-engineer toolkit to ${update.version}`, { "Toolkit-Upgrade": `${update.previousVersion} -> ${update.version}` });
+  return { version: update.version, previousVersion: update.previousVersion, commit: saved?.commit ?? null, files: saved?.files ?? [] };
 }
 
 // The upgraded code must run the rest of the workflow, so the refreshed CLI opens the session.

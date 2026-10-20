@@ -83,12 +83,13 @@ Only an explicit "ship it" (or an unambiguous equivalent that clearly refers to 
 handoff just sent) authorizes the save. You run it, quoting the operator's reply verbatim:
 
 ```bash
-node .staff-engineer/cli.mjs ship "Imperative message" --approval-quote "<the operator's exact words>" [--push]
+node .staff-engineer/cli.mjs ship "Imperative message" --approval-quote "<the operator's exact words>"
 ```
 
 The CLI refuses an approval that predates this handoff or does not match what the operator
 said (where the harness records their messages). The quote is saved in the commit.
 Never ask the operator to type a command or a special phrase; their normal reply is enough.
 
-Then relay `ship`'s operator line (it may include a short milestone) to confirm that the change is saved (and synced, if `--push` was
-used), without commands or hashes for a non-technical operator.
+Then relay `ship`'s operator line (it may include a short milestone) to confirm that the change is saved and delivery confirmed (or intentionally saved locally), without commands or hashes for a non-technical operator.
+
+If delivery fails, keep the save pending and run `ship --sync-only` when the destination is available. This retries the same approved commit. Do not report the concern as finished while delivery is pending.

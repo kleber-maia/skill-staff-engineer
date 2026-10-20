@@ -1,14 +1,13 @@
 // Bug fixes carry proof: a test from this change must fail on the original code
 // and pass on the fixed code. The original code runs in a temporary git worktree
 // at the session's base commit, with this change's test files copied in and the
-// project's ignored directories (installed dependencies) linked, so nothing in the
-// working tree is touched.
-import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
+// known ignored dependency directories copied into disposable storage.
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join, relative } from "node:path";
 
 import { output, runShell } from "./exec.mjs";
-import { classify } from "./paths.mjs";
+import { classify, isProtected, isNeverStage } from "./paths.mjs";
 import { sessionConcernFiles } from "./session.mjs";
 
 const TIMEOUT_MS = 5 * 60 * 1000;
@@ -22,7 +21,7 @@ export function reproTestFiles(cwd, config, session) {
 export function runRepro(cwd, config, session, command) {
   const testFiles = reproTestFiles(cwd, config, session);
   const now = summarize(runShell(command, { cwd, timeoutMs: TIMEOUT_MS }));
-  const base = withBaseWorktree(cwd, session.baseCommit, (dir) => {
+  const base = withBaseWorktree(cwd, config, session.baseCommit, (dir) => {
     for (const file of testFiles) {
       const target = join(dir, file);
       if (existsSync(join(cwd, file))) {
@@ -38,11 +37,11 @@ export function runRepro(cwd, config, session, command) {
   return { base, now, testFiles };
 }
 
-function withBaseWorktree(cwd, commit, run) {
+function withBaseWorktree(cwd, config, commit, run) {
   const dir = mkdtempSync(join(tmpdir(), "staff-engineer-repro-"));
   output("git", ["worktree", "add", "--quiet", "--detach", dir, commit], { cwd });
   try {
-    linkIgnored(cwd, dir);
+    copyDependencies(cwd, dir, config);
     return run(dir);
   } finally {
     output("git", ["worktree", "remove", "--force", dir], { cwd, allowFailure: true });
@@ -51,20 +50,21 @@ function withBaseWorktree(cwd, commit, run) {
   }
 }
 
-// Installed dependencies and local tooling are ignored by git, so the base checkout
-// lacks them; link them in so the test fails for the bug, not for missing setup.
-function linkIgnored(cwd, dir) {
-  const entries = output("git", ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory"], { cwd, allowFailure: true }).split("\n").filter(Boolean);
-  for (const entry of entries) {
-    const rel = entry.replace(/\/$/, "");
-    if (!rel || rel.startsWith(".git") || rel.startsWith(".staff-engineer/backups")) continue;
-    const target = join(dir, rel);
-    if (existsSync(target) || !existsSync(dirname(target))) continue;
-    try {
-      symlinkSync(join(cwd, rel), target, entry.endsWith("/") ? "dir" : "file");
-    } catch {
-      // A missing link only risks a setup failure, which is reported as such.
-    }
+// Only known dependency directories enter the base checkout. Copies are disposable:
+// neither a test write nor an absolute/outside symlink can reach the original data.
+function copyDependencies(cwd, dir, config) {
+  for (const name of ["node_modules", ".venv", "venv", "vendor"]) {
+    const source = join(cwd, name);
+    if (!existsSync(source) || lstatSync(source).isSymbolicLink() || !lstatSync(source).isDirectory()) continue;
+    if (!output("git", ["check-ignore", "--", name], { cwd, allowFailure: true })) continue;
+    const canonicalSource = realpathSync(source);
+    cpSync(source, join(dir, name), { recursive: true, dereference: true, filter: (path) => {
+      const rel = relative(cwd, path).replaceAll("\\", "/");
+      let canonical;
+      try { canonical = realpathSync(path); } catch (error) { if (error.code === "ENOENT") return false; throw error; }
+      const target = relative(canonicalSource, canonical);
+      return !target.startsWith("..") && !isAbsolute(target) && !isProtected(config, rel) && !isNeverStage(config, rel);
+    } });
   }
 }
 

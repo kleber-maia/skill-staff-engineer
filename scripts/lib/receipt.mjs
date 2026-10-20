@@ -5,11 +5,11 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { dirtyFiles, head, stagedBlobHash, stagedFiles, stateDir, workingTreeHash } from "./git.mjs";
+import { dirtyFiles, head, stagedEntry, stagedFiles, stateDir, workingTreeEntry } from "./git.mjs";
 import { readJson, writeJson } from "./fs-safe.mjs";
 import { isVerificationDocumentation } from "./paths.mjs";
 
-export const RECEIPT_VERSION = 1;
+export const RECEIPT_VERSION = 2;
 
 export function receiptPath(cwd, mode = "full") {
   return join(stateDir(cwd), "verify", `latest-${mode}.json`);
@@ -31,14 +31,19 @@ function countsForReceipt(config, file) {
 
 // "working": fingerprint dirty files as they are on disk (verification time).
 // "staged": fingerprint staged files from the index (ship time).
-export function codeTreeFingerprint(cwd, config, mode = "working") {
-  const files = (mode === "staged" ? stagedFiles(cwd) : dirtyFiles(cwd)).filter((file) => countsForReceipt(config, file));
+export function batchFingerprint(cwd, mode = "working", selectedFiles = null) {
+  const files = selectedFiles ?? (mode === "staged" ? stagedFiles(cwd) : dirtyFiles(cwd));
   const entries = [];
-  for (const file of files.sort()) {
-    const hash = (mode === "staged" ? stagedBlobHash(file, cwd) : workingTreeHash(file, cwd)) || "deleted";
-    entries.push([file, hash]);
+  for (const file of [...files].sort()) {
+    const entry = mode === "staged" ? stagedEntry(file, cwd) : workingTreeEntry(file, cwd);
+    entries.push([file, entry?.mode ?? "deleted", entry?.hash ?? "deleted"]);
   }
   return { files: entries.map(([file]) => file), digest: createHash("sha256").update(JSON.stringify(entries)).digest("hex") };
+}
+
+export function codeTreeFingerprint(cwd, config, mode = "working") {
+  const files = (mode === "staged" ? stagedFiles(cwd) : dirtyFiles(cwd)).filter((file) => countsForReceipt(config, file));
+  return batchFingerprint(cwd, mode, files);
 }
 
 export function receiptMatches(receipt, cwd, config, mode = "staged") {

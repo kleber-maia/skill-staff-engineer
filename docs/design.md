@@ -10,7 +10,7 @@
 3. **Regression tests during implementation, preview before completion.** See `docs/lifecycle.md`.
 4. **Acceptance is not approval.** Two separate steps, each carrying the operator's own quoted
    words from a reply sent after that step was presented. The trivial lane merges them only because
-   its preview asks the save question, and only while the source stays byte-identical.
+   its preview asks the save question, and only while the whole presented batch stays unchanged.
 5. **Stack-agnostic through configuration, not abstraction.** The toolkit never runs a linter or
    test runner of its own. It runs the project's commands and reads exit codes.
 6. **Fail open in hooks, fail closed in commands.** A broken hook must never brick the agent; a
@@ -18,7 +18,7 @@
 7. **Vendored, versioned, upgradeable.** The CLI is copied into the project so every harness and
    teammate runs the same gates. Before opening a session (at most once a day by default), `begin`
    checks the recorded upstream repository (not a potentially stale source checkout). `install`
-   upgrades only toolkit-owned files. A clean upgrade is committed on its own and the refreshed CLI
+   upgrades only toolkit-owned files. A clean upgrade is committed and delivered on its own and the refreshed CLI
    opens the session, so upgrades never mix with product work and never need a restart.
 8. **Separate behavior surfaces from product source.** `paths.documentable` makes scripts,
    configuration, CI, and skills require a documentation companion without also triggering the
@@ -38,11 +38,17 @@
     and the insight history live under `.git/staff-engineer/`. Decisions travel with the code in
     `.staff-engineer/decisions.json` so teammates and other agents inherit them.
 
+14. **Saving includes delivery.** A remote save is complete only after the intended
+    branch contains the saved commit. Pending saves are durable and resumed, not
+    recommitted or erased. Local projects and explicit local-work configuration remain
+    supported. Git cannot combine a local commit and network push into one transaction;
+    the toolkit provides one recoverable operation to the cooperating agent.
+
 ## Trust boundary
 
 The CLI enforces properties only when it is invoked. It validates state transitions, exact staged
 scope, immutable verification inputs, matching receipts, review records, and approvals before its
-own commit operation. It cannot authenticate the human behind a quoted approval, prove that a
+commit operation, then checks that the resulting tree matches before delivery. It cannot authenticate the human behind a quoted approval, prove that a
 review was thorough, or prevent a
 repository owner, agent, or harness from running git or editing files outside the CLI. Claude Code
 hooks improve feedback for one harness and intentionally fail open. `rules.requireSession` defaults

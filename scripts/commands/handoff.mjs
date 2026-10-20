@@ -1,7 +1,7 @@
 import { isNonTechnical, loadConfig } from "../lib/config.mjs";
 import { openIssuesFor } from "../lib/issues.mjs";
 import { ok } from "../lib/output.mjs";
-import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
+import { batchFingerprint, readReceipt, receiptMatches } from "../lib/receipt.mjs";
 import { recordHandoff, requireBrief, requireOpenSession, sessionConcernFiles, writeSession } from "../lib/session.mjs";
 
 export const description = "Print a prefilled plain-language handoff for the operator.";
@@ -14,7 +14,11 @@ export default async function run({ cwd }) {
   const receipt = readReceipt(cwd);
   const current = receipt ? receiptMatches(receipt, cwd, config, "working") : false;
   // Only a handoff of the verified batch can be answered with approval to save.
-  if (current) writeSession(cwd, recordHandoff(session, receipt.at));
+  if (current) {
+    const updated = recordHandoff(session, receipt.at);
+    updated.handoff.batch = batchFingerprint(cwd, "working", sessionConcernFiles(session, cwd)).digest;
+    writeSession(cwd, updated);
+  }
   const preview = config.preview?.kind === "web" ? (config.operator?.previewPublicUrl ?? config.preview.url) : null;
   const checked = describeChecks(receipt, current, config, session.review);
   const files = sessionConcernFiles(session, cwd);

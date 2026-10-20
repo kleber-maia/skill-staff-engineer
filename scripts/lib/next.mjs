@@ -3,10 +3,11 @@
 import { readContext } from "../commands/context.mjs";
 import { stagedFiles } from "./git.mjs";
 import { laneOf, laneOverflow, sameFingerprint, sourceFingerprint } from "./lanes.mjs";
-import { readReceipt, receiptMatches } from "./receipt.mjs";
+import { batchFingerprint, readReceipt, receiptMatches } from "./receipt.mjs";
 import { requiredReview, reviewIsCurrent } from "./review.mjs";
 import { reproIsCurrent } from "../commands/repro.mjs";
-import { CLI, PHASES, STATUSES } from "./session.mjs";
+import { hasPendingToolkitSave } from "./maintenance.mjs";
+import { CLI, PHASES, STATUSES, sessionConcernFiles } from "./session.mjs";
 
 const QUOTE = `--approval-quote "<the operator's exact words>"`;
 
@@ -14,6 +15,8 @@ const QUOTE = `--approval-quote "<the operator's exact words>"`;
 // quick: skip the receipt fingerprint (hooks run on every prompt).
 export function nextStep({ cwd, config, session, quick = false }) {
   if (!config) return step("install", { guidance: "The toolkit is not installed. Follow the install skill." });
+  if (hasPendingToolkitSave(cwd)) return step("resume-toolkit-save", { command: `${CLI} save-toolkit`, guidance: "Finish the pending toolkit save and delivery before opening product work." });
+  if (session?.shipping && session.status === STATUSES.OPEN) return step("resume-save", { command: `${CLI} ship`, guidance: "A save was interrupted. Resume the recorded operation; it never creates a second commit. If the batch changed, ship explains how to return to review." });
   const open = session && !session.cleared && session.status === STATUSES.OPEN ? session : null;
   if (!open) {
     if (session?.status === STATUSES.SAVED) return step("sync", { command: `${CLI} ship --sync-only`, guidance: "The last concern is saved but not sent to the shared copy yet." });
@@ -73,7 +76,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
       guidance: [
         "Stop and wait for the operator's reply.",
         `Clear acceptance ("looks good"${lane === "trivial" ? ', "ship it"' : ""}): run finalize with their words.`,
-        lane === "trivial" ? "In the trivial lane that acceptance also approves saving, as long as the source stays exactly as presented." : "",
+        lane === "trivial" ? "In the trivial lane that acceptance also approves saving, as long as the entire batch stays exactly as presented." : "",
         `A change request, question, or partial praise: run ${CLI} revise and keep building.`,
       ].filter(Boolean).join("\n"),
     });
@@ -91,7 +94,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
     if (!staged.length || !receiptMatches(readReceipt(cwd, "full"), cwd, config, "staged")) {
       return step("check", { command: `${CLI} lifecycle && ${CLI} verify --mode full`, guidance: "Stage the entire concern, then run lifecycle and the full check once." });
     }
-    return step("ship", { command: `${CLI} ship "<imperative message>" [--push]`, guidance: "The operator already approved this exact version at the preview. Save it and tell them it is saved, in plain language." });
+    return step("ship", { command: `${CLI} ship "<imperative message>"`, guidance: "The operator already approved this exact version at the preview. Save it and tell them it is saved, in plain language." });
   }
   if (quick) return step("finish", { skills: ["code-review", "handoff"], guidance: `Finish tests and docs, run the code review, stage everything, run lifecycle and verify --mode full, then handoff. Run ${CLI} next for the exact step.` });
   if (needsReview(cwd, config, open)) return reviewStep(requiredReview(cwd, config, open).level, Boolean(open.review));
@@ -106,12 +109,12 @@ export function nextStep({ cwd, config, session, quick = false }) {
       ].join("\n"),
     });
   }
-  if (open.handoff?.receiptAt !== receipt.at) {
+  if (open.handoff?.receiptAt !== receipt.at || open.handoff?.batch !== batchFingerprint(cwd, "working", sessionConcernFiles(open, cwd)).digest) {
     return step("handoff", { command: `${CLI} handoff`, skills: ["handoff"], guidance: "Run handoff, finish the draft in the operator's language, send it, and stop." });
   }
   return step("await-approval", {
     waitFor: "operator",
-    command: `${CLI} ship "<imperative message>" ${QUOTE} [--push]`,
+    command: `${CLI} ship "<imperative message>" ${QUOTE}`,
     guidance: `Stop and wait. Only an explicit approval to save ("ship it") after the handoff counts. "Hold" or questions: keep reviewing. Visible changes: run ${CLI} revise.`,
   });
 }

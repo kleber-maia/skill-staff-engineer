@@ -1,5 +1,5 @@
 // Claude Code hook handler. Reads the hook payload from stdin, decides, prints the
-// hook protocol JSON. Fails open: any internal error results in no output, exit 0.
+// hook protocol JSON. Fails open: the CLI emits safe failure context, exit 0.
 import { existsSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 
@@ -14,6 +14,8 @@ import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
 import { requiredReview, reviewIsCurrent } from "../lib/review.mjs";
 import { CLI, PHASES, readSession, sessionConcernFiles } from "../lib/session.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
+import { hasPendingToolkitSave } from "../lib/maintenance.mjs";
+import { gitInvocation, shellCommands, writeTargets } from "../lib/shell-guard.mjs";
 
 export const description = "Internal: handle a Claude Code hook event from stdin.";
 export const usage = "hook <SessionStart|UserPromptSubmit|PreToolUse|Stop>";
@@ -50,17 +52,13 @@ export function decide(event, payload, root) {
   if (event === "SessionStart") return sessionStart(config, session, root);
   if (event === "UserPromptSubmit") return userPromptSubmit(config, session, root, payload);
   if (event === "PreToolUse") return preToolUse(config, session, root, payload);
-  if (event === "Stop") return stop(config, session, root);
+  if (event === "Stop") return stop(config, session, root, payload);
   return null;
 }
 
 function activeSession(root) {
-  try {
-    const session = readSession(root);
-    return session && !session.cleared && session.status === "open" ? session : null;
-  } catch {
-    return null;
-  }
+  const session = readSession(root);
+  return session && !session.cleared && ["open", "saved"].includes(session.status) ? session : null;
 }
 
 // ---------- SessionStart ----------
@@ -81,9 +79,9 @@ function sessionStart(config, session, root) {
 // and reminds the agent of the one next step while a concern is open.
 function userPromptSubmit(config, session, root, payload) {
   recordOperatorMessage(root, payload.prompt);
-  if (!session) return null;
+  if (!session && !hasPendingToolkitSave(root)) return null;
   const next = nextStep({ cwd: root, config, session, quick: true });
-  const lines = [`staff-engineer: open concern "${session.concern}" (${session.lane ?? "standard"} lane).`, renderNext(next)];
+  const lines = [session ? `staff-engineer: concern "${session.concern}" (${session.lane ?? "standard"} lane).` : "staff-engineer: toolkit save pending.", renderNext(next)];
   if (next.waitFor === "operator") lines.push("This message is the operator's reply: decide whether it is clear approval, a change request, or a question before acting.");
   return { hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: lines.join("\n") } };
 }
@@ -92,7 +90,7 @@ function userPromptSubmit(config, session, root, payload) {
 function preToolUse(config, session, root, payload) {
   const tool = payload.tool_name ?? "";
   const input = payload.tool_input ?? {};
-  if (tool === "Bash") return guardBash(config, session, root, String(input.command ?? ""));
+  if (tool === "Bash") return guardBash(config, session, root, String(input.command ?? ""), payload.cwd ?? root);
   if (/^(Edit|Write|MultiEdit|NotebookEdit)$/.test(tool)) return guardEdit(config, session, root, input.file_path ?? input.notebook_path ?? "");
   return null;
 }
@@ -107,11 +105,13 @@ const DANGEROUS = [
   { pattern: /\bgit\s+commit\b[^|;&]*--no-verify/, reason: "Commit hooks must not be bypassed." },
 ];
 
-export function guardBash(config, session, root, command) {
+export function guardBash(config, session, root, command, workingDirectory = root) {
   if (!command.trim()) return null;
 
+  const commands = shellCommands(command);
+  const invocations = commands.map(gitInvocation).filter(Boolean);
   for (const { pattern, reason } of DANGEROUS) {
-    if (pattern.test(command)) return deny(reason);
+    if (pattern.test(command) || invocations.some((git) => pattern.test(git.normalized))) return deny(reason);
   }
 
   const writesProtected = protectedTargets(config, root, command);
@@ -121,8 +121,16 @@ export function guardBash(config, session, root, command) {
   if (writesOperatorLog(command)) return deny("The operator's messages are recorded by the harness only. Quote the operator; never write their messages yourself.");
 
   const gated = session || config.rules.requireSession === "block";
-  if (gated && /\bgit\s+commit\b/.test(command)) return deny(`Commits go through the guarded save: ${CLI} ship "message" --approval-quote "<the operator's words>" after the operator approved the handoff.`);
-  if (gated && /\bgit\s+push\b/.test(command)) return deny(`Pushes go through ${CLI} ship --push or ship --sync-only.`);
+  if (gated && invocations.some((git) => git.subcommand === "commit")) return deny(`Commits go through the guarded save: ${CLI} ship "message" --approval-quote "<the operator's words>" after the operator approved the handoff.`);
+  if (gated && invocations.some((git) => git.subcommand === "push")) return deny(`Pushes go through ${CLI} ship or ship --sync-only.`);
+  let directory = workingDirectory;
+  for (const words of commands) {
+    if (words[0] === "cd" && words[1]) directory = resolve(directory, words[1]);
+    for (const target of writeTargets(words)) {
+      const decision = guardEdit(config, session, root, resolve(directory, target));
+      if (decision?.hookSpecificOutput?.permissionDecision === "deny") return decision;
+    }
+  }
 
   return null;
 }
@@ -173,8 +181,11 @@ export function guardEdit(config, session, root, filePath) {
 }
 
 // ---------- Stop ----------
-function stop(config, session, root) {
+function stop(config, session, root, payload) {
+  if (payload?.stop_hook_active) return null; // one reminder, never a continuation loop
+  if (hasPendingToolkitSave(root)) return stopFeedback(`The toolkit save is unfinished. Run ${CLI} save-toolkit to resume its delivery before opening product work.`);
   if (!session) return null;
+  if (session.status === "saved" || session.shipping) return stopFeedback(`The save is unfinished. Run ${CLI} ship${session.status === "saved" ? " --sync-only" : ""} to recover and confirm delivery before reporting completion.`);
   const notes = [];
   const files = sessionConcernFiles(session, root);
   if (session.phase === PHASES.IMPLEMENTATION && files.length && !session.brief) notes.push("Files changed but no brief is recorded; agree the outcome with the operator and record it.");
@@ -185,7 +196,11 @@ function stop(config, session, root) {
     if (!receiptMatches(receipt, root, config, "working")) notes.push("Finalizing without a current full verification receipt; run lifecycle and verify --mode full before the handoff.");
   }
   if (!notes.length) return null;
-  return { systemMessage: `staff-engineer: open concern "${session.concern}". ${notes.join(" ")}` };
+  return stopFeedback(`staff-engineer: open concern "${session.concern}". ${notes.join(" ")}`);
+}
+
+function stopFeedback(additionalContext) {
+  return { hookSpecificOutput: { hookEventName: "Stop", additionalContext } };
 }
 
 // ---------- protocol helpers ----------

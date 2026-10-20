@@ -8,8 +8,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { output } from "./exec.mjs";
-import { isTracked, workingTreeHash } from "./git.mjs";
+import { isTracked } from "./git.mjs";
 import { isProductSource } from "./paths.mjs";
+import { batchFingerprint } from "./receipt.mjs";
 import { refused } from "./output.mjs";
 import { CLI, sessionConcernFiles } from "./session.mjs";
 
@@ -53,12 +54,11 @@ export function laneOverflow(cwd, config, session) {
   return `This concern outgrew the trivial lane (${usage.sourceFiles.length} source files and ${usage.addedLines} added lines; the limit is ${limits.maxSourceFiles} files and ${limits.maxAddedLines} lines). Run ${CLI} lane standard.`;
 }
 
-// Content fingerprint of the concern's product source, recorded when a trivial
+// Content and mode fingerprint of the entire presented concern, recorded when a trivial
 // preview doubles as the save question. The save reuses that approval only while
-// the source is byte-identical to what the operator saw.
+// the entire batch stays exactly as presented.
 export function sourceFingerprint(cwd, config, session) {
-  const files = sessionConcernFiles(session, cwd).filter((file) => isProductSource(config, file)).sort();
-  return Object.fromEntries(files.map((file) => [file, workingTreeHash(file, cwd)]));
+  return { digest: batchFingerprint(cwd, "working", sessionConcernFiles(session, cwd)).digest };
 }
 
 export function sameFingerprint(a = {}, b = {}) {
