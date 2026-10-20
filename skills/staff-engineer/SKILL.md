@@ -52,6 +52,35 @@ Pass `--lane` to `begin`; it sizes the process to the work.
 When unsure, choose `standard`. Move with `lane <name>` when the work turns out bigger or
 riskier. A trivial concern that outgrows its cap is refused until you move it.
 
+## Before implementation: choose the smallest complete solution
+
+Use this decision ladder in every lane, after understanding the request and before
+planning or writing production code. Read the affected flow and identify the callers,
+tests, fixtures, configuration, and exports the change must reach.
+
+Adapted from [Ponytail's decision ladder](https://github.com/DietrichGebert/ponytail/blob/main/skills/ponytail/SKILL.md).
+For each implementation choice, check necessity first, then use the first suitable
+option below that fully satisfies the brief:
+
+1. **Is it needed?** Omit unrequested features, options, and future flexibility.
+   Preserve everything the operator requested; clarify ambiguity through the brief.
+2. **Does the project already provide it?** Reuse its helper, component, service, or
+   pattern, following existing ownership and conventions.
+3. **Does the platform provide it?** Prefer a standard-library or native capability
+   when the project has no suitable equivalent; retain established project components.
+4. **Can an installed dependency do it?** Use an appropriate existing package before
+   adding one. A few straightforward lines do not justify a new dependency.
+5. **Would one clear line suffice?** Use it when its intent is immediately apparent.
+   Brevity that makes the reader decode the code is not simplification.
+6. **Otherwise, write only the new code needed.** Avoid speculative abstractions,
+   wrappers, conversions, configuration, and scaffolding.
+
+Complete all affected callers and supporting files. Preserve boundary validation,
+data-loss protection, security, accessibility, and useful test coverage. This ladder
+guides implementation choices; keep the lane's planning, bug-reproduction, preview,
+and approval steps in their existing order. The existing `code-review` and four
+`simplify` lenses still run afterward at the required level.
+
 ## Bug fixes
 
 When the operator reports something broken, open it with `begin "..." --bug`. Before
