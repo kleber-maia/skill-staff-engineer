@@ -23,6 +23,11 @@ outside the target project.
 
 Pick the path that matches how you have the toolkit:
 
+For a normal installation, select the latest published stable GitHub release and use its exact
+tag. If starting from a clone, check out that tag first. If no stable release exists, report it
+and stop unless the operator explicitly requests a development installation. Downloading or
+cloning the default branch is a development choice, not a release installation.
+
 - **From a clone of the toolkit:** run a dry run first, review the file list, then
   run for real.
 
@@ -32,7 +37,7 @@ Pick the path that matches how you have the toolkit:
   ```
 
 - **From the Claude plugin:** run `/staff-engineer:install` inside the project.
-- **From npm:** `npx github:kleber-maia/skill-staff-engineer install` inside the project.
+- **From npm:** `npx github:kleber-maia/skill-staff-engineer#<published-tag> install` inside the project.
 
 The installer writes the skills, `.staff-engineer/` (CLI, config, templates), and a
 short section in the project's agent instructions file. It does not touch anything
@@ -94,13 +99,16 @@ files and refuses while a concern is open.
 ## Upgrade
 
 Every new concern starts with `begin`, which (at most once a day by default, local setting
-`updates.checkEveryHours`) checks the recorded upstream repository before it opens a work
-session. When upstream is newer, it upgrades only toolkit-owned files, preserves config
+`updates.checkEveryHours`) checks the recorded repository's latest published stable GitHub
+release before it opens a work session. It never falls back to the default branch, installs
+drafts or prereleases, or downgrades automatically. No published release means keeping the
+installed copy. When a newer release exists, it upgrades only toolkit-owned files, preserves config
 values, exceptions, and decisions, commits the upgrade as its own change, and opens the
 session on the refreshed code. Only when toolkit files had unsaved edits does it stop and
 ask for the upgrade to be saved separately. When upstream is unreachable, work continues
 with the installed copy unless `updates.offline` is `fail`. Projects may also pin
-`updates.revision` or change the per-process `updates.timeoutMs`. Updates
+`updates.revision` to explicitly bypass release selection, or change the per-request/process
+`updates.timeoutMs`. Updates
 record the resolved commit and roll back toolkit-owned destinations if installation fails.
 
 For a manual upgrade, run `node .staff-engineer/cli.mjs update --json` outside any open

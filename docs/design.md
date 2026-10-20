@@ -17,7 +17,9 @@
    broken gate must never let a batch through.
 7. **Vendored, versioned, upgradeable.** The CLI is copied into the project so every harness and
    teammate runs the same gates. Before opening a session (at most once a day by default), `begin`
-   checks the recorded upstream repository (not a potentially stale source checkout). `install`
+   checks the recorded upstream repository's latest published stable GitHub release (not the
+   default branch or a potentially stale source checkout). It fetches that exact tag, checks
+   the package and plugin versions, and never downgrades automatically. `install`
    upgrades only toolkit-owned files. A clean upgrade is committed and delivered on its own and the refreshed CLI
    opens the session, so upgrades never mix with product work and never need a restart.
 8. **Separate behavior surfaces from product source.** `paths.documentable` makes scripts,

@@ -164,17 +164,20 @@ good" finishes properly, "ship it" saves, and anything else is feedback, never p
 
 Point your agent at this repository and say **"install https://github.com/kleber-maia/skill-staff-engineer into this project"**. The
 agent follows [AGENTS.md](AGENTS.md): dry run, install, then a short question loop to confirm how
-your project is checked and started. Or do it yourself:
+your project is checked and started. Use a tag from the
+[published releases](https://github.com/kleber-maia/skill-staff-engineer/releases), replacing
+`<released-version>` below with that version. Or do it yourself:
 
 ```bash
-git clone https://github.com/kleber-maia/skill-staff-engineer ~/staff-engineer
+git clone --branch v<released-version> --depth 1 https://github.com/kleber-maia/skill-staff-engineer ~/staff-engineer
 cd your-project
 node ~/staff-engineer/scripts/cli.mjs install --target . --dry-run   # review the plan
 node ~/staff-engineer/scripts/cli.mjs install --target . --yes
 node .staff-engineer/cli.mjs doctor                                   # answer its questions
 ```
 
-Claude Code users can also add the plugin for slash commands, subagents, and hooks:
+Claude Code 2.1.224+ users can also add the plugin for slash commands, subagents, and hooks.
+The marketplace downloads the latest published release ZIP:
 
 ```bash
 claude plugin marketplace add kleber-maia/skill-staff-engineer
@@ -205,6 +208,11 @@ Every option, with its default and meaning, is described in
 [schemas/config.schema.json](schemas/config.schema.json); per-machine preferences are listed by
 `node .staff-engineer/cli.mjs settings`. Upgrades keep compatible defaults, and
 [CHANGELOG.md](CHANGELOG.md) marks anything that changes behavior.
+
+Automatic updates follow **published stable GitHub releases**, not pushes to `main`. A push
+does not publish a release. The agent asks the maintainer after every push, and the manual
+[release workflow](docs/releases.md) checks the approved version and exact commit before
+publishing. Existing installations need the transition update described there.
 
 Saving to a project with a remote includes delivery automatically. A failed push
 keeps the concern pending: the agent retries the same commit with `ship --sync-only`,

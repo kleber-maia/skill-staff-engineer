@@ -34,7 +34,8 @@ or removing the toolkit is maintenance, not a concern: use `install`, `update`, 
 `settings`, and `save-toolkit` directly, and never run the lifecycle for toolkit files.
 
 Start every new concern with `begin` before inspecting, interviewing, or editing. At
-most once a day (`updates.checkEveryHours`) it checks for a toolkit update first, saves a
+most once a day (`updates.checkEveryHours`) it checks for a newer published stable GitHub release
+first (unless `updates.revision` explicitly overrides it), saves a
 clean upgrade as its own change, and continues on the refreshed toolkit. Only when
 toolkit files had unsaved edits does it stop: save the upgrade separately, then run
 `begin` again.

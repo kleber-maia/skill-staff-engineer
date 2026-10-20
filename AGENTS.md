@@ -1,5 +1,20 @@
 # staff-engineer: agent install contract
 
+## Maintaining this repository
+
+When working on the staff-engineer source repository itself, toolkit maintenance does not run
+the product lifecycle below. Run the repository's own tests and lint instead.
+
+After **every successful push to this repository**, ask the operator whether to publish a GitHub
+release. Name the proposed version/tag and exact pushed commit when ready. Push approval never
+authorizes release publication; wait for an explicit answer before creating a release, pushing
+a release tag, or dispatching the Release workflow. This instruction applies to this source
+repository, not to product repositories that install the toolkit.
+
+Use [docs/releases.md](docs/releases.md) for version bumps, preflight checks, and the manual
+release workflow. A release must use a new `v<major.minor.patch>` tag matching `package.json`,
+`.claude-plugin/plugin.json`, and `CHANGELOG.md`. Never reuse or move a released tag.
+
 You are an AI coding agent reading this repository because someone asked you to **install
 staff-engineer into their project**. This file tells you exactly what to do. It works for any
 agent (Claude Code, Codex, Kimi, Pi, OpenCode, Cursor, and others) and any tech stack.
@@ -24,8 +39,12 @@ operator's first product request after installation.
 
 ## Install steps
 
-1. Locate the toolkit. If you are reading this inside a clone, `<toolkit>` is this directory.
-   Otherwise clone it: `git clone https://github.com/kleber-maia/skill-staff-engineer <toolkit>`.
+1. Locate the toolkit. For normal installations, use the latest published stable GitHub
+   release from `https://api.github.com/repos/kleber-maia/skill-staff-engineer/releases/latest`.
+   Clone its `tag_name`: `git clone --branch <tag_name> --depth 1 https://github.com/kleber-maia/skill-staff-engineer <toolkit>`.
+   If using an existing clone, check out the published tag first unless the operator explicitly
+   requested a development installation. If no stable release is available, report that and
+   stop; never silently install from the default branch.
    (Claude Code users can instead add it as a plugin; see the README.)
 2. From the operator's project directory, run a dry run and read the plan:
    ```bash
@@ -58,7 +77,7 @@ operator's first product request after installation.
    few questions, you will show a working result before finishing, and you will ask before saving.
    Also explain that you run every command yourself (they never need to), that small fixes get a
    single check-in, and that the toolkit keeps itself up to date: at most once a day, `begin`
-   saves a newer toolkit as its own change before starting work.
+   saves a newer published stable release as its own change before starting work.
    Ask whether to save the installation, then run `node .staff-engineer/cli.mjs save-toolkit`.
    It commits only toolkit-owned changes, as its own change, and confirms delivery when
    the project has a remote. If delivery fails, rerun `save-toolkit` to send the same commit.
