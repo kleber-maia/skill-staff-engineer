@@ -120,9 +120,10 @@ You reply "ship it". One commit lands, and "spreadsheet, chosen dates" is rememb
 
 - **Agree.** The agent opens one piece of work, sized into a lane (trivial, standard, large), and
   interviews you unless the request is obvious. It records the outcome and how you will check it.
-- **Build.** It builds the smallest working version with focused tests, checks it itself where it
-  can, and shows you. For a bug, it first writes a test that proves the bug. "Change this" loops
-  back; "looks good" moves on.
+- **Build.** Before writing code, it checks what is needed, what the project already has, and what
+  the platform or installed packages provide. It adds only the code still needed, with focused
+  tests, checks it itself where it can, and shows you. For a bug, it first writes a test that
+  proves the bug. "Change this" loops back; "looks good" moves on.
 - **Finish.** A code review sized to the risk hunts for bugs, regressions, edge cases, and missed
   requirements, and cleans the code up. Then the docs, the gate, and your project's full checks,
   once.

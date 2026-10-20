@@ -20,7 +20,8 @@ engineer can quickly discover, understand, change, test, debug, and release.
 
 1. State the operator-visible outcome and the acceptance checks from the brief.
 2. Define inputs, outputs, failure behavior, and important edge cases.
-3. Identify the smallest coherent change and the tests that will prove it.
+3. Apply the decision ladder in `../staff-engineer/SKILL.md` ("Before implementation")
+   to choose the smallest complete solution and the tests that will prove it.
 4. Prefer the existing owner and pattern. Add an abstraction only for a demonstrated
    need, never a hypothetical future.
 
