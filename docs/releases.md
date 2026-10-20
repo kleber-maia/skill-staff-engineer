@@ -14,6 +14,8 @@ explicit approval for the proposed tag and commit authorizes publication.
    `npm run release:check -- --tag v<version> --commit <full-pushed-sha>` from a clean checkout.
    This read-only preflight checks version agreement, release notes, that the exact commit is
    on `origin/main`, and that the version is newer than existing stable tags.
+   The test entry point enumerates toolkit test files explicitly so Node 20 and Windows do not
+   depend on shell glob expansion; fixtures are not executed as toolkit tests.
 3. Ask the operator whether to publish that tag and commit. If declined, leave the pushed work
    unreleased. If the current version was already released, prepare a new version before
    proposing publication; never reuse an existing release tag.
