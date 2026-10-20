@@ -22,7 +22,11 @@ test("with a harness log the quote must match an operator message sent after the
     recordOperatorMessage(dir, "Ship it!", { now: "2026-01-01T00:00:00.000Z" });
     recordOperatorMessage(dir, "Great work — ship it, thanks", { now: "2026-01-02T00:00:00.000Z" });
     const since = "2026-01-01T12:00:00.000Z";
-    assert.deepEqual(checkApproval(dir, "ship it", { since, purpose: "Saving" }), { quote: "ship it", evidence: "operator-log" });
+    const approval = checkApproval(dir, "ship it", { since, purpose: "Saving" });
+    assert.equal(approval.quote, "ship it");
+    assert.equal(approval.evidence, "operator-log");
+    assert.equal(approval.messageAt, "2026-01-02T00:00:00.000Z");
+    assert.ok(approval.messageId);
     assert.throws(() => checkApproval(dir, "looks perfect", { since, purpose: "Saving" }), /has not said "looks perfect"/);
     assert.throws(() => checkApproval(dir, "Ship it!", { since: "2026-01-03T00:00:00.000Z", purpose: "Saving" }), /has not said/, "earlier approval does not answer a later step");
   } finally {

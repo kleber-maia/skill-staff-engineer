@@ -55,8 +55,9 @@ and report the outcome.
   confirmation of that list, then run it.
 - Prefer reversible steps (archive, soft delete, rename) over irreversible ones.
 - Never chain a destructive step after a failing step. Stop on the first failure.
-- The toolkit's own `abort --discard-confirmed` discards uncommitted work; use it
-  only after the operator confirmed the discard in plain words.
+- The toolkit's `abort --discard-confirmed` only closes an unsaved concern record;
+  it never deletes or reverts files. Confirm whether the operator wants to keep or
+  drop the work. Pending commits and deliveries must be recovered through `ship`.
 
 ## Cleanup scripts
 

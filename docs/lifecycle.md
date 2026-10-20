@@ -13,17 +13,40 @@ operator). `status`, `begin`, `finalize`, and the Claude Code hooks show the sam
 | `lane <lane>` | unchanged | Moves the concern to another lane. Leaving `trivial` drops its combined approval. |
 | `plan <path>` | unchanged | Records the agreed plan. The `large` lane refuses its first preview without one. |
 | `context <files>` | unchanged | Packet of skills, related docs and tests, and imported modules; digests recorded. With blocking sessions, lifecycle refuses a missing, pre-session, or incomplete packet (not needed in the size-capped `trivial` lane). Listed-skill drift always blocks. |
-| `preview` | `awaiting_feedback` | Refuses an empty concern, a `trivial` concern past its size cap, and a `large` concern without a plan. In `trivial`, asks the save question and fingerprints the presented source. Runs the brief's probes per `preview.selfCheck` and refuses on failure; an unchanged concern reuses the last passing result. Source and focused regression tests may be presented together on every review round. Web previews must respond; command previews must exit 0. Acceptance checks are read back to the operator. |
+| `preview` | `awaiting_feedback` | Refuses an empty concern, a `trivial` concern past its size cap, and a `large` concern without a plan. In `trivial`, asks the save question and fingerprints the entire presented batch, including prose and modes. Runs the brief's probes per `preview.selfCheck` and refuses on failure; an unchanged concern reuses the last passing result. Source and focused regression tests may be presented together on every review round. Web previews must respond; command previews must exit 0. Acceptance checks are read back to the operator. |
 | `revise` | `implementation` | Editing source while awaiting feedback is denied by the Claude hook until this runs. |
 | `finalize --approval-quote "..."` | `finalizing` | Needs the operator's words of acceptance, sent after the preview (checked against recorded operator messages when the harness records them). The code review, final documentation, lifecycle, and the final full verification are unlocked. |
-| `review` / `review done` | unchanged | Prepares the review packet at the required level (trivial before its preview; otherwise after acceptance). `done` records found/fixed/reported counts bound to the reviewed code; a lower level needs `--reason`. |
-| `repro "<test command>"` | unchanged | Bug fixes (`begin --bug`) only. Runs the command on the original code (a temporary worktree at the base commit, with this change's tests copied in and ignored dependencies linked) and on the current code. It must fail before for a real reason, not setup, and pass after. Preview needs the failing proof; ship needs a current passing one (or `--waiver "reason"`), recorded as `Repro` / `Repro-Waiver`. |
+| `review` / `review done` | unchanged | Prepares the review packet at the required level (trivial before its preview; otherwise after acceptance). `done` records found/fixed/reported/refuted counts with a disposition for every finding bound to the reviewed code; a lower level needs `--reason`. |
+| `repro "<test command>"` | unchanged | Bug fixes (`begin --bug`) only. Runs the command on the original code (a temporary worktree at the base commit, with this change's tests copied in and known dependency directories copied into disposable storage; ignored credentials and data excluded) and on the current code. It must fail before for a real reason, not setup, and pass after. Preview needs the failing proof; ship needs a current passing one (or `--waiver "reason"`), recorded as `Repro` / `Repro-Waiver`. |
 | `issues` / `issues resolve <id>` | unchanged | Lists open known issues; `resolve` marks one fixed by this concern when it is saved. |
 | `exception add --rule --path --reason` | unchanged | Records a justified, permanent exception to one gate rule for matching paths; lifecycle blocks exceptions that no longer match any file. |
 | `lifecycle` | unchanged | Blocking-session projects must be finalizing with current context coverage. The staged diff passes language and structural rules; the whole concern is staged; no protected or never-stage paths; docs and tests are present or waived. |
-| `verify --mode full` | unchanged | All configured gates pass without changing HEAD or their inputs; a receipt fingerprints executable, rule, dependency, and configuration files, including toolkit runtime/config. A new run invalidates an older receipt immediately. Prose-only docs and skill edits keep it valid. Durations go to a ledger; runs slower than usual are flagged. |
-| `handoff` | unchanged | Prefilled plain-language template from the brief and receipt. With a current receipt, binds the approval request to that receipt. |
-| `ship "<message>" --approval-quote "..."` | `saved` then `synced` | Needs finalizing phase, passing gate, matching receipt, category limit, and approval: the operator's words sent after a handoff of this exact receipt, or in `trivial` the preview acceptance while the source is byte-identical. Needs a review record for this exact code at the required level. Trailers record the outcome, the approval quote, its evidence, the review, and any waiver. Decisions and non-goals are appended to `.staff-engineer/decisions.json` in the same commit. |
+| `verify --mode full` | unchanged | All configured gates pass without changing HEAD or their inputs; a receipt fingerprints executable, rule, dependency, and configuration files, including toolkit runtime/config and file modes. A new run invalidates an older receipt immediately. Prose-only docs and skill edits keep it valid. Durations go to a ledger; runs slower than usual are flagged. |
+| `handoff` | unchanged | Prefilled plain-language template from the brief and receipt. With a current receipt, binds the approval request to that receipt and the complete batch, including prose. |
+| `ship "<message>" --approval-quote "..."` | `saved` then `synced` | Needs finalizing phase, passing gate, matching receipt, category limit, and approval: the operator's words sent after a handoff of this exact receipt, or in `trivial` the preview acceptance while the whole batch is unchanged. Needs a review record for this exact code at the required level. Trailers record the outcome, the approval quote, its evidence, the review, and any waiver. Decisions and non-goals are appended to `.staff-engineer/decisions.json` in the same commit. |
+
+`ship` records the expected tree and destination before committing. Commit hooks cannot
+silently change the approved tree: a mismatch stops delivery. When a remote exists,
+the saved commit is sent explicitly to the resolved branch and delivery is confirmed
+before the concern is complete. Local projects stay usable; `shipping.mode: "local"`
+intentionally keeps work on this machine. `shipping.remote` and `shipping.branch`
+resolve projects with multiple destinations without changing Git's global settings.
+
+`ship --sync-only` resumes an interrupted delivery using the same commit, including
+when a crash occurred before the saved state was written. `abort` cannot erase a
+pending save. If commit hooks changed the batch, inspect it, keep its files with the
+suggested soft reset, and run `ship --recover` to return to implementation for a fresh
+preview, review, verification and approval. Recovery never discards files.
+
+A later operator withdrawal pauses delivery. Fresh approval of the unchanged commit
+can resume it with `ship --sync-only --approval-quote "..."`; changed work needs recovery
+and a new preview. Toolkit maintenance uses the same delivery guarantee, but resumes
+with `save-toolkit` and never enters the product workflow.
+
+If a commit fails before it is created, rerun `ship` to save the unchanged batch.
+When newer operator feedback invalidated its approval, pass a fresh
+`--approval-quote "..."`; the retry preserves the original message and batch.
+Toolkit installation can also create and deliver the first commit on a new branch.
 
 ## Lanes
 
@@ -91,10 +114,16 @@ code-review level and counts, and approval evidence. Nobody has to ask for resul
 
 The agent passes the operator's own words with `--approval-quote`. The CLI refuses questions and
 requests to wait. In Claude Code, the `UserPromptSubmit` hook records the operator's recent
-messages under `.git/staff-engineer/`, and the quote must appear in a message sent after the step
+messages under `.git/staff-engineer/`, and the quote must appear in the latest reply sent after the step
 being approved; the hooks deny agent writes to that record. In other harnesses nothing records the
 operator's messages, so the quote is trusted as reported. Either way the commit carries
 `Operator-Approval` and `Approval-Evidence` (`operator-log` or `agent-reported`) trailers for audit.
+
+Recorded replies containing questions, conditions or negative instructions cannot be
+mined for an approval substring. Later feedback supersedes earlier approval. The CLI
+checks recorded evidence; semantic judgment still belongs to the cooperating agent.
+A later plain "no" or "nope" also pauses pending delivery; a request to retry
+delivery without changes preserves the existing approval.
 
 ## Why regression tests may run before feedback
 
@@ -109,7 +138,8 @@ staged batch still needs lifecycle and a fresh full-verification receipt.
 Finishing touches to prose documentation, managed agent instructions, and skill prose
 should not force another full run. Any executable code, test, rule, configuration,
 dependency, toolkit runtime, or toolkit metadata change after the full check invalidates
-the receipt.
+the receipt. Prose changes keep verification current but invalidate approval of a
+previously presented batch; refresh the handoff without rerunning unchanged checks.
 
 ## Approval vocabulary
 

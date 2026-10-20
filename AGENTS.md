@@ -60,7 +60,8 @@ operator's first product request after installation.
    single check-in, and that the toolkit keeps itself up to date: at most once a day, `begin`
    saves a newer toolkit as its own change before starting work.
    Ask whether to save the installation, then run `node .staff-engineer/cli.mjs save-toolkit`.
-   It commits only toolkit-owned files, as its own change.
+   It commits only toolkit-owned changes, as its own change, and confirms delivery when
+   the project has a remote. If delivery fails, rerun `save-toolkit` to send the same commit.
 
 ## Upgrading, removing
 

@@ -11,7 +11,8 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import { tooling } from "./output.mjs";
+import { refused, tooling } from "./output.mjs";
+import { randomUUID } from "node:crypto";
 
 export function ensureDir(path) {
   mkdirSync(path, { recursive: true });
@@ -54,6 +55,36 @@ export function readJson(path, fallback = null) {
 
 export function writeJson(path, value) {
   writeAtomic(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+// One guarded save per checkout. A killed process leaves a recoverable journal;
+// its stale lock can be replaced, while a live save is never interrupted.
+export function acquireSaveLock(root) {
+  const path = join(root, "save.lock");
+  ensureDir(root);
+  const token = randomUUID();
+  const acquire = () => writeFileSync(path, JSON.stringify({ pid: process.pid, token }), { flag: "wx" });
+  try { acquire(); }
+  catch (error) {
+    if (error.code !== "EEXIST") throw error;
+    // Serialize stale-lock recovery: two rescuers must never unlink each other's
+    // newly acquired lock after both observed the same dead process.
+    const recovery = `${path}.recovery`;
+    try { writeFileSync(recovery, String(process.pid), { flag: "wx" }); }
+    catch { throw refused("Another save is recovering the checkout lock.", { agent: "Wait for recovery. If its process has stopped, remove save.lock.recovery from the toolkit's Git state directory and retry." }); }
+    try {
+      const lock = readJson(path, null);
+      if (lock) {
+        if (!Number.isInteger(lock.pid) || lock.pid <= 0) throw refused("The save lock is invalid; inspect it before retrying.");
+        let alive = true;
+        try { process.kill(lock.pid, 0); } catch (error) { if (error.code === "ESRCH") alive = false; }
+        if (alive) throw refused("Another save is running for this checkout.", { agent: "Wait for that save to finish instead of starting a second commit or delivery." });
+        rmSync(path);
+      }
+      try { acquire(); } catch { throw refused("Another save acquired the checkout. Wait for it to finish."); }
+    } finally { rmSync(recovery, { force: true }); }
+  }
+  return () => { if (readJson(path, null)?.token === token) rmSync(path, { force: true }); };
 }
 
 export function readText(path, fallback = null) {

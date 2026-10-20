@@ -8,7 +8,7 @@ import { CLI, PHASES, requireBrief, requireOpenSession, writeSession } from "../
 import { validateReason } from "../lib/waivers.mjs";
 
 export const description = "Prepare the code-review packet at the level this change needs, then record the finished review.";
-export const usage = 'review   |   review done [--level minimum|standard|detailed] --found <n> --fixed <n> [--reported <n>] [--reason "why a lower level is enough"]';
+export const usage = 'review   |   review done [--level minimum|standard|detailed] --found <n> --fixed <n> [--reported <n>] [--refuted <n> --refutation "reason"] [--reason "why a lower level is enough"]';
 
 export default async function run({ cwd, positional, flags = {} }) {
   const config = loadConfig(cwd);
@@ -69,14 +69,18 @@ function recordReview(cwd, config, session, required, flags) {
     reason = check.value;
   }
   const counts = {};
-  for (const name of ["found", "fixed", "reported"]) {
+  for (const name of ["found", "fixed", "reported", "refuted"]) {
     const value = Number(flags[name] ?? 0);
     if (!Number.isInteger(value) || value < 0) throw refused(`--${name} must be a whole number.`, { agent: `Usage: ${usage}` });
     counts[name] = value;
   }
-  if (counts.fixed + counts.reported > counts.found) throw refused("Fixed and reported findings cannot exceed the findings found.");
+  if (counts.fixed + counts.reported + counts.refuted !== counts.found) throw refused("Every finding must be fixed, reported, or refuted; the counts must add up to the findings found.");
+  const refutations = flags.refutation ?? [];
+  if (refutations.length !== counts.refuted || refutations.some((reason) => !validateReason(reason, { name: "--refutation" }).ok)) {
+    throw refused("Each refuted finding needs its own reason (40-500 characters, eight or more words).", { agent: 'Use --refuted <n> and repeat --refutation "evidence showing this finding is not a bug" for each.' });
+  }
   const issues = (flags.issue ?? []).map(parseIssue);
-  if (issues.length < counts.reported) {
+  if (issues.length !== counts.reported) {
     throw refused(`${counts.reported} finding${counts.reported === 1 ? " was" : "s were"} reported but only ${issues.length} recorded as known issues.`, {
       agent: 'Record each reported finding with --issue "file:line what is wrong" so later concerns see it.',
     });
@@ -86,6 +90,7 @@ function recordReview(cwd, config, session, required, flags) {
     required: required.level,
     reasons: required.reasons,
     ...counts,
+    refutations,
     issues: [...(session.review?.issues ?? []), ...issues],
     reason,
     at: new Date().toISOString(),
@@ -102,5 +107,5 @@ function recordReview(cwd, config, session, required, flags) {
 }
 
 export function reviewTrailer(review) {
-  return `${review.level} (required ${review.required}), ${review.found} found, ${review.fixed} fixed${review.reported ? `, ${review.reported} reported` : ""}`;
+  return `${review.level} (required ${review.required}), ${review.found} found, ${review.fixed} fixed${review.reported ? `, ${review.reported} reported` : ""}${review.refuted ? `, ${review.refuted} refuted` : ""}`;
 }

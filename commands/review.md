@@ -9,3 +9,5 @@ Read the `code-review` skill. Run `node .staff-engineer/cli.mjs review --json` a
 - detailed: in parallel, `reviewer` with focus `correctness`, `requirements`, `regressions` (and `security` when data, sign-in, or money is involved) plus `simplify-reuse`, `simplify-quality`, `simplify-efficiency`, `simplify-altitude`; then `review-refuter` on every non-cleanup finding.
 
 Fix surviving findings, apply SAFE and CAREFUL cleanups with `verify --mode fast` between them, report RISKY ones, then run `node .staff-engineer/cli.mjs review done --found <n> --fixed <n> [--reported <n> --issue "file:line problem"]`, with one `--issue` per reported finding.
+
+Include disproved findings in `--found` and record them with `--refuted <n>` and one `--refutation "evidence"` each. Fixed, reported, and refuted counts must account for every finding.

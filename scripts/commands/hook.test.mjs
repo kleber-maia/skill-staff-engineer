@@ -70,7 +70,7 @@ test("with a session: early tests are allowed, commits go through ship, source w
     assert.equal(decide("PreToolUse", edit(join(dir, "src/app.mjs"), dir), dir), null, "source edits fine in implementation");
 
     const stop = decide("Stop", {}, dir);
-    assert.match(stop.systemMessage, /no preview/);
+    assert.match(stop.hookSpecificOutput.additionalContext, /no preview/);
 
     await runCli(["preview"], { cwd: dir });
     assert.equal(decision(decide("PreToolUse", edit(join(dir, "src/app.mjs"), dir), dir)), "deny", "awaiting feedback");
@@ -103,14 +103,14 @@ test("toolkit command exemption applies only to a standalone safe invocation", a
   }
 });
 
-test("the hook command fails open on a corrupt config and stays silent without an install", async () => {
+test("the hook command fails open visibly on a corrupt config and stays silent without an install", async () => {
   const dir = await setup();
   try {
     writeFileSync(join(dir, ".staff-engineer/config.json"), "{ not json");
     const cli = join(REPO_ROOT, "scripts", "cli.mjs");
     let result = spawnSync(process.execPath, [cli, "hook", "PreToolUse"], { cwd: dir, input: JSON.stringify(bash("git push --force", dir)), encoding: "utf8" });
     assert.equal(result.status, 0);
-    assert.equal(result.stdout, "");
+    assert.match(JSON.parse(result.stdout).hookSpecificOutput.additionalContext, /guardrails are unavailable/);
 
     const shim = join(REPO_ROOT, "scripts", "hooks", "pre-tool-use.mjs");
     const plain = makeTempRepo({ files: { "x.txt": "" } });

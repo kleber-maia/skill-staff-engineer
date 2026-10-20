@@ -17,6 +17,7 @@ import { checkBoundaries } from "../lib/boundaries.mjs";
 import { checkTestQuality } from "../lib/test-quality.mjs";
 import { applyUiRules } from "../lib/ui-rules.mjs";
 import { validateWaiver } from "../lib/waivers.mjs";
+import { uncoveredSourceAreas } from "../lib/test-coverage.mjs";
 import { readContext, staleSkills } from "./context.mjs";
 
 export const description = "Check the staged batch for debug code, suppressions, unfinished work, oversized files, missing docs or tests, and unsafe paths.";
@@ -120,9 +121,10 @@ export function runLifecycle(cwd, config, env = process.env) {
     const waiver = validateWaiver(env.STAFF_ENGINEER_DOCS_WAIVER, "STAFF_ENGINEER_DOCS_WAIVER");
     if (!waiver.ok) findings.push({ rule: "docs-impact", severity: "block", file: "", line: 0, message: `Behavior changed without a documentation update in the same batch. Update the docs that describe it, or set STAFF_ENGINEER_DOCS_WAIVER="one-line reason". ${waiver.error ?? ""}`.trim() });
   }
-  if (touchesSource && config.rules.requireTestPerSourceChange && !kinds.includes("tests")) {
+  const uncoveredAreas = touchesSource && config.rules.requireTestPerSourceChange ? uncoveredSourceAreas(cwd, config, staged) : [];
+  if (uncoveredAreas.length) {
     const waiver = validateWaiver(env.STAFF_ENGINEER_TEST_WAIVER, "STAFF_ENGINEER_TEST_WAIVER");
-    if (!waiver.ok) findings.push({ rule: "test-coverage", severity: "block", file: "", line: 0, message: `Source changed without a changed or added test in the same batch. Add one, or set STAFF_ENGINEER_TEST_WAIVER="one-line reason". ${waiver.error ?? ""}`.trim() });
+    if (!waiver.ok) findings.push({ rule: "test-coverage", severity: "block", file: uncoveredAreas.join(", "), line: 0, message: `Source areas have no related changed or added test in the same batch (${uncoveredAreas.join(", ")}). Add coverage, or set STAFF_ENGINEER_TEST_WAIVER="one-line reason". ${waiver.error ?? ""}`.trim() });
   }
 
   // Task-context packet: required sessions need a current packet that covers the

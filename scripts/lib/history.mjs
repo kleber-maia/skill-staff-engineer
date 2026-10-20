@@ -18,6 +18,9 @@ export function readHistory(cwd) {
 }
 
 export function recordConcern(cwd, session, { outcome, commit = null, trailers = {}, now = new Date().toISOString() }) {
+  const history = readHistory(cwd);
+  const existing = commit && history.find((entry) => entry.commit === commit && entry.outcome === outcome);
+  if (existing) return existing; // a resumed delivery never counts the concern twice
   const entry = {
     concern: session.concern,
     outcome,
@@ -36,7 +39,7 @@ export function recordConcern(cwd, session, { outcome, commit = null, trailers =
     review: session.review ? { level: session.review.level, required: session.review.required, found: session.review.found, fixed: session.review.fixed } : null,
     commit,
   };
-  writeJson(historyPath(cwd), { version: 1, concerns: [...readHistory(cwd), entry].slice(-KEEP) });
+  writeJson(historyPath(cwd), { version: 1, concerns: [...history, entry].slice(-KEEP) });
   return entry;
 }
 

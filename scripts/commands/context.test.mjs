@@ -41,7 +41,7 @@ test("context packet lists skills, docs, tests, and dependencies; stale skills b
     await runCli(["brief", "--outcome", "Invoices show a correct total.", "--accept", "Open an invoice and see the total"], { cwd: dir });
     await runCli(["context", "src/billing/invoice.mjs", "src/billing/Invoice.tsx"], { cwd: dir });
     appendFileSync(join(dir, "src/billing/invoice.mjs"), "export const total = 2;\n");
-    writeFiles(dir, { "src/other/thing.mjs": "export const thing = 1;\n" });
+    writeFiles(dir, { "src/other/thing.mjs": "export const thing = 1;\n", "tests/thing.test.mjs": 'import { thing } from "../src/other/thing.mjs";\nimport assert from "node:assert/strict";\nassert.equal(thing, 1);\n' });
     await runCli(["preview"], { cwd: dir });
     await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     appendFileSync(join(dir, "tests/invoice.test.mjs"), "\n");

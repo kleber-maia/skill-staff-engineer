@@ -206,6 +206,14 @@ Every option, with its default and meaning, is described in
 `node .staff-engineer/cli.mjs settings`. Upgrades keep compatible defaults, and
 [CHANGELOG.md](CHANGELOG.md) marks anything that changes behavior.
 
+Saving to a project with a remote includes delivery automatically. A failed push
+keeps the concern pending: the agent retries the same commit with `ship --sync-only`,
+and reports completion after confirmed delivery. Projects without a remote stay local;
+`shipping.mode: "local"` explicitly selects local work even when a remote exists.
+Optional `shipping.remote` and `shipping.branch` select one destination.
+`shipping.timeoutMs` bounds each network command. Toolkit maintenance follows the
+same guarantee and retries with `save-toolkit`.
+
 ### Trust boundary
 
 staff-engineer is a cooperative workflow, not a security sandbox. The vendored CLI can enforce the

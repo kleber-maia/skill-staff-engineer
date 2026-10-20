@@ -25,8 +25,9 @@ export async function forward(event) {
     }
     const result = spawnSync(process.execPath, [cli, "hook", event], { cwd: root, input: text, encoding: "utf8", timeout: 8000, windowsHide: true });
     if (result.stdout) process.stdout.write(result.stdout);
+    else if ((result.error || result.status !== 0) && event !== "Stop") process.stdout.write(`${JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: "staff-engineer guardrails could not run. Run doctor before relying on them; this hook failed open." } })}\n`);
   } catch {
-    // fail open
+    if (event !== "Stop") process.stdout.write(`${JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: "staff-engineer guardrails could not run. Run doctor before relying on them; this hook failed open." } })}\n`);
   } finally {
     process.exitCode = 0;
   }

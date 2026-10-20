@@ -32,6 +32,16 @@
         }
       }
     },
+    "shipping": {
+      "type": "object",
+      "description": "Saving and delivery form one recoverable operation. Defaults preserve local projects and deliver automatically when a remote exists.",
+      "properties": {
+        "mode": { "enum": ["auto", "local"], "description": "auto delivers to the resolved remote; local intentionally keeps saves on this machine." },
+        "remote": { "type": ["string", "null"], "description": "Optional existing remote name; otherwise use Git's configured push remote, upstream, origin, or the sole remote." },
+        "branch": { "type": ["string", "null"], "description": "Optional destination branch name; otherwise use the selected remote's upstream branch or the current branch." },
+        "timeoutMs": { "type": "integer", "minimum": 1000, "description": "Time limit for each delivery or remote confirmation command." }
+      }
+    },
     "languages": {
       "type": "array",
       "items": {
@@ -239,7 +249,7 @@
         },
         "requireTestPerSourceChange": {
           "type": "boolean",
-          "description": "Source changes need a changed or added test, or STAFF_ENGINEER_TEST_WAIVER."
+          "description": "Each changed source area needs a related changed or added test, or STAFF_ENGINEER_TEST_WAIVER."
         },
         "requireDocsImpact": {
           "type": "boolean",

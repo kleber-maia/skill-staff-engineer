@@ -87,7 +87,7 @@ test("reviews wait for acceptance outside the trivial lane, and documentation ne
 test("a lower level needs a written reason, which is saved with the change", async () => {
   const dir = await setup();
   try {
-    await accepted(dir, "Clamp negative charges", { "src/billing/charge.mjs": "export const charge = (amount) => Math.max(0, amount);\n", "tests/total.test.mjs": "// covers charge clamping\n" });
+    await accepted(dir, "Clamp negative charges", { "src/billing/charge.mjs": "export const charge = (amount) => Math.max(0, amount);\n", "tests/charge.test.mjs": 'import { charge } from "../src/billing/charge.mjs";\nimport assert from "node:assert/strict";\nassert.equal(charge(-1), 0);\n' });
     await runCli(["review"], { cwd: dir });
     let result = await runCli(["review", "done", "--level", "standard", "--found", "0", "--fixed", "0", "--json"], { cwd: dir });
     assert.equal(result.code, 1, "money needs detailed");
@@ -119,7 +119,7 @@ test("code changed after a review needs a delta review before saving", async () 
   try {
     await accepted(dir, "Discounted cart totals", { "src/cart/total.mjs": "export function cartTotal(items, discount = 0) {\n  return items.reduce((sum, item) => sum + item.price, 0) - discount;\n}\n", "tests/total.test.mjs": "// discount\n" });
     await runCli(["review"], { cwd: dir });
-    await runCli(["review", "done", "--found", "1", "--fixed", "0", "--reported", "0"], { cwd: dir });
+    await runCli(["review", "done", "--found", "0", "--fixed", "0", "--reported", "0"], { cwd: dir });
 
     const fixed = readFileSync(join(dir, "src/cart/total.mjs"), "utf8").replace("- discount;", "- Math.min(discount, 100);");
     writeFileSync(join(dir, "src/cart/total.mjs"), fixed);

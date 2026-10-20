@@ -10,7 +10,7 @@ export const usage = 'save-toolkit ["message"]';
 export default async function run({ cwd, positional }) {
   loadConfig(cwd);
   const session = readSession(cwd);
-  if (session && !session.cleared && session.status === "open") {
+  if (session && !session.cleared && ["open", "saved"].includes(session.status)) {
     throw refused("A work session is open, so toolkit changes wait until it is saved or closed.", {
       agent: "Finish or abort the open concern first; toolkit maintenance is saved separately from product work.",
     });
@@ -19,7 +19,7 @@ export default async function run({ cwd, positional }) {
   const saved = saveToolkit(cwd, message);
   if (!saved) return ok({ operator: "There were no toolkit changes to save.", agent: "Nothing pending under toolkit-owned paths.", data: { saved: null } });
   return ok({
-    operator: "Saved the toolkit setup as its own change.",
+    operator: saved.pushed ? "Saved and sent the toolkit setup as its own change." : "Saved the toolkit setup locally as its own change.",
     agent: `Committed ${saved.files.length} toolkit file${saved.files.length === 1 ? "" : "s"} as ${saved.commit.slice(0, 10)}. Product work starts with begin when the operator asks for a change.`,
     data: { saved },
   });

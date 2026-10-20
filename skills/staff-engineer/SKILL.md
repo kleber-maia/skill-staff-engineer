@@ -108,15 +108,26 @@ Two approvals exist, and neither can be given for the operator:
 
 - **Preview acceptance** ("looks good"): `finalize --approval-quote "<their words>"`.
 - **Approval to save** ("ship it") after the handoff:
-  `ship "Imperative message" --approval-quote "<their words>" [--push]`. In the trivial
+  `ship "Imperative message" --approval-quote "<their words>"`. In the trivial
   lane, the preview acceptance is also the save approval, and it holds only while the
-  source stays exactly as presented.
+  whole batch stays exactly as presented.
 
 Quote the operator verbatim, from a reply sent after you presented that step. Never
 invent, paraphrase, or combine replies. Praise for one part, questions, "hold", or new
 requests are not approval: keep working and ask again. Where the harness records operator
 messages, the CLI checks the quote against them; the quote and how it was checked are
 saved in the commit either way.
+
+`ship` saves and sends as one recoverable operation when a remote exists. Do not
+report completion until delivery is confirmed. If sending fails, `ship --sync-only`
+retries the same commit. Never create a second commit or force-push to recover.
+`next` and the hooks keep the pending save visible; do not abort it to skip delivery.
+Local projects remain usable; `shipping.mode: "local"` intentionally keeps work local.
+
+Approval covers the entire batch, including prose and file modes. Prose edits can
+keep the test receipt valid while requiring a fresh handoff and save approval.
+Where the harness records messages, quote the latest relevant reply: questions,
+conditions, negative replies, and later feedback invalidate earlier approval.
 
 ## Decisions and preferences
 
@@ -182,8 +193,8 @@ saved in the commit either way.
 - [ ] Documentation describing the changed behavior is updated, or a waiver says why.
 - [ ] `lifecycle` passes and `verify --mode full` passed once on the final staged batch.
 - [ ] The operator approved saving in their own words, after a handoff of that exact
-      batch (or, in the trivial lane, at the preview of the unchanged source).
-- [ ] The save used `ship` with an imperative message.
+      batch (or, in the trivial lane, at the preview of the unchanged batch).
+- [ ] The save used `ship` with an imperative message and confirmed delivery (or intentional local work).
 
 ## When the operator is technical
 

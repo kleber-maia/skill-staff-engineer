@@ -1,4 +1,4 @@
-import { lstatSync, mkdirSync } from "node:fs";
+import { lstatSync, mkdirSync, readlinkSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { output, outputRaw } from "./exec.mjs";
@@ -40,7 +40,7 @@ export function head(cwd = process.cwd()) {
 
 export function currentBranch(cwd = process.cwd()) {
   try {
-    return output("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd });
+    return output("git", ["symbolic-ref", "--quiet", "--short", "HEAD"], { cwd });
   } catch {
     return null;
   }
@@ -86,24 +86,41 @@ export function stagedNumstat(cwd = process.cwd()) {
 }
 
 export function stagedBlobHash(file, cwd = process.cwd()) {
+  return stagedEntry(file, cwd)?.hash ?? null;
+}
+
+export function stagedEntry(file, cwd = process.cwd()) {
   const entries = nulPaths(outputRaw("git", ["--literal-pathspecs", "ls-files", "--stage", "-z", "--", file], { cwd }));
   if (!entries.length) return null; // a staged deletion has no index entry
   if (entries.length !== 1) throw new Error(`Unable to read one unambiguous staged entry for ${JSON.stringify(file)}`);
   const metadata = entries[0].slice(0, entries[0].indexOf("\t"));
   const parts = metadata.split(" ");
   if (parts.length < 3 || !/^[0-9a-f]+$/i.test(parts[1]) || parts[2] !== "0") throw new Error(`Unable to read the staged blob hash for ${JSON.stringify(file)}`);
-  return parts[1];
+  return { mode: parts[0], hash: parts[1] };
 }
 
 // Fingerprint of a working-tree file as git would hash it (or "deleted").
 export function workingTreeHash(file, cwd = process.cwd()) {
+  let stat;
   try {
-    lstatSync(resolve(cwd, file));
+    stat = lstatSync(resolve(cwd, file));
   } catch (error) {
     if (error?.code === "ENOENT") return "deleted";
     throw error;
   }
+  if (stat.isSymbolicLink()) return output("git", ["hash-object", "--stdin"], { cwd, input: readlinkSync(resolve(cwd, file)) });
+  if (stat.isDirectory()) return output("git", ["-C", file, "rev-parse", "HEAD"], { cwd });
   return output("git", ["hash-object", "--", file], { cwd });
+}
+
+export function workingTreeEntry(file, cwd = process.cwd()) {
+  const hash = workingTreeHash(file, cwd);
+  if (hash === "deleted") return null;
+  const stat = lstatSync(resolve(cwd, file));
+  const mode = stat.isSymbolicLink() ? "120000" : stat.isDirectory() ? "160000"
+    : output("git", ["config", "--bool", "core.filemode"], { cwd, allowFailure: true }) === "false"
+      ? stagedEntry(file, cwd)?.mode ?? "100644" : stat.mode & 0o111 ? "100755" : "100644";
+  return { mode, hash };
 }
 
 export function isTracked(file, cwd = process.cwd()) {
@@ -117,22 +134,6 @@ export function commit(message, { cwd = process.cwd(), trailers = {} } = {}) {
   }
   output("git", args, { cwd });
   return head(cwd);
-}
-
-export function push(cwd = process.cwd()) {
-  const branch = currentBranch(cwd);
-  const upstream = output("git", ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], { cwd, allowFailure: true });
-  if (upstream) {
-    output("git", ["push", "--quiet"], { cwd });
-  } else {
-    output("git", ["push", "--quiet", "--set-upstream", "origin", branch], { cwd });
-  }
-}
-
-export function hasUnpushedCommits(cwd = process.cwd()) {
-  const upstream = output("git", ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], { cwd, allowFailure: true });
-  if (!upstream) return null; // no upstream configured
-  return lines(output("git", ["log", "--oneline", "@{u}..HEAD"], { cwd })).length > 0;
 }
 
 export function lines(value) {

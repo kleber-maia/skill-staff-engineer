@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 
 // Run a program directly (no shell). Throws on non-zero exit.
-export function output(command, args = [], { cwd = process.cwd(), env = process.env, allowFailure = false, timeoutMs } = {}) {
-  const result = spawnSync(command, args, { cwd, env, encoding: "utf8", windowsHide: true, timeout: timeoutMs });
+export function output(command, args = [], { cwd = process.cwd(), env = process.env, allowFailure = false, timeoutMs, input } = {}) {
+  const result = spawnSync(command, args, { cwd, env, input, encoding: "utf8", windowsHide: true, timeout: timeoutMs });
   if (result.error) throw result.error;
   if (result.status !== 0 && !allowFailure) {
     const detail = (result.stderr || result.stdout || "").trim();

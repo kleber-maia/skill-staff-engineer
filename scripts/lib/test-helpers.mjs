@@ -23,6 +23,9 @@ export function makeTempRepo({ files = {}, fixture = null, commit = true } = {})
   output("git", ["config", "user.email", "test@example.com"], { cwd: dir });
   output("git", ["config", "user.name", "Test"], { cwd: dir });
   output("git", ["config", "commit.gpgsign", "false"], { cwd: dir });
+  // Temporary repos must have no detached Git maintenance writing after cleanup.
+  output("git", ["config", "gc.auto", "0"], { cwd: dir });
+  output("git", ["config", "maintenance.auto", "false"], { cwd: dir });
   if (commit) commitAll(dir, "init");
   return dir;
 }

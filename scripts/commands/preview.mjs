@@ -62,7 +62,7 @@ export default async function run({ cwd }) {
       `Round ${updated.reviewRound}. Stop now and wait for the operator's feedback. Do not continue editing while feedback is open.`,
       `Change requests: run ${CLI} revise, update, then preview again.`,
       `Clear acceptance: ${CLI} finalize --approval-quote "<the operator's exact words>"`,
-      combined ? "Trivial lane: that acceptance also approves the save, as long as the source stays byte-identical. Tests and docs should already be done." : "",
+      combined ? "Trivial lane: that acceptance also approves the save, as long as the entire batch stays exactly as presented. Tests and docs should already be done." : "",
       where.agent ?? "",
       probes ? `Self-check: ${probes.cached ? "unchanged since the last passing run" : `${probes.results.length} automatic check${probes.results.length === 1 ? "" : "s"} passed`}.` : "",
       plan.screenshots && shotChanges.changed.length ? `Look at these changed screenshots before presenting:\n${shotChanges.changed.map((file) => `- ${file}`).join("\n")}` : "",

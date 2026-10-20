@@ -2,6 +2,7 @@
 
 One line per notable change. Breaking changes are marked **breaking**.
 
+- **0.8.0** **breaking:** remote saves now include confirmed delivery by default; interrupted saves resume the same commit. Approval covers the whole batch, reviews account for every finding, source areas have related tests, reproductions isolate dependencies and local data, and toolkit saves preserve operator edits in shared files. Hooks cover ordinary shell variants, run from subdirectories, and surface failures without blocking the harness.
 - **0.7.0** Bug fixes (`begin --bug`) are proven by `repro`: a test that fails on the original code and passes after. Reported review findings become committed known issues, surfaced when later work touches those files.
 - **0.6.1** Toolkit maintenance never runs the concern lifecycle: `update` refuses during a concern and saves itself; new `save-toolkit` saves installs and configuration.
 - **0.6.0** Risk-sized code review (`review`: minimum, standard, detailed) replaces the standalone simplify step; `ship` requires a current review.
