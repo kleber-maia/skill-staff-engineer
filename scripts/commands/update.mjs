@@ -12,9 +12,10 @@ import { pendingToolkitFiles, resumeToolkitSave, saveToolkit, toolkitPaths } fro
 import { readSession } from "../lib/session.mjs";
 import { getSetting } from "../lib/settings.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
+import { compareVersions, latestRelease } from "../lib/releases.mjs";
 import { withInstallTransaction } from "./install.mjs";
 
-export const description = "Upgrade the toolkit in this project from its recorded source or --from <path|git-url>.";
+export const description = "Upgrade to the latest published stable release, a configured revision, or an explicit local source.";
 export const usage = "update [--from <path|git-url>] [--dry-run]";
 export const CANONICAL_REPOSITORY_URL = "https://github.com/kleber-maia/skill-staff-engineer.git";
 
@@ -50,14 +51,24 @@ export async function updateToolkit({ cwd, flags = {}, services = {} }) {
   let sourceDir = from;
   let temp = null;
   let resolvedCommit = null;
+  let release = null;
   try {
-    const mustMaterialize = isGitUrl(from) || !existsSync(from) || Boolean(revision);
+    const mustMaterialize = isGitUrl(from) || !existsSync(from) || Boolean(revision) || (!explicit && !injected);
     if (mustMaterialize) {
       const url = isGitUrl(from) || existsSync(from) ? from : manifest?.source?.url;
       if (!url) throw tooling("The recorded toolkit source is unavailable.", { agent: "Run update --from <path or git URL> with a reachable staff-engineer repository." });
       temp = mkdtempSync(join(tmpdir(), "staff-engineer-update-"));
       try {
-        materializeRevision(url, temp, revision, timeoutMs);
+        if (!revision) {
+          release = await (services.latestRelease ?? latestRelease)(url, { timeoutMs });
+          if (!release || compareVersions(release.version, previousVersion) <= 0) {
+            return ok({
+              operator: release ? "The toolkit is already at or ahead of the latest published release." : "No published stable release is available; keeping the installed toolkit.",
+              data: { from, previousVersion, version: previousVersion, changed: [], updated: false, release: release?.tag ?? null, revision },
+            });
+          }
+        }
+        materializeRevision(url, temp, revision ?? `refs/tags/${release.tag}`, timeoutMs);
       } catch (error) {
         if ((getSetting(cwd, "updates.offline") ?? config.updates.offline) === "allow") {
           return ok({
@@ -76,6 +87,13 @@ export async function updateToolkit({ cwd, flags = {}, services = {} }) {
     resolvedCommit = gitRevision(sourceDir, timeoutMs);
     const cli = join(sourceDir, "scripts", "cli.mjs");
     if (!existsSync(cli)) throw tooling(`No toolkit found at ${sourceDir}.`, { agent: "Point --from at a clone of the staff-engineer repository." });
+    if (release) {
+      const pkg = readJson(join(sourceDir, "package.json"), null);
+      const plugin = readJson(join(sourceDir, ".claude-plugin", "plugin.json"), null);
+      if (pkg?.version !== release.version || plugin?.version !== release.version) {
+        throw tooling("The release tag does not match the toolkit and plugin versions. No toolkit files changed.");
+      }
+    }
 
     const alreadyResolved = !flags["dry-run"] && !explicit && !injected && mustMaterialize && resolvedCommit && manifest?.source?.commit === resolvedCommit && manifest.version === previousVersion;
     if (alreadyResolved) {
@@ -108,7 +126,7 @@ export async function updateToolkit({ cwd, flags = {}, services = {} }) {
     return ok({
       operator: flags["dry-run"] ? payload.operator : updated ? `Updated the toolkit to version ${newVersion}.` : "The toolkit was already up to date.",
       agent: payload.agent,
-      data: { from, previousVersion, ...payload.data, updated, resolvedCommit, revision },
+      data: { from, previousVersion, ...payload.data, updated, resolvedCommit, release: release?.tag ?? null, revision },
     });
   } finally {
     if (temp) rmSync(temp, { recursive: true, force: true });
@@ -118,7 +136,7 @@ export async function updateToolkit({ cwd, flags = {}, services = {} }) {
 function materializeRevision(url, destination, revision, timeoutMs) {
   output("git", ["init", "--quiet", destination], { timeoutMs });
   output("git", ["-C", destination, "remote", "add", "origin", url], { timeoutMs });
-  output("git", ["-C", destination, "fetch", "--quiet", "--depth", "1", "origin", revision ?? "HEAD"], { timeoutMs });
+  output("git", ["-C", destination, "fetch", "--quiet", "--depth", "1", "origin", revision], { timeoutMs });
   output("git", ["-C", destination, "checkout", "--quiet", "--detach", "FETCH_HEAD"], { timeoutMs });
 }
 

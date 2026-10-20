@@ -23,11 +23,16 @@ to the normal path automatically.
 
 **How often does the toolkit check for updates, and what if it is offline?**
 At most once a day, when a new concern begins (`settings set updates.checkEveryHours <hours>`; `0`
-checks every time). A clean upgrade is saved as its own change and work continues on the refreshed
+checks every time). With no revision override, it follows the latest published stable GitHub
+release, excluding drafts and prereleases; pushes to the default branch do not trigger upgrades.
+No published release means keeping the installed copy, and an older release never downgrades it.
+A clean upgrade is saved as its own change and work continues on the refreshed
 toolkit. When the update server is unreachable, work continues with the installed toolkit by
 default (`updates.offline: allow`); set it to `fail` in config, or on one machine with
 `settings set updates.offline fail`, to require a successful check. Use `updates.revision` to pin
-a branch, tag, or commit and `updates.timeoutMs` to bound each subprocess.
+a branch, tag, or commit explicitly (bypassing release selection) and `updates.timeoutMs` to bound
+each API request or subprocess. An explicit local `update --from <path>` is for development.
+See [Releases](releases.md) for publication and the transition from older installations.
 
 **Does the agent checking its own work cost a lot of tokens?**
 No, by default. Automatic checks run inside the toolkit, not the model, and skip reruns when

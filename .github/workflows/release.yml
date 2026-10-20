@@ -1,0 +1,53 @@
+name: Release
+
+# Dispatch only after the operator approves the specific version and commit.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Approved release tag (for example v0.9.0)'
+        required: true
+        type: string
+      commit:
+        description: 'Approved full commit SHA already pushed to main'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: git config --global user.email ci@example.com && git config --global user.name ci
+      - name: Validate the approved version and commit
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_COMMIT: ${{ inputs.commit }}
+        run: node scripts/check-release.mjs --tag "$RELEASE_TAG" --commit "$RELEASE_COMMIT" > "$RUNNER_TEMP/release-notes.md"
+      - run: npm test
+      - name: Package the exact approved commit for plugin installs
+        env:
+          RELEASE_COMMIT: ${{ inputs.commit }}
+        run: git archive --format=zip --output="$RUNNER_TEMP/staff-engineer.zip" "$RELEASE_COMMIT"
+      - name: Publish the approved GitHub release and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_COMMIT: ${{ inputs.commit }}
+        run: |
+          gh release create "$RELEASE_TAG" "$RUNNER_TEMP/staff-engineer.zip" --target "$RELEASE_COMMIT" --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --draft
+          gh release edit "$RELEASE_TAG" --draft=false --latest

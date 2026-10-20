@@ -4,6 +4,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stableVersion } from "./lib/releases.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const problems = [];
@@ -57,6 +58,12 @@ for (const manifest of [".claude-plugin/plugin.json", ".claude-plugin/marketplac
 }
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const plugin = JSON.parse(readFileSync(join(root, ".claude-plugin/plugin.json"), "utf8"));
+const marketplace = JSON.parse(readFileSync(join(root, ".claude-plugin/marketplace.json"), "utf8"));
+const pluginSource = marketplace.plugins?.find((entry) => entry.name === pkg.name)?.source;
+if (pluginSource?.source !== "archive" || pluginSource.url !== "https://github.com/kleber-maia/skill-staff-engineer/releases/latest/download/staff-engineer.zip") {
+  problems.push("marketplace plugin source must follow the published release archive");
+}
+if (!stableVersion(pkg.version)) problems.push("package.json version must be stable major.minor.patch");
 if (pkg.version !== plugin.version) problems.push(`version mismatch: package.json ${pkg.version} vs plugin.json ${plugin.version}`);
 if (Object.keys(pkg.dependencies ?? {}).length) problems.push("package.json must not declare dependencies");
 

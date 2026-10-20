@@ -40,8 +40,65 @@ function toolkitRepository(version) {
   git(dir, "config", "user.name", "Test");
   git(dir, "config", "commit.gpgsign", "false");
   commitAll(dir, `toolkit ${version}`);
+  git(dir, "tag", `v${version}`);
   return { parent, dir };
 }
+
+function releaseServices(version = "9.9.9") {
+  return { latestRelease: async () => ({ tag: `v${version}`, version }) };
+}
+
+test("default updates install the published tag, ignore unreleased commits, and never downgrade", async () => {
+  const dir = await installedProject();
+  const source = toolkitRepository("9.8.0");
+  try {
+    const releasedCommit = git(source.dir, "rev-parse", "HEAD");
+    writeFiles(source.dir, { "package.json": `${JSON.stringify({ ...readJson(join(source.dir, "package.json")), version: "9.9.0" }, null, 2)}\n` });
+    commitAll(source.dir, "unreleased work on main");
+    const manifestPath = join(dir, ".staff-engineer", "install.json");
+    const manifest = readJson(manifestPath);
+    writeFiles(dir, { ".staff-engineer/install.json": `${JSON.stringify({ ...manifest, source: { dir: null, url: pathToFileURL(source.dir).href } }, null, 2)}\n` });
+    commitAll(dir, "record release repository");
+
+    let result = await runCli(["update", "--json"], { cwd: dir, services: releaseServices("9.8.0") });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    assert.equal(result.json.data.version, "9.8.0");
+    assert.equal(result.json.data.release, "v9.8.0");
+    assert.equal(readJson(manifestPath).source.commit, releasedCommit);
+    const installed = readFileSync(manifestPath, "utf8");
+    for (const services of [releaseServices("9.8.0"), releaseServices("0.1.0"), { latestRelease: async () => null }]) {
+      result = await runCli(["update", "--json"], { cwd: dir, services });
+      assert.equal(result.code, 0, result.stderr || result.stdout);
+      assert.equal(result.json.data.updated, false);
+      assert.equal(readFileSync(manifestPath, "utf8"), installed);
+      assert.equal(git(dir, "status", "--short"), "");
+    }
+  } finally {
+    cleanup(dir);
+    cleanup(source.parent);
+  }
+});
+
+test("a mismatched release tag is rejected before installation", async () => {
+  const dir = await installedProject();
+  const source = toolkitRepository("9.8.0");
+  try {
+    git(source.dir, "tag", "v9.9.0");
+    const manifestPath = join(dir, ".staff-engineer", "install.json");
+    const manifest = readJson(manifestPath);
+    writeFiles(dir, { ".staff-engineer/install.json": `${JSON.stringify({ ...manifest, source: { dir: null, url: pathToFileURL(source.dir).href } }, null, 2)}\n` });
+    commitAll(dir, "record release repository");
+    const before = readFileSync(join(dir, ".staff-engineer", "VERSION"), "utf8");
+    const result = await runCli(["update", "--json"], { cwd: dir, services: releaseServices("9.9.0") });
+    assert.equal(result.code, 2, result.stderr || result.stdout);
+    assert.match(result.json.operator, /release tag does not match/i);
+    assert.equal(readFileSync(join(dir, ".staff-engineer", "VERSION"), "utf8"), before);
+    assert.equal(git(dir, "status", "--short"), "");
+  } finally {
+    cleanup(dir);
+    cleanup(source.parent);
+  }
+});
 
 test("begin checks for updates before it creates the session, then current versions start normally", async () => {
   const dir = await installedProject();
@@ -82,7 +139,7 @@ test("an upgrade over unsaved toolkit edits opens no session and requires a fres
       ".staff-engineer/install.json": `${JSON.stringify({ ...manifest, source: { dir: stale.dir, url: pathToFileURL(latest.dir).href } }, null, 2)}\n`,
     });
 
-    let result = await runCli(["begin", "Use fresh workflow", "--json"], { cwd: dir, services: {} });
+    let result = await runCli(["begin", "Use fresh workflow", "--json"], { cwd: dir, services: releaseServices() });
     assert.equal(result.code, 1, result.stderr || result.stdout);
     assert.match(result.json.operator, /updated to version 9\.9\.9/i);
     assert.equal(result.json.data.sessionOpened, false);
@@ -111,7 +168,7 @@ test("an upstream lookup failure fails closed and leaves no session", async () =
     });
     const before = readFileSync(join(dir, ".staff-engineer", "VERSION"), "utf8");
     await runCli(["settings", "set", "updates.offline", "fail"], { cwd: dir });
-    const result = await runCli(["begin", "Cannot start offline", "--json"], { cwd: dir, services: {} });
+    const result = await runCli(["begin", "Cannot start offline", "--json"], { cwd: dir, services: releaseServices() });
     assert.equal(result.code, 2);
     assert.match(result.json.operator, /could not check its upstream repository/i);
     assert.equal(result.json.data.sessionOpened, false);
@@ -213,7 +270,7 @@ test("offline allow policy opens work with the installed toolkit", async () => {
       ".staff-engineer/install.json": `${JSON.stringify({ ...manifest, source: { dir: null, url: pathToFileURL(join(dir, "missing-upstream.git")).href } }, null, 2)}\n`,
       ".staff-engineer/config.json": `${JSON.stringify(config, null, 2)}\n`,
     });
-    const result = await runCli(["begin", "Work intentionally offline", "--json"], { cwd: dir, services: {} });
+    const result = await runCli(["begin", "Work intentionally offline", "--json"], { cwd: dir, services: releaseServices() });
     assert.equal(result.code, 0, result.stderr || result.stdout);
     assert.equal(result.json.data.concern, "Work intentionally offline");
   } finally {
@@ -269,7 +326,7 @@ test("a clean upgrade is saved as its own change and the refreshed toolkit opens
     writeFiles(dir, { ".staff-engineer/install.json": `${JSON.stringify({ ...manifest, source: { dir: null, url: pathToFileURL(latest.dir).href } }, null, 2)}\n` });
     commitAll(dir, "install toolkit");
 
-    const result = await runCli(["begin", "Use fresh workflow", "--lane", "trivial", "--json"], { cwd: dir, services: {} });
+    const result = await runCli(["begin", "Use fresh workflow", "--lane", "trivial", "--json"], { cwd: dir, services: releaseServices() });
     assert.equal(result.code, 0, result.stderr || result.stdout);
     assert.equal(result.json.data.concern, "Use fresh workflow");
     assert.equal(result.json.data.lane, "trivial");

@@ -162,7 +162,7 @@
             "string",
             "null"
           ],
-          "description": "Optional branch, tag, or commit to pin. null follows the remote default branch."
+          "description": "Optional explicit branch, tag, or commit override. null follows the latest published stable GitHub release; it never follows the default branch."
         },
         "offline": {
           "enum": [
@@ -174,7 +174,7 @@
         "timeoutMs": {
           "type": "integer",
           "minimum": 1000,
-          "description": "Maximum time for each update network or installer subprocess."
+          "description": "Maximum time for each release API request, git subprocess, or installer subprocess."
         }
       }
     },

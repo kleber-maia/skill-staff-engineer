@@ -9,7 +9,10 @@
     {
       "name": "staff-engineer",
       "description": "A cooperative staff-engineer workflow: clarify, build and test, preview, review sized to risk, verify, and request approval before saving. Stack-agnostic, zero dependencies.",
-      "source": "./",
+      "source": {
+        "source": "archive",
+        "url": "https://github.com/kleber-maia/skill-staff-engineer/releases/latest/download/staff-engineer.zip"
+      },
       "category": "productivity"
     }
   ]
