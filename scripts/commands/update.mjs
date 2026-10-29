@@ -23,7 +23,7 @@ export const CANONICAL_REPOSITORY_URL = "https://github.com/kleber-maia/skill-st
 export default async function run(options) {
   const { cwd, flags = {} } = options;
   const session = readSession(cwd);
-  if (session && !session.cleared && ["open", "saved"].includes(session.status)) {
+  if (session && !session.cleared && ["open", "saved", "delivered"].includes(session.status)) {
     throw refused("A work session is open, so the toolkit is not updated in the middle of it.", {
       agent: "Finish or abort the open concern first. New concerns check for updates on their own at begin.",
     });

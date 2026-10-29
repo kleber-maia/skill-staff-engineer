@@ -39,7 +39,7 @@ export const SETTINGS = {
   },
   "preview.selfCheck": {
     default: "auto",
-    description: "How much the agent checks its own preview: off, auto (free probes outside the trivial lane), thorough (probes in every lane plus a look at changed screenshots).",
+    description: "Guided mode preview checks (other modes always require agent verification): off, auto (free probes outside the trivial lane), thorough (probes in every lane plus a look at changed screenshots).",
     parse: (value) => {
       if (!SELF_CHECK_LEVELS.includes(value)) throw new Error(`must be one of ${SELF_CHECK_LEVELS.join(", ")}`);
       return value;

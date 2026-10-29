@@ -81,8 +81,13 @@ Tell the operator, in plain language, what was installed and what changes for th
 
 - What was added: a set of working instructions for the agent (skills), a small
   settings file, and a short section in the project's agent instructions.
-- What changes: the agent will ask a few questions before building, show a preview
-  before finishing, and ask before saving anything. Nothing is saved without a
+- What changes: Final approval is now the default, including on existing installs.
+  The agent builds, tests, and visually checks the result before asking once to ship.
+  Read `staff-engineer/autonomy.md` for the installation preference question and
+  record the answer with `autonomy <mode> --instruction "..." --remember`.
+  Every task begins with a visible autonomy notice; the operator can steer by talking.
+- In Guided mode, the agent asks a few questions before building and shows a preview
+  before finishing, and asks before saving anything. Nothing is saved without a
   "ship it". Small, obvious fixes get a single check-in instead of two. They never
   need to run anything themselves.
 

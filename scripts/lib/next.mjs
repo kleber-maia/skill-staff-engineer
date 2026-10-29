@@ -1,3 +1,5 @@
+import { acceptanceIsCurrent } from "./acceptance.mjs";
+import { isGuided, modeOf } from "./autonomy.mjs";
 // The single source of "what now". Commands, status, and hooks all ask this
 // module, so the lifecycle order lives in code instead of in the agent's memory.
 import { readContext } from "../commands/context.mjs";
@@ -15,7 +17,9 @@ const QUOTE = `--approval-quote "<the operator's exact words>"`;
 // quick: skip the receipt fingerprint (hooks run on every prompt).
 export function nextStep({ cwd, config, session, quick = false }) {
   if (!config) return step("install", { guidance: "The toolkit is not installed. Follow the install skill." });
+  if (session?.autonomy?.paused) return step("paused", { waitFor: "operator", guidance: "Work is paused. Wait for the operator, then record autonomy resume --instruction with their words." });
   if (hasPendingToolkitSave(cwd)) return step("resume-toolkit-save", { command: `${CLI} save-toolkit`, guidance: "Finish the pending toolkit save and delivery before opening product work." });
+  if (session?.status === "delivered") return step("deploy", { command: `${CLI} deploy`, guidance: "Verify deployment of the delivered revision before reporting completion." });
   if (session?.shipping && session.status === STATUSES.OPEN) return step("resume-save", { command: `${CLI} ship`, guidance: "A save was interrupted. Resume the recorded operation; it never creates a second commit. If the batch changed, ship explains how to return to review." });
   const open = session && !session.cleared && session.status === STATUSES.OPEN ? session : null;
   if (!open) {
@@ -35,13 +39,14 @@ export function nextStep({ cwd, config, session, quick = false }) {
   }
 
   const lane = laneOf(open);
+  const guided = isGuided(open);
   if (!open.brief) {
-    return lane === "trivial"
+    return lane === "trivial" || !guided
       ? step("brief", { command: briefCommand(), guidance: "Record a one-line brief straight from the request; interview only if something is genuinely ambiguous." })
       : step("brief", { command: briefCommand(), skills: ["grill-me"], guidance: "Inspect read-only, interview the operator with grill-me (at most three questions per round, each with a recommendation; never re-ask an earlier decision), then record the agreed brief with each settled decision." });
   }
   if (lane === "large" && !open.plan) {
-    return step("plan", { command: `${CLI} plan <path to the agreed plan>`, skills: ["spec-and-plan"], guidance: "Write the spec and plan, get the operator's agreement in plain language, then record the plan." });
+    return step("plan", { command: `${CLI} plan <path to the agreed plan>`, skills: ["spec-and-plan"], guidance: guided ? "Write the spec and plan, get the operator's agreement in plain language, then record the plan." : "Derive the spec and plan from the request and repository. Record assumptions; ask only for material decisions that cannot be inferred. Record the plan and continue." });
   }
 
   if (open.phase === PHASES.IMPLEMENTATION) {
@@ -61,15 +66,16 @@ export function nextStep({ cwd, config, session, quick = false }) {
       skills: lane === "trivial" ? [] : readContext(cwd)?.phases?.build ?? ["solid"],
       guidance: [
         "Build the smallest working version that satisfies the brief. Run the relevant existing checks and add a focused regression test where it helps.",
-        lane === "trivial"
+        guided && lane === "trivial"
           ? `For trivial work, finish tests and docs now, then run the minimum review (${CLI} review, then review done): the preview doubles as the save question, and the source must not change after the operator approves it.`
-          : "Do not review, finish docs, or run the full check yet.",
-        "Then run preview and share it with the operator.",
+          : guided ? "Do not review, finish docs, or run the full check yet." : "Finish focused coverage and documentation before the preview; code review and the final full check follow acceptance evidence.",
+        guided ? "Then run preview and share it with the operator." : "Then run preview, exercise the acceptance criteria, inspect affected visuals, and record acceptance evidence yourself.",
       ].join("\n"),
     });
   }
 
   if (open.phase === PHASES.AWAITING_FEEDBACK) {
+    if (!guided) return step("acceptance", { command: `${CLI} acceptance <evidence.json>`, guidance: "Exercise every criterion and inspect the working result. Record passed evidence for every criterion and visual artifacts; failures need revise and fixes, missing capabilities need a concrete blocker. Do not substitute user feedback for verification." });
     return step("await-feedback", {
       waitFor: "operator",
       command: `${CLI} finalize ${QUOTE}`,
@@ -83,8 +89,9 @@ export function nextStep({ cwd, config, session, quick = false }) {
   }
 
   // Finalizing.
+  if (!guided && !quick && !acceptanceIsCurrent(cwd, config, open)) return step("revise", { command: `${CLI} revise`, guidance: "The result changed or agent evidence is missing. Refresh the preview and acceptance evidence before finishing." });
   const staged = stagedFiles(cwd);
-  if (lane === "trivial" && open.presentedSource && open.acceptance) {
+  if (guided && lane === "trivial" && open.presentedSource && open.acceptance) {
     if (!sameFingerprint(open.presentedSource, sourceFingerprint(cwd, config, open))) {
       return step("revise", { command: `${CLI} revise`, guidance: "The source changed after the operator approved it. Return to the preview so they see the final version." });
     }
@@ -110,8 +117,9 @@ export function nextStep({ cwd, config, session, quick = false }) {
     });
   }
   if (open.handoff?.receiptAt !== receipt.at || open.handoff?.batch !== batchFingerprint(cwd, "working", sessionConcernFiles(open, cwd)).digest) {
-    return step("handoff", { command: `${CLI} handoff`, skills: ["handoff"], guidance: "Run handoff, finish the draft in the operator's language, send it, and stop." });
+    return step("handoff", { command: `${CLI} handoff`, skills: ["handoff"], guidance: modeOf(open) === "autonomous" ? "Record the final handoff as a summary and continue to ship without asking for approval." : "Run handoff, finish the draft in the operator's language, send it, and stop." });
   }
+  if (modeOf(open) === "autonomous") return step("ship", { command: `${CLI} ship "<imperative message>"`, guidance: "The operator selected autonomous delivery. Ship the verified batch, confirm delivery, and complete any configured deployment. Never fabricate an approval quote." });
   return step("await-approval", {
     waitFor: "operator",
     command: `${CLI} ship "<imperative message>" ${QUOTE}`,

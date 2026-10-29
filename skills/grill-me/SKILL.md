@@ -18,6 +18,11 @@ after opening the session and before editing code. Questions are about the resul
 the operator will see or use, never about how it is built, unless the operator is
 technical and asks for trade-offs.
 
+In Final approval and Through delivery, derive the brief from the request,
+repository, and existing decisions. Ask only about material ambiguity or missing
+authority; do not run mandatory interview rounds. Record assumptions separately
+from operator-settled decisions. The rounds below describe Guided mode.
+
 ## When to skip
 
 Skip the interview for a small, unambiguous request: a typo, a wording change, a

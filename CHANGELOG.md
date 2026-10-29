@@ -1,5 +1,12 @@
 # Changelog
 
+- **0.10.0** **breaking:** Final approval now defaults on new and existing installs.
+  Adds conversational Guided / Final approval / Through delivery modes, visible
+  task-start notices, task overrides and remembered preferences, pause/resume,
+  agent acceptance and visual evidence, and recoverable configured deployment.
+  Guided mode retains the former approval workflow; explicit saved choices survive updates.
+  Completion includes a commit and confirmed push as one recoverable delivery operation.
+
 One line per notable change. Breaking changes are marked **breaking**.
 
 - **0.9.0** **breaking:** updates follow published stable GitHub releases instead of the default branch, never downgrade automatically, and verify release tags against toolkit versions. Release publication is manual, requires operator approval after a push, and checks the exact pushed commit, tests, version bump, and changelog before creating a new tag and release. Test discovery works on Node 20 and across shells.

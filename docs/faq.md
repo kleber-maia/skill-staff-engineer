@@ -2,8 +2,9 @@
 
 **Can the agent write and run tests before I review the preview?**
 Yes. Existing checks, bug reproductions, and focused regression tests can run during implementation.
-They do not replace your review: the concern still needs a working preview and clear acceptance
-before final lifecycle, full verification, and saving.
+Final approval (the default) has the agent exercise and visually inspect the preview
+before review and full checks, then ask once to ship. Guided mode also asks you to
+accept the preview; Through delivery performs the same checks and ships autonomously.
 
 **Do I ever need to run a command or type a special phrase?**
 No. The agent runs every toolkit command. You answer in your own words; the agent quotes your reply
@@ -12,13 +13,15 @@ when it records acceptance or approval.
 **How does the toolkit know I really approved?**
 In Claude Code, a hook records your recent messages locally and the save is refused unless the
 agent's quote matches something you said after the step was shown to you. Other agents cannot
-record your messages, so their quote is trusted as reported. Every commit records the quote and
-which of the two applied (`Approval-Evidence`).
+record your messages, so their quote is trusted as reported. Approved commits record the quote and which evidence applied (`Approval-Evidence`).
+Autonomous commits instead record `autonomy-policy` and the delivery authorization,
+without pretending you approved a handoff.
 
 **Small fixes feel slow. Is there a faster path?**
 Yes: the `trivial` lane. The agent picks it for obvious, low-risk changes within
-`rules.lanes.trivial` (default 3 source files and 40 added lines). You get one preview that asks
-"ship it?", and the change is saved exactly as you saw it. Anything that grows past the cap moves
+`rules.lanes.trivial` (default 3 source files and 40 added lines). In Guided mode you get one preview that asks
+"ship it?". In Final approval the agent checks it first, then asks once. Through
+delivery needs no routine approval. Anything that grows past the cap moves
 to the normal path automatically.
 
 **How often does the toolkit check for updates, and what if it is offline?**
@@ -35,9 +38,10 @@ each API request or subprocess. An explicit local `update --from <path>` is for 
 See [Releases](releases.md) for publication and the transition from older installations.
 
 **Does the agent checking its own work cost a lot of tokens?**
-No, by default. Automatic checks run inside the toolkit, not the model, and skip reruns when
-nothing changed. Ask the agent to turn them off (`preview.selfCheck: off`) or up to `thorough`
-(it also looks at screenshots that changed). The setting stays on your machine.
+Automatic checks run inside the toolkit and reuse current results. Visual inspection
+and judgment use model tokens. Final approval and Through delivery require this
+inspection; Guided mode offers the earlier efficiency setting `preview.selfCheck`
+(off, auto, thorough). Ask conversationally to change modes or preferences.
 
 **How do I know the workflow is paying off?**
 You do not have to ask. Every tenth saved change, the agent tells you how many were right the first
@@ -56,7 +60,7 @@ agent sees the few that apply to a new request before it asks anything.
 
 **My project has no tests, linter, or build. Can I still use this?**
 Yes. Set the gates to `null` (`config set gates.test null`). Verification then only records that
-nothing applies, and `ship` still requires the lifecycle gate and approval.
+nothing applies, and `ship` still requires the lifecycle gate and authorization for the selected mode.
 
 **My project is a library or a CLI, not a website.**
 Set `preview.kind` to `command` (a demo command whose output the operator can read) or `manual`
@@ -78,7 +82,7 @@ address and let the project preview integration compute and present the operator
 
 **Can technical users skip the plain-language rules?**
 Set `operator.mode` to `technical`. Messages may include commands and diffs. Every gate still
-applies, and saving still needs an explicit "ship it".
+applies, and the selected autonomy mode still controls approval.
 
 **How do I allow `console.log` in a CLI entrypoint?**
 Add the path to `paths.allowDebug`, or record a justified exception:

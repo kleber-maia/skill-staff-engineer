@@ -2,6 +2,9 @@
 description: Record the operator's clear acceptance of the preview and unlock finishing work.
 ---
 
+Guided mode only. Other modes use `acceptance <evidence.json>` after the agent
+exercises and visually inspects the result; follow `next`.
+
 Only when the operator clearly accepted the preview (for example "looks good"). Praise for one part, a question, or a change request is not acceptance. Quote their reply verbatim:
 
 `node .staff-engineer/cli.mjs finalize --approval-quote "<the operator's exact words>" --json`

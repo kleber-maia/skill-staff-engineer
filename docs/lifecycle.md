@@ -1,152 +1,131 @@
 # The lifecycle, step by step
 
-Every command below is `node .staff-engineer/cli.mjs <command>`, run by the agent. The operator
-never runs a command. The state machine lives in `.git/staff-engineer/session.json`, and
-`next` reads it to print the one next step (command, skills to read, whether to wait for the
-operator). `status`, `begin`, `finalize`, and the Claude Code hooks show the same step.
+The agent runs `node .staff-engineer/cli.mjs <command>`; the operator only talks.
+`next` sequences the work, skills, and waiting points from the session under
+`.git/staff-engineer/`. `status` and optional Claude hooks show the same state.
 
-| Step | Phase after | What the scripts guarantee |
-|---|---|---|
-| `next` | unchanged | Prints the one next step for the current lane and phase. Changes nothing. |
-| `begin "<concern>" --lane <lane>` | `implementation` | When a check is due (local `updates.checkEveryHours`, default 24), checks the recorded upstream repository at the configured revision first. A changed toolkit is installed transactionally and, when toolkit files were clean, saved as its own commit (`Toolkit-Upgrade` trailer); the refreshed CLI then opens the session. Unsaved toolkit edits stop begin instead. Lookup failure follows `updates.offline` (local setting, else config; default `allow`). One session opens, already-dirty/index files are fingerprinted, and relevant earlier decisions are listed. |
-| `brief --outcome --accept ...` | `implementation` | Outcome and at least one acceptance check exist before preview or finish. Optional `--decision "Topic: choice"` and `--check "<n>: page\|run ... contains ..."` probes. |
-| `lane <lane>` | unchanged | Moves the concern to another lane. Leaving `trivial` drops its combined approval. |
-| `plan <path>` | unchanged | Records the agreed plan. The `large` lane refuses its first preview without one. |
-| `context <files>` | unchanged | Packet of skills, related docs and tests, and imported modules; digests recorded. With blocking sessions, lifecycle refuses a missing, pre-session, or incomplete packet (not needed in the size-capped `trivial` lane). Listed-skill drift always blocks. |
-| `preview` | `awaiting_feedback` | Refuses an empty concern, a `trivial` concern past its size cap, and a `large` concern without a plan. In `trivial`, asks the save question and fingerprints the entire presented batch, including prose and modes. Runs the brief's probes per `preview.selfCheck` and refuses on failure; an unchanged concern reuses the last passing result. Source and focused regression tests may be presented together on every review round. Web previews must respond; command previews must exit 0. Acceptance checks are read back to the operator. |
-| `revise` | `implementation` | Editing source while awaiting feedback is denied by the Claude hook until this runs. |
-| `finalize --approval-quote "..."` | `finalizing` | Needs the operator's words of acceptance, sent after the preview (checked against recorded operator messages when the harness records them). The code review, final documentation, lifecycle, and the final full verification are unlocked. |
-| `review` / `review done` | unchanged | Prepares the review packet at the required level (trivial before its preview; otherwise after acceptance). `done` records found/fixed/reported/refuted counts with a disposition for every finding bound to the reviewed code; a lower level needs `--reason`. |
-| `repro "<test command>"` | unchanged | Bug fixes (`begin --bug`) only. Runs the command on the original code (a temporary worktree at the base commit, with this change's tests copied in and known dependency directories copied into disposable storage; ignored credentials and data excluded) and on the current code. It must fail before for a real reason, not setup, and pass after. Preview needs the failing proof; ship needs a current passing one (or `--waiver "reason"`), recorded as `Repro` / `Repro-Waiver`. |
-| `issues` / `issues resolve <id>` | unchanged | Lists open known issues; `resolve` marks one fixed by this concern when it is saved. |
-| `exception add --rule --path --reason` | unchanged | Records a justified, permanent exception to one gate rule for matching paths; lifecycle blocks exceptions that no longer match any file. |
-| `lifecycle` | unchanged | Blocking-session projects must be finalizing with current context coverage. The staged diff passes language and structural rules; the whole concern is staged; no protected or never-stage paths; docs and tests are present or waived. |
-| `verify --mode full` | unchanged | All configured gates pass without changing HEAD or their inputs; a receipt fingerprints executable, rule, dependency, and configuration files, including toolkit runtime/config and file modes. A new run invalidates an older receipt immediately. Prose-only docs and skill edits keep it valid. Durations go to a ledger; runs slower than usual are flagged. |
-| `handoff` | unchanged | Prefilled plain-language template from the brief and receipt. With a current receipt, binds the approval request to that receipt and the complete batch, including prose. |
-| `ship "<message>" --approval-quote "..."` | `saved` then `synced` | Needs finalizing phase, passing gate, matching receipt, category limit, and approval: the operator's words sent after a handoff of this exact receipt, or in `trivial` the preview acceptance while the whole batch is unchanged. Needs a review record for this exact code at the required level. Trailers record the outcome, the approval quote, its evidence, the review, and any waiver. Decisions and non-goals are appended to `.staff-engineer/decisions.json` in the same commit. |
+## Autonomy
 
-`ship` records the expected tree and destination before committing. Commit hooks cannot
-silently change the approved tree: a mismatch stops delivery. When a remote exists,
-the saved commit is sent explicitly to the resolved branch and delivery is confirmed
-before the concern is complete. Local projects stay usable; `shipping.mode: "local"`
-intentionally keeps work on this machine. `shipping.remote` and `shipping.branch`
-resolve projects with multiple destinations without changing Git's global settings.
+**Final approval is the default for both new and existing installations.** Explicit
+remembered choices override it. A session snapshots the chosen mode; preferences
+are local to the checkout and survive chats and updates. An older session without
+an autonomy record also follows Final approval.
 
-`ship --sync-only` resumes an interrupted delivery using the same commit, including
-when a crash occurred before the saved state was written. `abort` cannot erase a
-pending save. If commit hooks changed the batch, inspect it, keep its files with the
-suggested soft reset, and run `ship --recover` to return to implementation for a fresh
-preview, review, verification and approval. Recovery never discards files.
+| Mode | Flow |
+| --- | --- |
+| `guided` | Brief/interview → build → preview → operator acceptance → review/checks → handoff → operator approval → ship |
+| `final-approval` | Brief/plan → build → preview → agent acceptance evidence → review/checks → handoff → one operator approval → ship |
+| `autonomous` | Same agent verification → handoff summary → ship → configured deployment verification |
 
-A later operator withdrawal pauses delivery. Fresh approval of the unchanged commit
-can resume it with `ship --sync-only --approval-quote "..."`; changed work needs recovery
-and a new preview. Toolkit maintenance uses the same delivery guarantee, but resumes
-with `save-toolkit` and never enters the product workflow.
+Every task starts with the prominent autonomy notice returned by `begin`. The agent
+must display it to the operator, not leave it hidden in command output. “Walk me
+through it”, “ask before shipping”, and “handle delivery” steer the current task;
+“from now on” changes the default. “Hold” pauses further actions; it cannot undo a
+completed action. No special phrase or user-run command is required. See the
+[autonomy contract](../skills/staff-engineer/autonomy.md) for interpretation and evidence examples.
 
-If a commit fails before it is created, rerun `ship` to save the unchanged batch.
-When newer operator feedback invalidated its approval, pass a fresh
-`--approval-quote "..."`; the retry preserves the original message and batch.
-Toolkit installation can also create and deliver the first commit on a new branch.
+## Commands and guarantees
 
-## Lanes
+| Command | Guarantee |
+| --- | --- |
+| `next` | Reads state and returns the next step and whether to wait. Does not mutate it. |
+| `begin "concern" --lane trivial\|standard\|large` | Checks for stable toolkit updates when due, saves a clean upgrade separately, snapshots existing dirty files, opens one concern, and prints its autonomy notice. Pending saves/deployments block new concerns. |
+| `autonomy [mode\|hold\|resume] --instruction "words" [--remember]` | Records operator steering. The quote must match the latest harness-recorded message when available; otherwise it is agent-reported. Default changes require `--remember`; ordinary changes are task-only. A switch never converts prior acceptance into save approval. |
+| `brief --outcome --accept ...` | Records the outcome and numbered acceptance criteria, non-goals, surfaces, and optional decisions/probes. Routine assumptions need no acknowledgment outside Guided mode. |
+| `decisions [--for "words"]` | Finds earlier operator decisions relevant to this concern. |
+| `lane <lane>` | Changes engineering scope independently of autonomy; leaving trivial drops its combined approval. |
+| `plan <path>` | Records the written plan, required for large work. Guided mode asks for agreement; other modes derive it and ask only for material unknowns. |
+| `context <files>` | Builds a packet of skills, related docs/tests, and imports. Blocking-session projects require current coverage. Trivial work needs no packet. |
+| `preview` | Requires a nonempty, in-scope concern and any required plan/reproduction. Checks web reachability or command exit status, runs configured acceptance probes, and captures screenshots when available. Records the preview fingerprint. Guided mode waits for feedback; other modes proceed to inspection. |
+| `acceptance <evidence.json>` | Outside Guided mode, requires one passed result with concrete evidence for each brief criterion and visual evidence. Web previews require inspected artifact references; nonvisual work may explain not-applicable. Failed, missing, duplicate, blocked, or stale evidence cannot finalize. Records agent verification, never operator approval. |
+| `finalize --approval-quote "..."` | Guided mode only: validates operator preview acceptance after presentation and unlocks finishing. |
+| `revise` | Returns to implementation and invalidates acceptance/handoff evidence so changed work can be previewed again. |
+| `review` / `review done` | Prepares risk-sized review and binds the result to the exact reviewed code. Each finding has a disposition. A downgrade needs a reason. Later changes need delta review. |
+| `repro "command"` | For `begin --bug`, requires failure on original code for the bug's reason and success on current code. Isolates original-code execution in a disposable worktree. Honest waivers are recorded. |
+| `issues` / `issues resolve <id>` | Shows or resolves known issues; reported findings travel with the saved concern. |
+| `exception add --rule --path --reason` | Records a justified permanent exception. Stale exceptions are blocked by lifecycle. |
+| `lifecycle` | Checks staged rules, whole-concern staging, protected paths, source tests/docs or justified waivers, and (when configured) finalized-session/context coverage. |
+| `verify --mode fast\|full` | Runs project checks. Full verification produces a receipt for exact inputs; commands that change inputs fail. Prose-only edits preserve test receipts, but still invalidate acceptance/handoff of the complete batch. |
+| `handoff` | Requires current agent acceptance outside Guided mode. Binds the handoff to the receipt and complete batch, includes the deployment environment, and asks once in Final approval. Autonomous mode summarizes and continues. |
+| `ship "message" [--approval-quote "..."]` | Requires finalization, lifecycle, current receipt/review, complete batch, and mode-specific authority. Autonomous mode records `Approval-Evidence: autonomy-policy`, never an invented operator quote. Creates one guarded commit and confirms intended Git delivery. |
+| `ship --sync-only` | Resumes delivery of the same commit. Withdrawal or a switch out of autonomous delivery requires renewed authority; never force-push or create a duplicate commit. |
+| `ship --recover` | Returns a changed/interrupted batch to review after the documented soft reset, retaining files. |
+| `deploy [--retry --reason "..."]` | Uses destination/commands captured before saving. Requires the saved revision at HEAD, runs deployment and exact-revision/live smoke verification, and marks complete only on success. Recovery verifies first; redeployment needs an explicit retry reason. |
+| `abort` | Closes an abandoned concern without deleting files. Cannot erase pending saves or deployments. |
+| `status` | Shows session, receipt, autonomy notice, and next step. |
+| `stats` | Shows local concern history and insights. |
 
-| Lane | Operator touchpoints | Skips | Adds |
-|---|---|---|---|
-| `trivial` | One: the preview asks "ship it?" | Interview, context packet, independent review, handoff | Size cap (`rules.lanes.trivial`, default 3 source files and 40 added lines); tests, docs, and the minimum review finish before the preview |
-| `standard` | Brief, preview, handoff | Nothing | Nothing |
-| `large` | Brief, plan, preview, handoff | Nothing | An agreed spec and plan before the first preview |
+A web preview responding or a screenshot existing is not proof that the interface
+works. Agents must exercise affected flows and inspect actual visuals. Screenshot
+capture is optional infrastructure; required inspection must use another available
+browser capability or report a blocker. The CLI validates evidence structure and
+freshness, not the truth of the agent's observations.
 
-Every lane keeps the brief, a working preview, the lifecycle gate, the full check, and operator
-approval. Lifecycle blocks a `trivial` concern that outgrew its cap (`lane-exceeded`).
+## Lanes and review
 
-## Code review levels
+| Lane | Engineering requirements |
+| --- | --- |
+| `trivial` | Default cap: 3 source files, 40 added lines, no data/security impact. No interview/context packet; minimum review. Only Guided mode combines preview and save approval. |
+| `standard` | Brief, context packet, working preview, standard review, lifecycle and full checks. |
+| `large` | Standard plus a written plan and detailed review. |
 
-| Level | Default for | Who reviews | Extra cost |
-|---|---|---|---|
-| `minimum` | trivial lane | the author, with a checklist: acceptance traced to code, edge cases, callers, tests, a quick cleanup pass | near zero |
-| `standard` | standard lane | one fresh-context `reviewer` covering bugs, regressions, requirements, and the four cleanup lenses | about one read of the diff |
-| `detailed` | large lane | parallel `reviewer` focuses (correctness, requirements, regressions, security when relevant) and the four `simplify-*` lenses, then `review-refuter` on every non-cleanup finding | about 4-6x |
+Every code change has review: minimum is an author checklist; standard is one
+fresh-context reviewer; detailed uses specialists and refutation. Data, sign-in,
+secrets, and money raise the level to detailed; public interfaces/background work
+to standard; large diffs raise it one level. `review.maxLevel` is a local cost cap.
+Findings reported rather than fixed must be recorded as known issues.
 
-Paths that touch stored data, sign-in or secrets, or money raise the level to `detailed`; public
-interfaces and background work raise it to at least `standard`; more than 400 added lines raises it
-one level. The local `review.maxLevel` setting caps it on one machine. The CLI writes one packet
-(brief, acceptance checks, changed files, tests, callers of changed symbols, diff) so reviewers
-never crawl the repository. After a review, the packet holds only the delta since the reviewed
-snapshot. Documentation-only changes need no review. Reported findings must be recorded with
-`review done --issue "file:line problem"`; `ship` commits them to `.staff-engineer/known-issues.json`,
-`context` and later review packets show the open ones for the files being changed, and the handoff
-tells the operator when known weak spots remain near a change.
+## Efficiency and evidence
 
-## Self-check levels
+Guided `preview.selfCheck`: `off` skips probes, `auto` (the Guided default) probes
+outside trivial work, `thorough` probes every lane and asks for changed-screenshot
+inspection. Final approval and Through delivery always use thorough probes and
+require acceptance evidence; a Guided efficiency preference cannot disable them.
+Unchanged probes and full-check receipts are reused. Review uses deltas.
 
-`preview.selfCheck` is a local setting (`settings set preview.selfCheck <level>`), never committed.
+Agent acceptance binds the full batch, brief, and preview configuration. Changes
+require refreshing the working preview and evidence. User approval binds the full
+handoff batch, including prose and modes. Do not weaken checks to avoid reruns.
 
-| Level | trivial | standard, large |
-|---|---|---|
-| `off` | nothing | nothing |
-| `auto` (default) | nothing | the brief's probes (run by the CLI, no model tokens) |
-| `thorough` | probes, plus a look at changed screenshots | probes, plus a look at changed screenshots |
+## Delivery and deployment
 
-Probes rerun only when the concern's files changed since the last passing run. Screenshots are
-hashed per round, so the agent is only asked to look at images that changed.
+`ship` journals its expected tree and destination before committing. A commit hook
+that changes the tree blocks delivery; follow soft-reset recovery and verify the
+changed work. A remote save is complete only after the intended branch contains
+the saved commit. `shipping.mode: local` intentionally disables remote delivery;
+`remote`, `branch`, and `timeoutMs` configure it otherwise.
 
-## Decisions log
+Optional `deployment` config contains `environment`, `cmd`, `verifyCmd`, and
+`timeoutMs`. Both commands receive `STAFF_ENGINEER_COMMIT` and
+`STAFF_ENGINEER_DEPLOY_ENVIRONMENT`. Verification must confirm that revision is
+live and relevant smoke checks pass. For push-triggered deployments, the deploy
+command should wait for that deployment instead of creating another.
 
-`ship` appends the brief's `--decision` entries and non-goals to `.staff-engineer/decisions.json`,
-committed with the change. A newer decision on the same topic supersedes the older one. `begin`
-(by concern words) and `context` (by files, areas, and surfaces) show at most five active entries;
-`decisions --for "..."` searches on demand. Uninstalling keeps the file.
+After Git delivery, deployment-configured sessions stay `delivered` until `deploy`
+verifies success, then become `synced`. The saved configuration is used on retries;
+editing project configuration cannot silently change a previously authorized
+operation. A failed verification keeps the task pending. Retry checks the existing
+deployment before repeating any side effect. Toolkit maintenance remains separate
+and uses `save-toolkit`; it does not deploy product changes.
 
-## Insights
+## Approval and steering evidence
 
-`ship` and `abort` add a one-line summary of the concern to `.git/staff-engineer/history.json`
-(local, never committed): lane and lane moves, preview rounds, probes, gate blocks, waivers, the
-code-review level and counts, and approval evidence. Nobody has to ask for results:
+Guided/Final approval saves quote the operator verbatim after the relevant
+presentation. Claude's UserPromptSubmit hook records recent messages; quotes must
+match the latest eligible message, and negative/mixed replies cannot be mined for
+approval. Other harnesses record agent-reported quotes. Autonomous saves record
+mode authorization separately. Later withdrawals pause delivery; changing mode or
+resuming requires recording the operator's new instruction.
 
-- `begin` shows the agent at most two findings, only after enough history (usually five saved
-  concerns): many review rounds, no automatic checks on web previews, a waiver or gate rule that
-  keeps firing, trivial concerns that keep outgrowing their lane, or a saved change that was later
-  reverted (with its review level, so similar changes are reviewed more deeply). A finding is shown once and repeats only when it changes, at most every 14 days.
-- `ship` adds a plain-language milestone for the operator every tenth saved change.
-- `stats` prints the summary for the agent.
+Hooks detect conservative pause phrases and stop subsequent supported actions.
+They do not infer broad consent from arbitrary language, and are not a sandbox.
+Other harnesses follow the skill contract. A running external process may already
+have acted before a pause is received.
 
-## How approvals are checked
+## Memory
 
-The agent passes the operator's own words with `--approval-quote`. The CLI refuses questions and
-requests to wait. In Claude Code, the `UserPromptSubmit` hook records the operator's recent
-messages under `.git/staff-engineer/`, and the quote must appear in the latest reply sent after the step
-being approved; the hooks deny agent writes to that record. In other harnesses nothing records the
-operator's messages, so the quote is trusted as reported. Either way the commit carries
-`Operator-Approval` and `Approval-Evidence` (`operator-log` or `agent-reported`) trailers for audit.
-
-Recorded replies containing questions, conditions or negative instructions cannot be
-mined for an approval substring. Later feedback supersedes earlier approval. The CLI
-checks recorded evidence; semantic judgment still belongs to the cooperating agent.
-A later plain "no" or "nope" also pauses pending delivery; a request to retry
-delivery without changes preserves the existing approval.
-
-## Why regression tests may run before feedback
-
-Existing checks, a test that reproduces the reported bug, and focused regression coverage provide
-fast engineering feedback during implementation. They do not replace the operator's review.
-`preview` still requires a working result, `finalize` still requires clear acceptance, and a change
-request returns the session to implementation for code/test updates and another preview. The final
-staged batch still needs lifecycle and a fresh full-verification receipt.
-
-## Why the receipt ignores only prose
-
-Finishing touches to prose documentation, managed agent instructions, and skill prose
-should not force another full run. Any executable code, test, rule, configuration,
-dependency, toolkit runtime, or toolkit metadata change after the full check invalidates
-the receipt. Prose changes keep verification current but invalidate approval of a
-previously presented batch; refresh the handoff without rerunning unchanged checks.
-
-## Approval vocabulary
-
-| Operator says | Meaning | Agent action |
-|---|---|---|
-| "change X", a question, praise for one part | not acceptance | `revise`, keep working |
-| "looks good", "that's right" | preview accepted | `finalize --approval-quote "looks good"` |
-| "ship it" at a trivial preview | preview accepted and save approved | `finalize --approval-quote "ship it"`, then checks and `ship` |
-| "ship it" after the handoff | approval to save | `ship "..." --approval-quote "ship it"` |
-| "hold" | keep reviewing | stay in finalizing |
+`ship` commits settled decisions/non-goals and known issues with the concern.
+`begin` and `context` surface relevant earlier choices. Settings, autonomy
+preferences, evidence, screenshots, review packets, receipts, operator messages,
+and concern history remain local under the Git state directory. Local history
+supports limited insights and every-tenth-save milestones without extra requests.

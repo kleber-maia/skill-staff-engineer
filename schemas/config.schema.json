@@ -387,6 +387,42 @@
     },
     "exceptionsFile": {
       "type": "string"
+    },
+    "deployment": {
+      "description": "Optional delivery target. The agent configures it from project conventions and operator authorization; pushing may itself trigger deployment.",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "environment",
+            "cmd",
+            "verifyCmd",
+            "timeoutMs"
+          ],
+          "properties": {
+            "environment": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cmd": {
+              "type": "string",
+              "minLength": 1
+            },
+            "verifyCmd": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Must exit successfully only when STAFF_ENGINEER_COMMIT is live and relevant smoke checks pass."
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 1000
+            }
+          }
+        }
+      ]
     }
   }
 }

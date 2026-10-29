@@ -20,6 +20,15 @@ node .staff-engineer/cli.mjs handoff
 It prefills the template from the brief (outcome, acceptance checks, non-goals,
 surfaces) and the verification receipt. Finish every line before sending.
 
+## Mode
+
+Follow the task’s recorded autonomy mode. Final approval (the default) asks once
+after agent acceptance evidence, review, and full verification. Through delivery
+uses the handoff as a summary and continues to `ship` without an approval quote.
+Guided mode retains operator preview acceptance and save approval. The approval
+rules below apply when the selected mode requires approval. If deployment is
+configured, name its environment in the summary and approval question.
+
 ## Rules
 
 - For a non-technical operator (`operator.mode` is `non-technical`), never expose
@@ -35,12 +44,13 @@ surfaces) and the verification receipt. Finish every line before sending.
   project has a real deploy step; then name both in the same question.
 - If a waiver was used (tests, docs, or a broad change), say so in plain words and
   why. Do not hide it in jargon.
-- If the operator replies "hold", keep reviewing and do not save. If they ask for a
+- If the operator replies "hold", record `autonomy hold` and pause further actions. If they ask for a
   change, run `revise`, return to the preview loop, and hand off again later.
 
 ## Template
 
-Fill every line. Remove nothing.
+Fill every applicable line. In autonomous mode replace the approval question with
+a statement that you are proceeding to the configured delivery destination.
 
 ```
 What changed: <one or two sentences about what the operator can now do or see>.
@@ -75,11 +85,11 @@ question. You may add, after the template:
 - review findings reported but not fixed (RISKY cleanups, out-of-scope issues);
 - the commands the operator can run to reproduce the checks.
 
-Still ask before saving. The technical operator gets more detail, not fewer gates.
+Ask before saving when the selected mode requires it. The technical operator gets more detail, not fewer gates.
 
 ## After approval
 
-Only an explicit "ship it" (or an unambiguous equivalent that clearly refers to the
+When approval is required, only an explicit "ship it" (or an unambiguous equivalent that clearly refers to the
 handoff just sent) authorizes the save. You run it, quoting the operator's reply verbatim:
 
 ```bash
@@ -93,3 +103,6 @@ Never ask the operator to type a command or a special phrase; their normal reply
 Then relay `ship`'s operator line (it may include a short milestone) to confirm that the change is saved and delivery confirmed (or intentionally saved locally), without commands or hashes for a non-technical operator.
 
 If delivery fails, keep the save pending and run `ship --sync-only` when the destination is available. This retries the same approved commit. Do not report the concern as finished while delivery is pending.
+
+When `ship` reports deployment pending, run `deploy` and verify the live revision
+before reporting the task complete. Git delivery alone is not deployment.

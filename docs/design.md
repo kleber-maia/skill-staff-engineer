@@ -8,9 +8,10 @@
 2. **One concern, one batch.** Mixed batches are how unrelated breakage ships. The session baseline
    makes sweeping in pre-existing work impossible without noticing.
 3. **Regression tests during implementation, preview before completion.** See `docs/lifecycle.md`.
-4. **Acceptance is not approval.** Two separate steps, each carrying the operator's own quoted
-   words from a reply sent after that step was presented. The trivial lane merges them only because
-   its preview asks the save question, and only while the whole presented batch stays unchanged.
+4. **Verification and authorization are separate.** Final approval is the default for
+   new and existing installs: agent acceptance evidence precedes one final operator
+   approval. Autonomous delivery uses the same evidence and the selected mode's
+   authorization; Guided mode retains preview acceptance. Never fabricate approval.
 5. **Stack-agnostic through configuration, not abstraction.** The toolkit never runs a linter or
    test runner of its own. It runs the project's commands and reads exit codes.
 6. **Fail open in hooks, fail closed in commands.** A broken hook must never brick the agent; a
@@ -75,12 +76,13 @@ stamped with `.staff-engineer-owned` are simple and upgrade cleanly.
 ## Optional capabilities
 
 Preview screenshots use the project's own Playwright install when present and are skipped
-otherwise. UI rules apply only to user-facing file types. Boundary rules apply only when the
+otherwise; agents in Final approval and Through delivery must use available harness
+browser tools or report a blocker rather than claiming visual success. UI rules apply only to user-facing file types. Boundary rules apply only when the
 project configures them, and only to newly added imports, so legacy debt never blocks a batch.
 Test-quality scanning defaults to changed assertions for upgrade compatibility; projects with a
 clean baseline can opt into `rules.testQuality.scope: "all"` for whole-tree enforcement.
 
 ## Non-goals (for now)
 
-Deployment orchestration, skill evaluation suites, parallel concerns across worktrees, and
+Provider-specific deployment integrations, skill evaluation suites, parallel concerns across worktrees, and
 multi-repository configuration are planned for later versions and intentionally absent.

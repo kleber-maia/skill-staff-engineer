@@ -1,8 +1,9 @@
+import { isGuided } from "../lib/autonomy.mjs";
 import { loadConfig } from "../lib/config.mjs";
 import { checkApproval } from "../lib/approval.mjs";
 import { laneOf } from "../lib/lanes.mjs";
 import { nextStep, renderNext } from "../lib/next.mjs";
-import { ok } from "../lib/output.mjs";
+import { ok, refused } from "../lib/output.mjs";
 import { markFinalizing, PHASES, requireBrief, requireOpenSession, writeSession } from "../lib/session.mjs";
 import { estimateSentence, typicalDurations } from "../lib/timings.mjs";
 
@@ -13,6 +14,7 @@ export default async function run({ cwd, flags = {} }) {
   const config = loadConfig(cwd);
   const session = requireOpenSession(cwd);
   requireBrief(session);
+  if (!isGuided(session)) throw refused("This mode uses agent acceptance evidence. Run acceptance <evidence.json>; final operator approval happens after the handoff.");
   // Checked only while a preview waits, so an out-of-order call gets the phase refusal.
   const approval = session.phase === PHASES.AWAITING_FEEDBACK
     ? checkApproval(cwd, flags["approval-quote"], { since: session.presentedAt, purpose: "Finishing work" })

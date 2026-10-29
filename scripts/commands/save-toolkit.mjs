@@ -10,7 +10,7 @@ export const usage = 'save-toolkit ["message"]';
 export default async function run({ cwd, positional }) {
   loadConfig(cwd);
   const session = readSession(cwd);
-  if (session && !session.cleared && ["open", "saved"].includes(session.status)) {
+  if (session && !session.cleared && ["open", "saved", "delivered"].includes(session.status)) {
     throw refused("A work session is open, so toolkit changes wait until it is saved or closed.", {
       agent: "Finish or abort the open concern first; toolkit maintenance is saved separately from product work.",
     });

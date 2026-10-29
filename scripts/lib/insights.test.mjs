@@ -51,6 +51,7 @@ test("finished and abandoned concerns are recorded locally and surface at the ne
   const dir = makeTempRepo({ files: { "README.md": "# demo\n" } });
   try {
     await installInto(dir);
+    await runCli(["autonomy", "guided", "--remember", "--instruction", "Check with me along the way"], { cwd: dir });
     for (const gate of ["install", "format", "lint", "typecheck", "test", "build", "e2e"]) await runCli(["config", "set", `gates.${gate}`, "null"], { cwd: dir });
     await runCli(["config", "set", "preview", '{"kind":"manual","instructions":"Read it"}'], { cwd: dir });
     commitAll(dir, "install");

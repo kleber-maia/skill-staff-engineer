@@ -17,6 +17,7 @@ async function setup() {
     },
   });
   await installInto(dir);
+  await runCli(["autonomy", "guided", "--remember", "--instruction", "Check with me along the way"], { cwd: dir });
   await runCli(["config", "set", "preview", '{"kind":"manual","instructions":"look"}'], { cwd: dir });
   commitAll(dir, "install");
   return dir;

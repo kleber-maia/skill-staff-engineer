@@ -16,6 +16,7 @@ const PROJECT = {
 async function setup() {
   const dir = makeTempRepo({ files: PROJECT });
   await installInto(dir);
+  await runCli(["autonomy", "guided", "--remember", "--instruction", "Check with me along the way"], { cwd: dir });
   await runCli(["config", "set", "gates.format", "null"], { cwd: dir });
   await runCli(["config", "set", "preview", '{"kind":"manual","instructions":"Run the demo"}'], { cwd: dir });
   commitAll(dir, "Install toolkit");
@@ -99,7 +100,7 @@ test("full lifecycle: begin, brief, preview, finalize, lifecycle, verify, ship",
 
     result = await runCli(["handoff", "--json"], { cwd: dir });
     assert.equal(result.code, 0);
-    assert.match(result.json.operator, /What was checked: the result by hand, an independent code review, .*automated tests/);
+    assert.match(result.json.operator, /What was checked: the operator’s preview acceptance, an independent code review, .*automated tests/);
     assert.equal(result.json.data.receiptCurrent, true);
 
     // Verification-affecting toolkit configuration invalidates ship until restored.

@@ -2,10 +2,11 @@
 // staff-engineer toolkit CLI. Usage: node .staff-engineer/cli.mjs <command> [options] [--json]
 import { parseArgs } from "./lib/args.mjs";
 import { isRepo, repoRoot } from "./lib/git.mjs";
-import { EXIT, fromError, render } from "./lib/output.mjs";
+import { EXIT, fromError, refused, render } from "./lib/output.mjs";
 import { realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { readSession } from "./lib/session.mjs";
 import { toolkitVersion } from "./lib/toolkit.mjs";
 
 export const COMMANDS = {
@@ -16,6 +17,8 @@ export const COMMANDS = {
   status: { module: "./commands/status.mjs" },
   stats: { module: "./commands/stats.mjs" },
   next: { module: "./commands/next.mjs" },
+  autonomy: { module: "./commands/autonomy.mjs" },
+  acceptance: { module: "./commands/acceptance.mjs" },
   lane: { module: "./commands/lane.mjs" },
   plan: { module: "./commands/plan.mjs" },
   decisions: { module: "./commands/decisions.mjs" },
@@ -30,6 +33,7 @@ export const COMMANDS = {
   lifecycle: { module: "./commands/lifecycle.mjs" },
   verify: { module: "./commands/verify.mjs" },
   handoff: { module: "./commands/handoff.mjs" },
+  deploy: { module: "./commands/deploy.mjs" },
   ship: { module: "./commands/ship.mjs" },
   abort: { module: "./commands/abort.mjs" },
   exception: { module: "./commands/exception.mjs" },
@@ -39,7 +43,7 @@ export const COMMANDS = {
   hook: { module: "./commands/hook.mjs" },
 };
 
-const BOOLEANS = ["bug", "json", "dry-run", "yes", "reconfigure", "replace-existing-skills", "with-claude-hooks", "init-git", "uninstall", "push", "sync-only", "recover", "discard-confirmed", "which", "force"];
+const BOOLEANS = ["retry", "remember", "bug", "json", "dry-run", "yes", "reconfigure", "replace-existing-skills", "with-claude-hooks", "init-git", "uninstall", "push", "sync-only", "recover", "discard-confirmed", "which", "force"];
 
 export async function main(argv = process.argv.slice(2), { cwd = process.cwd(), env = process.env, stdout = process.stdout, stderr = process.stderr, services = {} } = {}) {
   const [name, ...rest] = argv;
@@ -63,6 +67,10 @@ export async function main(argv = process.argv.slice(2), { cwd = process.cwd(), 
     const { flags, positional } = parseArgs(rest, { multi: spec.multi ?? [], booleans: BOOLEANS });
     const module = await import(spec.module);
     const root = name === "install" || name === "hook" ? cwd : isRepo(cwd) ? repoRoot(cwd) : cwd;
+    if (!["install", "hook", "autonomy", "next", "status", "doctor"].includes(name)) {
+      const session = isRepo(root) ? readSession(root) : null;
+      if (session && !session.cleared && ["open", "saved", "delivered"].includes(session.status) && session.autonomy?.paused) throw refused("Work is paused. Wait for the operator’s instruction and record autonomy resume before continuing.");
+    }
     const result = await module.default({ cwd: root, invokedFrom: cwd, argv: rest, flags, positional, env, stdout, stderr, services });
     if (name !== "hook") render(result, { json, stream: stdout, errStream: stderr });
     return result.code ?? EXIT.OK;
@@ -97,6 +105,9 @@ Lifecycle (one concern at a time; run next whenever unsure)
   next                                The one next step: command, skills to read, whether to wait
   begin "<short concern>" [--lane trivial|standard|large] [--bug]
                                       Check upstream, then open exactly one work session
+  autonomy [guided|final-approval|autonomous|hold|resume] --instruction "..." [--remember]
+                                      Record conversational steering; no user commands required
+  acceptance <evidence.json>          Record agent verification of every acceptance criterion
   lane trivial|standard|large         Move the open concern to another lane
   plan <path>                         Record the agreed plan (large lane, before preview)
   decisions [--for "<words or files>"] Earlier operator decisions relevant to a concern
@@ -118,6 +129,7 @@ Lifecycle (one concern at a time; run next whenever unsure)
   handoff                             Print a plain-language handoff draft
   ship "<imperative message>" --approval-quote "..."
                                       Guarded save and confirmed delivery after approval
+  deploy [--retry --reason "..."]     Deploy and verify the delivered revision
   ship --sync-only                    Resume delivery of the same saved batch
   ship --recover                      Return an interrupted batch to review after a soft reset
   abort [--discard-confirmed]         Close an abandoned session (never deletes files)

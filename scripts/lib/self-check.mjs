@@ -35,7 +35,7 @@ export function concernFingerprint(cwd, session) {
 // Returns { cached, results, failures, fingerprint }.
 export async function runProbes(cwd, config, session, { fetchImpl = fetch } = {}) {
   const checks = session.brief?.checks ?? [];
-  const fingerprint = concernFingerprint(cwd, session);
+  const fingerprint = createHash("sha256").update(JSON.stringify({ concern: concernFingerprint(cwd, session), checks, preview: config.preview })).digest("hex");
   const previous = session.selfCheck;
   if (previous?.fingerprint === fingerprint && previous.results?.length === checks.length && previous.results.every((result) => result.ok)) {
     return { cached: true, results: previous.results, failures: [], fingerprint };

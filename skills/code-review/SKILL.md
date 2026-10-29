@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Review a change for bugs, regressions, edge cases, and missed requirements, plus cleanup (the simplify lenses), at the level the toolkit requires (minimum, standard, detailed). Use when next or the review command asks for it, after the operator accepted the preview (before the preview in the trivial lane).
+description: Review a change for bugs, regressions, edge cases, and missed requirements, plus cleanup (the simplify lenses), at the level the toolkit requires (minimum, standard, detailed). Use when next or the review command asks for it, after preview acceptance (agent evidence or Guided-mode operator acceptance) (before the preview in the trivial lane).
 license: MIT
 metadata:
   version: "1.0.0"

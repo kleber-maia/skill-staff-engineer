@@ -1,3 +1,5 @@
+import { acceptanceFingerprint } from "../lib/acceptance.mjs";
+import { isGuided } from "../lib/autonomy.mjs";
 import { isNonTechnical, loadConfig } from "../lib/config.mjs";
 import { runShell } from "../lib/exec.mjs";
 import { failed, ok, refused } from "../lib/output.mjs";
@@ -25,11 +27,12 @@ export default async function run({ cwd }) {
     throw refused("A bug fix is shown only after a test proves the bug.", { agent: `Write a test that reproduces it and run ${CLI} repro "<test command>" first.` });
   }
   if (lane === "large" && !session.plan) {
-    throw refused("A large change needs an agreed plan before the first preview.", { agent: `Write the spec and plan (spec-and-plan skill), get agreement, then run ${CLI} plan <path>.` });
+    throw refused("A large change needs a written plan before the first preview.", { agent: `Write the spec and plan (spec-and-plan skill), get agreement in Guided mode, then run ${CLI} plan <path>.` });
   }
   const preview = config.preview ?? { kind: "manual" };
   const where = await confirmPreview(preview, config, cwd);
-  const plan = selfCheckPlan(getSetting(cwd, "preview.selfCheck"), lane);
+  const guided = isGuided(session);
+  const plan = selfCheckPlan(guided ? getSetting(cwd, "preview.selfCheck") : "thorough", lane);
   const probes = plan.probes && brief.checks?.length ? await runProbes(cwd, config, session) : null;
   const selfCheck = probes ? { fingerprint: probes.fingerprint, results: probes.results } : session.selfCheck;
   if (probes?.failures.length) {
@@ -39,8 +42,9 @@ export default async function run({ cwd }) {
       agent: "Fix what these checks found, then run preview again. Only the failing behavior needs attention.",
     });
   }
-  const combined = lane === "trivial";
+  const combined = guided && lane === "trivial";
   const updated = markAwaitingFeedback({ ...session, selfCheck }, files, { presentedSource: combined ? sourceFingerprint(cwd, config, session) : undefined });
+  updated.previewFingerprint = acceptanceFingerprint(cwd, config, session);
   const shots = preview.kind === "web" && shouldCapture(config)
     ? captureScreenshots(cwd, { url: preview.url, paths: preview.screenshotPaths ?? ["/"], outDir: join(stateDir(cwd), "preview", `round-${updated.reviewRound}`) })
     : { skipped: true, files: [] };
@@ -57,11 +61,11 @@ export default async function run({ cwd }) {
   ].filter(Boolean).join("\n");
 
   return ok({
-    operator,
+    operator: guided ? operator : "The working result is ready for my acceptance checks.",
     agent: [
-      `Round ${updated.reviewRound}. Stop now and wait for the operator's feedback. Do not continue editing while feedback is open.`,
+      `Round ${updated.reviewRound}. ${guided ? "Stop now and wait for the operator’s feedback." : "Exercise every acceptance criterion and inspect affected visuals yourself. Record acceptance <evidence.json>; do not wait for operator preview acceptance."}`,
       `Change requests: run ${CLI} revise, update, then preview again.`,
-      `Clear acceptance: ${CLI} finalize --approval-quote "<the operator's exact words>"`,
+      guided ? `Clear acceptance: ${CLI} finalize --approval-quote "<the operator's exact words>"` : "Use the harness browser or screenshot tools if project screenshot capture is unavailable. A missing capability is blocked evidence, never a pass.",
       combined ? "Trivial lane: that acceptance also approves the save, as long as the entire batch stays exactly as presented. Tests and docs should already be done." : "",
       where.agent ?? "",
       probes ? `Self-check: ${probes.cached ? "unchanged since the last passing run" : `${probes.results.length} automatic check${probes.results.length === 1 ? "" : "s"} passed`}.` : "",

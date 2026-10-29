@@ -14,3 +14,6 @@ stops because toolkit files had unsaved edits, save the upgrade separately and r
 refuses because a session is open, finish or abort that concern first. Apply any earlier decisions
 and "From recent work" guidance it prints. After it
 opens, follow the printed next step (`/staff-engineer:next` at any time).
+
+Display the prominent autonomy notice returned by begin before working. Follow
+the autonomy reference for conversational steering and remembered preferences.

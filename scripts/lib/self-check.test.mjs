@@ -24,6 +24,7 @@ test("preview runs probes itself, refuses on failure, and skips an unchanged rer
   const dir = makeTempRepo({ files: { "demo.mjs": "console.log(2 + 2);\n", "README.md": "# demo\n" } });
   try {
     await installInto(dir);
+    await runCli(["autonomy", "guided", "--remember", "--instruction", "Check with me along the way"], { cwd: dir });
     await runCli(["config", "set", "preview", '{"kind":"manual","instructions":"Run the demo"}'], { cwd: dir });
     commitAll(dir, "install");
     await runCli(["begin", "Make the demo multiply"], { cwd: dir });
@@ -45,6 +46,9 @@ test("preview runs probes itself, refuses on failure, and skips an unchanged rer
     assert.match(result.json.agent, /unchanged since the last passing run/, "nothing changed, so nothing reruns");
 
     await runCli(["revise"], { cwd: dir });
+    await runCli(["brief", "--outcome", "The demo prints the new requested number.", "--accept", "Run the demo and see 9", "--check", "1: run node demo.mjs contains 9"], { cwd: dir });
+    result = await runCli(["preview", "--json"], { cwd: dir });
+    assert.equal(result.code, 1, "changing the probe invalidates its cache even with the same files and criterion count");
     await runCli(["settings", "set", "preview.selfCheck", "off"], { cwd: dir });
     writeFileSync(join(dir, "demo.mjs"), "console.log(1);\n");
     result = await runCli(["preview", "--json"], { cwd: dir });

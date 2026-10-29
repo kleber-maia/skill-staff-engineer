@@ -96,5 +96,6 @@ export function assertDeliveryNotWithdrawn(cwd, approval) {
 }
 
 export function approvalTrailers(approval) {
+  if (approval?.evidence === "autonomy-policy") return { "Autonomy-Mode": "autonomous", "Delivery-Authority": approval.authority?.quote ?? "saved autonomy preference", "Approval-Evidence": "autonomy-policy" };
   return approval ? { "Operator-Approval": approval.quote, "Approval-Evidence": approval.evidence } : {};
 }

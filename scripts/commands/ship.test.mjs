@@ -32,6 +32,7 @@ test("failed push leaves a saved session that sync-only can recover", async () =
   const remote = makeTempDir("staff-engineer-remote-");
   try {
     await installInto(dir);
+    await runCli(["autonomy", "guided", "--remember", "--instruction", "Check with me along the way"], { cwd: dir });
     const configPath = join(dir, ".staff-engineer", "config.json");
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     config.gates = { install: null, format: null, lint: null, typecheck: null, test: null, build: null, e2e: null };

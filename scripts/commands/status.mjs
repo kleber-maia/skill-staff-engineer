@@ -1,3 +1,4 @@
+import { autonomyNotice, isGuided } from "../lib/autonomy.mjs";
 import { hasConfig, loadConfig } from "../lib/config.mjs";
 import { head } from "../lib/git.mjs";
 import { nextStep, renderNext } from "../lib/next.mjs";
@@ -27,13 +28,14 @@ export default async function run({ cwd }) {
     typicalDurations: typicalDurations(cwd).byMode,
   };
   data.next = nextStep({ cwd, config, session });
-  return ok({ operator: describe(data), agent: renderNext(data.next), data });
+  return ok({ operator: `${session && !session.cleared ? autonomyNotice(session, session.deployment?.config ?? config?.deployment) + "\n" : ""}${describe(data)}`, agent: renderNext(data.next), data });
 }
 
 function describe(data) {
   if (!data.installed) return "The staff-engineer toolkit is not installed in this project.";
   if (!data.session || data.session.cleared || data.session.status === "synced") return "No work is in progress.";
+  if (data.session.status === "delivered") return `The concern "${data.session.concern}" is delivered and awaiting deployment verification.`;
   if (data.session.status === "saved") return `The concern "${data.session.concern}" is saved and waiting to be synced.`;
-  const phase = { implementation: "being built", awaiting_feedback: "waiting for your feedback on the preview", finalizing: "accepted and being finished" }[data.session.phase];
+  const phase = { implementation: "being built", awaiting_feedback: isGuided(data.session) ? "waiting for your feedback on the preview" : "being exercised and visually inspected", finalizing: "accepted and being finished" }[data.session.phase];
   return `Working on "${data.session.concern}" (${phase}).${data.session.brief ? "" : " No brief recorded yet."}`;
 }

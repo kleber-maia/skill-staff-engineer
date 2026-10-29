@@ -1,3 +1,4 @@
+import { autonomyNotice, preference } from "../lib/autonomy.mjs";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -52,12 +53,13 @@ export default async function run({ cwd, positional, flags = {}, env = process.e
   }
 
   const config = loadConfig(cwd);
-  const session = beginSession(cwd, positional.join(" "), { lane, kind: flags.bug ? "bug" : "change" });
+  const session = beginSession(cwd, positional.join(" "), { lane, kind: flags.bug ? "bug" : "change", autonomy: preference(cwd) });
   const decisions = relevantDecisions(cwd, { text: session.concern });
   const insights = agentInsights(cwd, { webPreview: config.preview?.kind === "web", selfCheck: getSetting(cwd, "preview.selfCheck") });
   return ok({
-    operator: `Started working on: ${session.concern}.`,
+    operator: `${autonomyNotice(session, config.deployment)}\nStarted working on: ${session.concern}.`,
     agent: [
+      "Display the autonomy notice prominently before working. Interpret later steering conversationally and record it with autonomy.",
       "All changes for this concern must be staged and saved together as one batch.",
       session.baseline.files.length ? `Pre-existing pending files are protected and must stay out of this batch: ${summarize(session.baseline.files)}` : "",
       `Lane: ${lane}.${flags.bug ? " Bug fix: prove it with a test that fails on the original code (repro)." : ""}`,
@@ -106,7 +108,7 @@ function beginWithRefreshedToolkit(cwd, positional, lane, upgrade) {
   const note = `The toolkit was upgraded to ${upgrade.version}${upgrade.commit ? ` and saved as its own change (${upgrade.commit.slice(0, 10)})` : ""}; the refreshed workflow is now running.`;
   return {
     ...payload,
-    operator: payload.ok ? `I updated my working tools to version ${upgrade.version}. ${payload.operator}` : payload.operator,
+    operator: payload.ok ? `${payload.operator}\nI updated my working tools to version ${upgrade.version}.` : payload.operator,
     agent: [note, payload.agent].filter(Boolean).join("\n"),
     data: { ...payload.data, toolkitUpgrade: upgrade },
   };

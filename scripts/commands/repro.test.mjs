@@ -17,6 +17,7 @@ const REPRO = "node tests/cart.check.mjs";
 async function bugSession() {
   const dir = makeTempRepo({ files: PROJECT });
   await installInto(dir);
+  await runCli(["autonomy", "guided", "--remember", "--instruction", "Check with me along the way"], { cwd: dir });
   for (const gate of ["install", "format", "lint", "typecheck", "build", "e2e"]) await runCli(["config", "set", `gates.${gate}`, "null"], { cwd: dir });
   await runCli(["config", "set", "gates.test", `{"cmd":"${REPRO}"}`], { cwd: dir });
   await runCli(["config", "set", "preview", '{"kind":"manual","instructions":"Open the cart"}'], { cwd: dir });

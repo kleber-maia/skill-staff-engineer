@@ -66,6 +66,14 @@ sitting and has:
 Order tasks so the first working preview arrives as early as possible; the
 operator sees something real before the deep work.
 
+## Autonomy
+
+In Final approval and Through delivery, write and record the plan from the request
+and available evidence, state routine assumptions, and continue. Ask only for
+material unresolved decisions or changed scope. The agreement and intermediate
+preview pauses below apply to Guided mode. In other modes inspect the complete
+working result yourself and record acceptance evidence before finalizing.
+
 ## Get agreement
 
 Present the spec to the operator in plain language: what they will get, what it

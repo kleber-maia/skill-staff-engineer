@@ -49,6 +49,7 @@ export function defaultConfig() {
     gates: {},
     preview: { kind: "manual", screenshots: "auto", screenshotPaths: ["/"] },
     updates: { revision: null, offline: "allow", timeoutMs: 60000 },
+    deployment: null,
     shipping: { mode: "auto", remote: null, branch: null, timeoutMs: 60000 },
     paths: {
       source: [],
@@ -155,6 +156,12 @@ export function validateConfig(config) {
     if (config.shipping?.[key] !== null && (typeof config.shipping?.[key] !== "string" || !config.shipping[key].trim())) errors.push(`shipping.${key} must be null or a non-empty string`);
   }
   if (!Number.isInteger(config.shipping?.timeoutMs) || config.shipping.timeoutMs < 1000) errors.push("shipping.timeoutMs must be an integer of at least 1000");
+  if (config.deployment !== null) {
+    for (const key of ["environment", "cmd", "verifyCmd"]) {
+      if (typeof config.deployment?.[key] !== "string" || !config.deployment[key].trim()) errors.push(`deployment.${key} must be a non-empty string`);
+    }
+    if (!Number.isInteger(config.deployment?.timeoutMs) || config.deployment.timeoutMs < 1000) errors.push("deployment.timeoutMs must be an integer of at least 1000");
+  }
   return errors;
 }
 

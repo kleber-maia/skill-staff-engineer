@@ -1,3 +1,4 @@
+import { autonomyNotice, isInterruption, isGuided } from "../lib/autonomy.mjs";
 // Claude Code hook handler. Reads the hook payload from stdin, decides, prints the
 // hook protocol JSON. Fails open: the CLI emits safe failure context, exit 0.
 import { existsSync } from "node:fs";
@@ -12,7 +13,7 @@ import { EXIT } from "../lib/output.mjs";
 import { classify, isGenerated, isProtected, isToolkitPath } from "../lib/paths.mjs";
 import { readReceipt, receiptMatches } from "../lib/receipt.mjs";
 import { requiredReview, reviewIsCurrent } from "../lib/review.mjs";
-import { CLI, PHASES, readSession, sessionConcernFiles } from "../lib/session.mjs";
+import { CLI, PHASES, readSession, sessionConcernFiles, writeSession } from "../lib/session.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
 import { hasPendingToolkitSave } from "../lib/maintenance.mjs";
 import { gitInvocation, shellCommands, writeTargets } from "../lib/shell-guard.mjs";
@@ -58,7 +59,7 @@ export function decide(event, payload, root) {
 
 function activeSession(root) {
   const session = readSession(root);
-  return session && !session.cleared && ["open", "saved"].includes(session.status) ? session : null;
+  return session && !session.cleared && ["open", "saved", "delivered"].includes(session.status) ? session : null;
 }
 
 // ---------- SessionStart ----------
@@ -69,6 +70,7 @@ function sessionStart(config, session, root) {
     const files = sessionConcernFiles(session, root);
     if (files.length) lines.push(`Concern files so far: ${files.slice(0, 15).join(", ")}${files.length > 15 ? ", ..." : ""}`);
   }
+  if (session) lines.push(autonomyNotice(session, session.deployment?.config ?? config.deployment));
   lines.push(renderNext(nextStep({ cwd: root, config, session, quick: true })));
   lines.push(`Read .agents/skills/staff-engineer/SKILL.md (or the staff-engineer plugin skill) for the operating contract. Run ${CLI} next whenever unsure what comes next.`);
   return { hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: lines.join("\n") } };
@@ -79,6 +81,10 @@ function sessionStart(config, session, root) {
 // and reminds the agent of the one next step while a concern is open.
 function userPromptSubmit(config, session, root, payload) {
   recordOperatorMessage(root, payload.prompt);
+  if (session && isInterruption(payload.prompt)) {
+    session = { ...session, autonomy: { ...session.autonomy, mode: session.autonomy?.mode ?? "final-approval", paused: true } };
+    writeSession(root, session);
+  }
   if (!session && !hasPendingToolkitSave(root)) return null;
   const next = nextStep({ cwd: root, config, session, quick: true });
   const lines = [session ? `staff-engineer: concern "${session.concern}" (${session.lane ?? "standard"} lane).` : "staff-engineer: toolkit save pending.", renderNext(next)];
@@ -117,6 +123,7 @@ export function guardBash(config, session, root, command, workingDirectory = roo
   const writesProtected = protectedTargets(config, root, command);
   if (writesProtected.length) return deny(`This command writes to a protected file (${writesProtected.join(", ")}). Secrets, keys, and environment files are off limits.`);
   if (isStandaloneToolkitCommand(command)) return null;
+  if (session?.autonomy?.paused) return deny("Work is paused. Wait for the operator’s instruction and record autonomy resume before continuing.");
 
   if (writesOperatorLog(command)) return deny("The operator's messages are recorded by the harness only. Quote the operator; never write their messages yourself.");
 
@@ -173,9 +180,10 @@ export function guardEdit(config, session, root, filePath) {
     if (config.rules.requireSession === "warn") return context(`No staff-engineer work session is open. Before changing project files, run ${CLI} begin "Short concern" so the change is tracked, briefed, previewed, and saved as one batch.`);
     return null;
   }
+  if (session.autonomy?.paused) return deny("Work is paused by the operator.");
   const kind = classify(config, rel);
   if (session.phase === PHASES.AWAITING_FEEDBACK && (kind === "source" || kind === "other")) {
-    return deny(`The preview is waiting for the operator's feedback. Run ${CLI} revise before changing ${rel}, or wait for acceptance.`);
+    return deny(`The preview is awaiting acceptance. Run ${CLI} revise before changing ${rel}, or wait for acceptance.`);
   }
   return null;
 }
@@ -185,8 +193,11 @@ function stop(config, session, root, payload) {
   if (payload?.stop_hook_active) return null; // one reminder, never a continuation loop
   if (hasPendingToolkitSave(root)) return stopFeedback(`The toolkit save is unfinished. Run ${CLI} save-toolkit to resume its delivery before opening product work.`);
   if (!session) return null;
+  if (session.autonomy?.paused) return null;
+  if (session.status === "delivered") return stopFeedback(`Deployment is unfinished. Run ${CLI} deploy to verify the delivered revision before reporting completion.`);
   if (session.status === "saved" || session.shipping) return stopFeedback(`The save is unfinished. Run ${CLI} ship${session.status === "saved" ? " --sync-only" : ""} to recover and confirm delivery before reporting completion.`);
   const notes = [];
+  if (!isGuided(session) && session.phase === PHASES.AWAITING_FEEDBACK) notes.push("Exercise the working result and record acceptance evidence; this mode does not wait for operator preview acceptance.");
   const files = sessionConcernFiles(session, root);
   if (session.phase === PHASES.IMPLEMENTATION && files.length && !session.brief) notes.push("Files changed but no brief is recorded; agree the outcome with the operator and record it.");
   if (session.phase === PHASES.IMPLEMENTATION && files.length && (session.reviewRound ?? 0) === 0) notes.push(`Files changed but no preview was presented yet (${CLI} preview).`);

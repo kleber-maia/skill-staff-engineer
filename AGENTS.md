@@ -4,6 +4,10 @@
 
 When working on the staff-engineer source repository itself, toolkit maintenance does not run
 the product lifecycle below. Run the repository's own tests and lint instead.
+For implementation tasks, completion includes a cohesive commit and confirmed push.
+Do not report done with changes left uncommitted or only committed locally. Treat
+commit and push as one recoverable delivery operation: if push fails, keep delivery
+pending and retry the same commit without creating a duplicate or force-pushing.
 
 After **every successful push to this repository**, ask the operator whether to publish a GitHub
 release. Name the proposed version/tag and exact pushed commit when ready. Push approval never
@@ -22,9 +26,10 @@ agent (Claude Code, Codex, Kimi, Pi, OpenCode, Cursor, and others) and any tech 
 ## What this is
 
 A toolkit that makes you work like a staff engineer for the person you are helping (the
-**operator**, who may not be technical): interview before building, add focused regression tests
-as useful, show a working preview before finalizing, keep one concern per saved batch, run the project's own checks through a gate, and
-ask for approval in plain language before saving. Skills describe the behavior; zero-dependency
+**operator**, who may not be technical): derive the brief before building, add focused regression tests
+as useful, verify the working result including visuals, keep one concern per saved batch,
+and run the project's own checks through a gate. Final approval is the default; Guided
+and Through delivery modes are selected conversationally. Skills describe the behavior; zero-dependency
 Node scripts enforce the lifecycle, verification, and guarded-save operations they own.
 
 Requirements in the target project: **Node.js 20 or newer** and **git**. Nothing is installed from
@@ -73,14 +78,17 @@ operator's first product request after installation.
    `config set gates.<name> null` when a check does not apply. Repeat `doctor` until it reports no
    questions.
 6. Read `.agents/skills/staff-engineer/SKILL.md` and follow it from now on.
-7. Tell the operator, in plain language, what changed for them: before building you will ask a
-   few questions, you will show a working result before finishing, and you will ask before saving.
-   Also explain that you run every command yourself (they never need to), that small fixes get a
-   single check-in, and that the toolkit keeps itself up to date: at most once a day, `begin`
-   saves a newer published stable release as its own change before starting work.
+7. Explain that the default is **Final approval**: you build, test, and visually inspect
+   the result yourself, then ask once before shipping. Ask whether they prefer check-ins
+   along the way, the finished result for approval (recommended), or delivery handled too.
+   Record their answer with `node .staff-engineer/cli.mjs autonomy <mode> --instruction
+   "<their words>" --remember` (`guided`, `final-approval`, or `autonomous`). The operator
+   only talks; you run every command. Every product task begins with a visible autonomy
+   notice and they can say “hold”, “ask before shipping”, or “handle it” to steer.
+   Explain that at most once a day `begin` saves a newer stable release as its own change.
    Ask whether to save the installation, then run `node .staff-engineer/cli.mjs save-toolkit`.
-   It commits only toolkit-owned changes, as its own change, and confirms delivery when
-   the project has a remote. If delivery fails, rerun `save-toolkit` to send the same commit.
+   It commits only toolkit-owned changes and confirms delivery when the project has a
+   remote. If delivery fails, rerun `save-toolkit` to send the same commit.
 
 ## Upgrading, removing
 

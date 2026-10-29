@@ -19,6 +19,13 @@ Every command is `node .staff-engineer/cli.mjs <command>` from the project root.
 CLI owns the lifecycle order and refuses steps out of order, so you do not have to
 memorize it.
 
+## Autonomy
+
+Read [autonomy.md](autonomy.md) at the start of each task and when the operator steers
+how you work. **Final approval is the default for new and existing installs.**
+Relay the prominent autonomy notice from `begin` before starting work. The operator
+changes modes by talking; you record their words with `autonomy`.
+
 ## The loop
 
 1. Run `node .staff-engineer/cli.mjs next`. It prints the one next step: the command to
@@ -26,7 +33,7 @@ memorize it.
 2. Do that step. Read only the skills it names, when it names them.
 3. When it says **wait for the operator**, send your message and stop. Their reply
    decides the next command.
-4. Repeat until the concern is saved. If a command refuses, its message says how to
+4. Repeat until saving, delivery, and any configured deployment are verified. If a command refuses, its message says how to
    recover; `next` always says where you are.
 
 A concern is a product change the operator asked for. Installing, updating, configuring,
@@ -46,9 +53,9 @@ Pass `--lane` to `begin`; it sizes the process to the work.
 
 | Lane | Use for | What changes |
 | --- | --- | --- |
-| `trivial` | Obvious, low-risk edits: copy, a style tweak, a one-line fix, no data or security impact | No interview or context packet. Finish tests and docs before the preview; the preview doubles as the save question, so the operator answers once. Capped in size (`rules.lanes.trivial`) |
-| `standard` | Everything else of normal size (default) | Interview, context packet, preview, finishing work, handoff, approval |
-| `large` | More than two areas, new data shapes, or more than a day | Standard plus an agreed spec and plan (`spec-and-plan`, then `plan <path>`) before the first preview |
+| `trivial` | Obvious, low-risk edits: copy, a style tweak, a one-line fix, no data or security impact | No interview or context packet. In Guided mode the preview doubles as the save question. In other modes verify it yourself before final approval or delivery. Capped in size (`rules.lanes.trivial`) |
+| `standard` | Everything else of normal size (default) | Context packet, preview, finishing work, handoff; interaction follows the selected autonomy mode |
+| `large` | More than two areas, new data shapes, or more than a day | Standard plus a written spec and plan (operator agreement in Guided mode) (`spec-and-plan`, then `plan <path>`) before the first preview |
 
 When unsure, choose `standard`. Move with `lane <name>` when the work turns out bigger or
 riskier. A trivial concern that outgrows its cap is refused until you move it.
@@ -105,7 +112,7 @@ problem"`, so it becomes a known issue later concerns see. When you fix one that
 
 ## Operator approvals
 
-Two approvals exist, and neither can be given for the operator:
+In **Guided mode**, two approvals exist, and neither can be given for the operator:
 
 - **Preview acceptance** ("looks good"): `finalize --approval-quote "<their words>"`.
 - **Approval to save** ("ship it") after the handoff:
@@ -113,9 +120,14 @@ Two approvals exist, and neither can be given for the operator:
   lane, the preview acceptance is also the save approval, and it holds only while the
   whole batch stays exactly as presented.
 
-Quote the operator verbatim, from a reply sent after you presented that step. Never
+In **Final approval**, use agent acceptance evidence, then obtain one approval after
+the final handoff. In **Through delivery**, use the same evidence and continue
+through shipping and configured deployment under the recorded mode authorization.
+Never pass an invented approval quote.
+
+When approval is required, quote the operator verbatim, from a reply sent after you presented that step. Never
 invent, paraphrase, or combine replies. Praise for one part, questions, "hold", or new
-requests are not approval: keep working and ask again. Where the harness records operator
+requests are not approval: address feedback; “hold” pauses further actions until the operator resumes. Where the harness records operator
 messages, the CLI checks the quote against them; the quote and how it was checked are
 saved in the commit either way.
 
@@ -123,7 +135,8 @@ saved in the commit either way.
 report completion until delivery is confirmed. If sending fails, `ship --sync-only`
 retries the same commit. Never create a second commit or force-push to recover.
 `next` and the hooks keep the pending save visible; do not abort it to skip delivery.
-Local projects remain usable; `shipping.mode: "local"` intentionally keeps work local.
+When deployment is configured, continue with `deploy` until the delivered revision
+and live smoke checks pass. Local projects remain usable; `shipping.mode: "local"` intentionally keeps work local.
 
 Approval covers the entire batch, including prose and file modes. Prose edits can
 keep the test receipt valid while requiring a fresh handoff and save approval.
@@ -138,16 +151,17 @@ conditions, negative replies, and later feedback invalidate earlier approval.
   unless the operator changes their mind; never ask again.
 - **Self-check.** Give acceptance checks a free probe where possible (`brief --check`);
   `preview` runs them itself, refuses on failure, and skips reruns when nothing changed.
-  How much runs follows the local `preview.selfCheck` setting.
+  Guided mode follows local `preview.selfCheck`; other modes require probes and actual acceptance/visual inspection regardless of this efficiency setting.
 - **Insights.** The toolkit keeps a private history of finished concerns and speaks up
   on its own. When `begin` lists "From recent work on this project", apply that guidance
   to this concern without mentioning it. When `ship` returns an operator line with a
   milestone, relay it as-is. Never ask the operator to request statistics; `stats` exists
   for your own use or when they ask how things are going.
-- **Preferences.** When the operator asks to change how you work on this machine ("stop
-  checking your own work", "check for updates weekly"), change it with
+- **Preferences.** When the operator asks to change a machine setting ("check for updates
+  weekly"), change it with
   `settings set <key> <value>` and confirm in one plain sentence. Settings are local and
-  never committed. `settings` lists them: `preview.selfCheck` (off, auto, thorough),
+  never committed. Requests for fewer check-ins or less agent verification follow
+  the conversational autonomy contract; `preview.selfCheck` only controls Guided mode. `settings` lists them: `preview.selfCheck` (off, auto, thorough),
   `review.maxLevel` (lower only when the operator asks to spend less),
   `updates.checkEveryHours`, `updates.offline`.
 
@@ -157,8 +171,8 @@ conditions, negative replies, and later feedback invalidate earlier approval.
   write every operator-facing message in plain language: no version control,
   terminal, database, file, or code jargon. Describe outcomes, not steps.
 - Show results where the operator can see them: the preview address for web projects,
-  the output or document otherwise. Look at screenshots only when `preview` asks you to.
-- Ask for approval once, for the whole verified batch, using the `handoff` skill.
+  the output or document otherwise. In Final approval and Through delivery, inspect affected visuals yourself and record evidence, including when toolkit screenshot capture is unavailable.
+- In Final approval, ask once for the whole verified batch using `handoff`. In Through delivery, summarize and continue without asking.
 - Never ask the operator to run a command, set a variable, or type a special phrase
   into a tool. If a decision is theirs, ask the question in plain language.
 
@@ -187,17 +201,17 @@ conditions, negative replies, and later feedback invalidate earlier approval.
 
 - [ ] One session, in the right lane, covered the whole concern.
 - [ ] The brief records outcome, acceptance checks, non-goals, and surfaces.
-- [ ] The operator saw a working preview and accepted it in their own words.
+- [ ] The working preview has current agent acceptance evidence, or Guided-mode operator acceptance.
 - [ ] Every changed source area has a changed or added test, or an honest waiver.
 - [ ] The code review ran at the required level on the final code (or its delta);
       bugs, regressions, and missed requirements were fixed, RISKY cleanups reported.
 - [ ] Documentation describing the changed behavior is updated, or a waiver says why.
 - [ ] `lifecycle` passes and `verify --mode full` passed once on the final staged batch.
-- [ ] The operator approved saving in their own words, after a handoff of that exact
-      batch (or, in the trivial lane, at the preview of the unchanged batch).
-- [ ] The save used `ship` with an imperative message and confirmed delivery (or intentional local work).
+- [ ] Delivery is authorized by the selected autonomous mode or the operator’s approval
+      of the exact batch (Guided trivial work can use its unchanged preview).
+- [ ] The save used `ship` with an imperative message and confirmed delivery (or intentional local work), plus verified deployment when configured.
 
 ## When the operator is technical
 
-The same gates and approvals apply. You may use engineering jargon, include diff summaries
+The same gates and selected autonomy mode apply. You may use engineering jargon, include diff summaries
 and commands in the handoff, and discuss trade-offs during `grill-me`.

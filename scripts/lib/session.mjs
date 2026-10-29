@@ -1,3 +1,4 @@
+import { assertActive } from "./autonomy.mjs";
 // One concern, one session, one saved batch. This module owns the state machine;
 // commands call the guards and transitions and never edit the record directly.
 import { existsSync } from "node:fs";
@@ -11,7 +12,7 @@ import { isProductSource } from "./paths.mjs";
 
 export const SESSION_VERSION = 1;
 export const PHASES = Object.freeze({ IMPLEMENTATION: "implementation", AWAITING_FEEDBACK: "awaiting_feedback", FINALIZING: "finalizing" });
-export const STATUSES = Object.freeze({ OPEN: "open", SAVED: "saved", SYNCED: "synced" });
+export const STATUSES = Object.freeze({ OPEN: "open", SAVED: "saved", DELIVERED: "delivered", SYNCED: "synced" });
 export const CLI = "node .staff-engineer/cli.mjs";
 
 export function sessionPath(cwd) {
@@ -41,7 +42,7 @@ export function clearSession(cwd) {
 }
 
 // ---------- begin ----------
-export function beginSession(cwd, concern, { lane = "standard", kind = "change", now = new Date().toISOString() } = {}) {
+export function beginSession(cwd, concern, { lane = "standard", kind = "change", autonomy, now = new Date().toISOString() } = {}) {
   assertConcern(concern);
   const existing = readSession(cwd);
   const currentHead = head(cwd);
@@ -53,6 +54,7 @@ export function beginSession(cwd, concern, { lane = "standard", kind = "change",
     concern: concern.trim(),
     lane,
     initialLane: lane,
+    autonomy,
     kind,
     baseCommit: currentHead,
     startedAt: now,
@@ -69,6 +71,7 @@ export function assertCanBegin(existing, currentHead, baselineMatches) {
       agent: `Continue the open concern, or run ${CLI} abort if it was abandoned.`,
     });
   }
+  if (existing.status === STATUSES.DELIVERED) throw refused("Deployment of the previous concern is unfinished. Run deploy before starting another task.");
   if (existing.status === STATUSES.SAVED) {
     throw refused("The previous concern was saved but not synced yet.", {
       agent: `Run ${CLI} ship --sync-only (or push manually) before opening another concern.`,
@@ -93,6 +96,7 @@ export function requireOpenSession(cwd) {
       agent: `Run ${CLI} begin "Short concern".`,
     });
   }
+  assertActive(cwd, session);
   const currentHead = head(cwd);
   if (session.baseCommit !== currentHead) {
     throw refused("The checkout changed after this work session began.", {
@@ -118,8 +122,8 @@ export function requireBrief(session) {
 
 export function requireFinalizing(session) {
   if (session.phase !== PHASES.FINALIZING) {
-    throw refused("Final checks wait until the operator has reviewed the working result and accepted it.", {
-      agent: `Run ${CLI} preview, wait for feedback, then ${CLI} finalize --approval-quote "<the operator's words>".`,
+    throw refused("Final checks require acceptance of the working preview.", {
+      agent: `Run ${CLI} preview, then record agent acceptance evidence (or Guided-mode operator acceptance with finalize).`,
     });
   }
 }
@@ -182,7 +186,7 @@ export function recordHandoff(session, receiptAt, { now = new Date().toISOString
 }
 
 function withoutApprovals(session) {
-  return { ...session, acceptedAt: undefined, acceptance: undefined, handoff: undefined };
+  return { ...session, acceptedAt: undefined, acceptance: undefined, handoff: undefined, acceptanceEvidence: undefined };
 }
 
 export function markSaved(session, savedCommit, { now = new Date().toISOString() } = {}) {

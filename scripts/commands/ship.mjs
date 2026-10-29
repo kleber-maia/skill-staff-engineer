@@ -1,3 +1,5 @@
+import { assertActive, isGuided, modeOf } from "../lib/autonomy.mjs";
+import { requireAcceptance } from "../lib/acceptance.mjs";
 // Guarded save: approval, finalizing phase, lifecycle gate, matching receipt,
 // concern categories, then commit with permanent trailers.
 import { approvalStillCurrent, approvalTrailers, assertDeliveryNotWithdrawn, checkApproval } from "../lib/approval.mjs";
@@ -33,6 +35,7 @@ export default async function run(options) {
 
 async function runShip({ cwd, positional, flags, env = process.env }) {
   const config = loadConfig(cwd);
+  assertActive(cwd, readSession(cwd));
   if (flags.recover) return recover(cwd);
   if (flags["sync-only"]) return syncOnly(cwd, config, flags);
   const existing = readSession(cwd);
@@ -42,6 +45,7 @@ async function runShip({ cwd, positional, flags, env = process.env }) {
     const approval = flags["approval-quote"]
       ? checkApproval(cwd, flags["approval-quote"], { since: existing.handoff?.at ?? existing.presentedAt, purpose: "Saving" })
       : existing.shipping.approval;
+    assertSaveAuthority(existing, approval);
     approvalStillCurrent(cwd, approval);
     const shipping = { ...existing.shipping, approval, trailers: { ...existing.shipping.trailers, ...approvalTrailers(approval) } };
     writeSession(cwd, { ...existing, shipping });
@@ -119,7 +123,7 @@ async function runShip({ cwd, positional, flags, env = process.env }) {
   const issuesFile = applyIssues(cwd, session);
   if (issuesFile) output("git", ["add", "--", issuesFile], { cwd });
 
-  const shipping = { baseCommit: session.baseCommit, expectedTree: output("git", ["write-tree"], { cwd }), target, approval, trailers, message };
+  const shipping = { deployment: config.deployment, baseCommit: session.baseCommit, expectedTree: output("git", ["write-tree"], { cwd }), target, approval, trailers, message };
   // Durable before Git runs: a crash after commit can recover from HEAD + tree.
   writeSession(cwd, { ...session, shipping });
   const savedCommit = commit(message, { cwd, trailers });
@@ -135,9 +139,12 @@ function completeDelivery(cwd, config, session, categories = [], decisionsRecord
       data: { commit: savedCommit, deliveryPending: true, expectedTree: session.shipping.expectedTree },
     });
   }
+  assertActive(cwd, session);
+  assertSaveAuthority(session, session.shipping?.approval);
   assertDeliveryNotWithdrawn(cwd, session.shipping?.approval);
   const pushed = deliver(cwd, savedCommit, session.shipping ? session.shipping.target : shippingTarget(cwd, config));
-  const updated = { ...markSynced(session), delivery: pushed ? "remote" : "local" };
+  const deploymentConfig = session.shipping?.deployment;
+  const updated = { ...markSynced(session), delivery: pushed ? "remote" : "local", ...(deploymentConfig ? { status: "delivered", deployment: { status: "pending", config: deploymentConfig } } : {}) };
   // History represents completed operations. Recovery after a push reuses the commit.
   recordConcern(cwd, session, { outcome: "saved", commit: savedCommit, trailers: session.shipping?.trailers ?? {} });
   writeSession(cwd, updated);
@@ -151,7 +158,7 @@ function completeDelivery(cwd, config, session, categories = [], decisionsRecord
         : `Committed ${savedCommit.slice(0, 10)} on ${branchName(cwd)}${pushed ? " and confirmed delivery." : " (local work)."}`,
       milestone?.message ?? "",
     ].filter(Boolean).join(" "),
-    agent: `Saved as ${savedCommit}. The session is complete; open the next concern with ${CLI} begin.`,
+    agent: deploymentConfig ? `Saved as ${savedCommit}. Deployment is pending: run ${CLI} deploy and verify the live result before reporting completion.` : `Saved as ${savedCommit}. The session is complete; open the next concern with ${CLI} begin.`,
     data: { commit: savedCommit, pushed, delivery: updated.delivery, status: updated.status, categories, trailers: session.shipping?.trailers ?? {}, decisionsRecorded },
   });
 }
@@ -176,7 +183,8 @@ function requireReview(cwd, config, session) {
 // the entire batch stays exactly as presented. Otherwise the approval
 // must answer a handoff of this exact verified receipt.
 function saveApproval(cwd, config, session, receipt, quote) {
-  if (laneOf(session) === "trivial" && session.presentedSource && session.acceptance) {
+  if (!isGuided(session)) requireAcceptance(cwd, config, session);
+  if (isGuided(session) && laneOf(session) === "trivial" && session.presentedSource && session.acceptance) {
     approvalStillCurrent(cwd, session.acceptance);
     if (!sameFingerprint(session.presentedSource, sourceFingerprint(cwd, config, session))) {
       throw refused("The change was edited after the operator approved it, so they have not seen this version.", {
@@ -190,6 +198,7 @@ function saveApproval(cwd, config, session, receipt, quote) {
       agent: `Run ${CLI} lifecycle and verify --mode full if needed, then ${CLI} handoff, send it, and wait. Praise for the preview is not approval to save.`,
     });
   }
+  if (modeOf(session) === "autonomous") return { evidence: "autonomy-policy", mode: "autonomous", authority: session.autonomy };
   return checkApproval(cwd, quote, { since: session.handoff.at, purpose: "Saving" });
 }
 
@@ -240,4 +249,8 @@ export function concernCategories(files, buckets = readJson(assetPath("rules", "
     categories.add(parts.length > 1 ? parts.slice(0, Math.min(2, parts.length - 1)).join("/") : "(root)");
   }
   return [...categories].sort();
+}
+
+function assertSaveAuthority(session, approval) {
+  if (approval?.evidence === "autonomy-policy" && modeOf(session) !== "autonomous") throw refused("Autonomous delivery was withdrawn. Obtain approval for this pending batch before resuming with --approval-quote.");
 }

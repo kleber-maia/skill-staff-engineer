@@ -28,6 +28,7 @@ async function cli(cwd, ...args) {
 async function setup(files = { "README.md": "# Demo\n" }) {
   const cwd = makeTempRepo({ files });
   await installInto(cwd);
+  await cli(cwd, "autonomy", "guided", "--remember", "--instruction", "Check with me along the way");
   const config = loadConfig(cwd);
   config.gates = Object.fromEntries(["install", "format", "lint", "typecheck", "test", "build", "e2e"].map((name) => [name, null]));
   writeFiles(cwd, { ".staff-engineer/config.json": `${JSON.stringify(config, null, 2)}\n` });
@@ -52,6 +53,7 @@ test("a toolkit installation can make and deliver the first commit on an unborn 
   const cwd = makeTempRepo({ commit: false, files: { "README.md": "# Demo\n" } }), remote = bareRemote();
   try {
     await installInto(cwd);
+    await cli(cwd, "autonomy", "guided", "--remember", "--instruction", "Check with me along the way");
     git(cwd, "remote", "add", "origin", remote);
     const saved = saveToolkit(cwd, "Install the staff engineer toolkit");
     assert.equal(saved.pushed, true);
