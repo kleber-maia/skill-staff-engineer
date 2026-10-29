@@ -1,3 +1,4 @@
+import { releaseFollowup, RELEASE_GUIDANCE } from "../lib/release-followup.mjs";
 import { assertActive, modeOf } from "../lib/autonomy.mjs";
 import { assertDeliveryNotWithdrawn, checkApproval } from "../lib/approval.mjs";
 import { loadConfig } from "../lib/config.mjs";
@@ -53,7 +54,8 @@ function finish(cwd, session) {
   session = readSession(cwd);
   assertActive(cwd, session);
   assertDeliveryNotWithdrawn(cwd, session.shipping?.approval);
-  const updated = { ...markSynced(session), deployment: { ...session.deployment, status: "verified", verifiedAt: new Date().toISOString() } };
+  const completed = { ...markSynced(session), deployment: { ...session.deployment, status: "verified", verifiedAt: new Date().toISOString() } };
+  const { session: updated, offer } = releaseFollowup(completed);
   writeSession(cwd, updated);
-  return ok({ operator: `Delivered and verified in ${session.deployment.config.environment}.`, agent: "The task is complete.", data: { commit: session.savedCommit, environment: session.deployment.config.environment, status: updated.status } });
+  return ok({ operator: `Delivered and verified in ${session.deployment.config.environment}.${offer ? ` ${offer.question}` : ""}`, agent: `The task is complete. ${offer ? RELEASE_GUIDANCE : ""}`, data: { releaseOffer: offer, commit: session.savedCommit, environment: session.deployment.config.environment, status: updated.status } });
 }

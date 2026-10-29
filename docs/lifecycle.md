@@ -122,6 +122,17 @@ They do not infer broad consent from arbitrary language, and are not a sandbox.
 Other harnesses follow the skill contract. A running external process may already
 have acted before a pause is received.
 
+## Optional release follow-up
+
+On successful completion, `ship` (or `deploy` when deployment is configured) records
+`releaseOffer` for the delivered commit and returns a one-time release-process question.
+A failed push or unverified deployment never offers a release. The session remains
+`synced`; ignoring or declining the offer does not block `begin` or cause reminders.
+For a clear yes, the agent follows the project's playbook using the main skill's
+[release guidance](../skills/staff-engineer/release.md). The CLI records the offer,
+not user consent; the agent resolves the reply in conversation and honors any
+separate publication approval requirements. It does not assume a release provider.
+
 ## Memory
 
 `ship` commits settled decisions/non-goals and known issues with the concern.

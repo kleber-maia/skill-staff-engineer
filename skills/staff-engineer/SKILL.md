@@ -211,6 +211,14 @@ conditions, negative replies, and later feedback invalidate earlier approval.
       of the exact batch (Guided trivial work can use its unchanged preview).
 - [ ] The save used `ship` with an imperative message and confirmed delivery (or intentional local work), plus verified deployment when configured.
 
+## After delivery: offer a release
+
+Relay the optional release question from `ship` (or `deploy` after live verification)
+once with the completion message. The task stays complete if the operator ignores
+it or says no. A clear yes starts the project's release playbook; read
+[release.md](release.md) then execute it, preserving project-specific approval rules.
+Do not treat autonomous mode as a yes or repeat the offer on later status checks.
+
 ## When the operator is technical
 
 The same gates and selected autonomy mode apply. You may use engineering jargon, include diff summaries

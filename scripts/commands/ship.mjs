@@ -1,3 +1,4 @@
+import { releaseFollowup, RELEASE_GUIDANCE } from "../lib/release-followup.mjs";
 import { assertActive, isGuided, modeOf } from "../lib/autonomy.mjs";
 import { requireAcceptance } from "../lib/acceptance.mjs";
 // Guarded save: approval, finalizing phase, lifecycle gate, matching receipt,
@@ -144,7 +145,8 @@ function completeDelivery(cwd, config, session, categories = [], decisionsRecord
   assertDeliveryNotWithdrawn(cwd, session.shipping?.approval);
   const pushed = deliver(cwd, savedCommit, session.shipping ? session.shipping.target : shippingTarget(cwd, config));
   const deploymentConfig = session.shipping?.deployment;
-  const updated = { ...markSynced(session), delivery: pushed ? "remote" : "local", ...(deploymentConfig ? { status: "delivered", deployment: { status: "pending", config: deploymentConfig } } : {}) };
+  const deliveredSession = { ...markSynced(session), delivery: pushed ? "remote" : "local", ...(deploymentConfig ? { status: "delivered", deployment: { status: "pending", config: deploymentConfig } } : {}) };
+  const { session: updated, offer } = releaseFollowup(deliveredSession);
   // History represents completed operations. Recovery after a push reuses the commit.
   recordConcern(cwd, session, { outcome: "saved", commit: savedCommit, trailers: session.shipping?.trailers ?? {} });
   writeSession(cwd, updated);
@@ -157,9 +159,10 @@ function completeDelivery(cwd, config, session, categories = [], decisionsRecord
         ? pushed ? "Saved and sent to the shared copy of the project." : "Saved locally."
         : `Committed ${savedCommit.slice(0, 10)} on ${branchName(cwd)}${pushed ? " and confirmed delivery." : " (local work)."}`,
       milestone?.message ?? "",
+      offer?.question ?? "",
     ].filter(Boolean).join(" "),
-    agent: deploymentConfig ? `Saved as ${savedCommit}. Deployment is pending: run ${CLI} deploy and verify the live result before reporting completion.` : `Saved as ${savedCommit}. The session is complete; open the next concern with ${CLI} begin.`,
-    data: { commit: savedCommit, pushed, delivery: updated.delivery, status: updated.status, categories, trailers: session.shipping?.trailers ?? {}, decisionsRecorded },
+    agent: deploymentConfig ? `Saved as ${savedCommit}. Deployment is pending: run ${CLI} deploy and verify the live result before reporting completion.` : `Saved as ${savedCommit}. The session is complete. ${offer ? RELEASE_GUIDANCE : ""} Open the next concern with ${CLI} begin.`,
+    data: { releaseOffer: offer, commit: savedCommit, pushed, delivery: updated.delivery, status: updated.status, categories, trailers: session.shipping?.trailers ?? {}, decisionsRecorded },
   });
 }
 
