@@ -157,6 +157,20 @@ screen sizes, reviews the code, fixes problems, and runs the final checks. Then:
 You approve in your own words. The agent saves and confirms delivery. In Through
 delivery mode it continues without that question, then reports the verified result.
 
+## Release when you want to
+
+After delivery is complete—including deployment verification when configured—the
+agent adds one optional question in every autonomy mode:
+
+> Run the release process? Say “yes” and I’ll follow this project’s release playbook, including publication if it calls for it.
+
+Ignore it or say no: the task remains complete, with no reminders. Say yes: the
+agent reads and executes your project's release playbook, including versioning,
+release notes, checks, and publication where authorized. Any explicitly required
+separate approval still applies. If no playbook exists, it investigates existing
+conventions and clarifies the missing procedure before publishing. It never treats
+autonomous mode as permission to start an optional release.
+
 ## Who it is for
 
 - **Founders and operators without an engineering background** who run their product through an

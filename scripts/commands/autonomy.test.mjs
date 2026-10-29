@@ -58,8 +58,11 @@ test("new and existing installations default to final approval, including trivia
       await finish(cwd);
       assert.equal((await cli(cwd, "next")).data.step, "await-approval");
       assert.equal((await runCli(["ship", "Document the helpful note"], { cwd })).code, 1);
-      await cli(cwd, "ship", "Document the helpful note", "--approval-quote", "ship it");
+      const shipped = await cli(cwd, "ship", "Document the helpful note", "--approval-quote", "ship it");
       assert.equal(readSession(cwd).status, "synced");
+      assert.equal(shipped.data.releaseOffer.commit, readSession(cwd).savedCommit);
+      assert.ok(shipped.operator.includes(shipped.data.releaseOffer.question));
+      assert.equal((await cli(cwd, "next")).data.step, "begin", "ignoring a release offer never blocks new work");
     } finally { cleanup(cwd); }
   }
 });
@@ -71,7 +74,11 @@ test("autonomous mode ships without inventing operator approval and task overrid
     await cli(cwd, "autonomy", "autonomous", "--instruction", "Just handle this through delivery");
     await finish(cwd);
     assert.equal((await cli(cwd, "next")).data.step, "ship");
-    await cli(cwd, "ship", "Document the helpful note");
+    const shipped = await cli(cwd, "ship", "Document the helpful note");
+    assert.equal(shipped.data.releaseOffer.commit, readSession(cwd).savedCommit, "autonomy still offers rather than starts a release");
+    const response = decide("UserPromptSubmit", { prompt: "yes" }, cwd);
+    assert.match(response.hookSpecificOutput.additionalContext, /release.md/);
+    assert.equal(readSession(cwd).status, "synced", "a reply supplies guidance, not an automatic publication side effect");
     const message = git(cwd, "log", "-1", "--format=%B");
     assert.match(message, /Approval-Evidence: autonomy-policy/);
     assert.doesNotMatch(message, /Operator-Approval:/);
@@ -150,13 +157,16 @@ test("deployment verifies the delivered revision and recovery does not redeploy 
     await cli(cwd, "ship", "Document the helpful note");
     const savedCommit = readSession(cwd).savedCommit;
     assert.equal((await cli(cwd, "next")).data.step, "deploy");
+    assert.equal(readSession(cwd).releaseOffer, undefined, "do not offer while deployment is pending");
     assert.equal((await runCli(["begin", "Start another task"], { cwd })).code, 1);
     assert.equal((await runCli(["deploy"], { cwd })).code, 1);
     assert.equal(readSession(cwd).status, "delivered");
     assert.equal(readFileSync(join(cwd, ".git/live-revision"), "utf8"), savedCommit);
     assert.equal((await runCli(["deploy"], { cwd })).code, 1);
     writeFiles(cwd, { ".git/healthy": "yes" });
-    await cli(cwd, "deploy");
+    const deployed = await cli(cwd, "deploy");
+    assert.equal(deployed.data.releaseOffer.commit, savedCommit);
+    assert.ok(deployed.operator.includes(deployed.data.releaseOffer.question));
     assert.equal(readSession(cwd).status, "synced");
     assert.equal(readSession(cwd).deployment.status, "verified");
     assert.equal(git(cwd, "rev-parse", "HEAD"), savedCommit);

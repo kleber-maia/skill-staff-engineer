@@ -1,5 +1,7 @@
 # Changelog
 
+- **0.11.0** Completed tasks offer the project’s release process once, after confirmed delivery and any configured deployment. Ignoring or declining leaves the task complete; a clear yes routes the agent through the project’s release playbook, retaining separate publication approvals. Failed deliveries never offer a release.
+
 - **0.10.0** **breaking:** Final approval now defaults on new and existing installs.
   Adds conversational Guided / Final approval / Through delivery modes, visible
   task-start notices, task overrides and remembered preferences, pause/resume,

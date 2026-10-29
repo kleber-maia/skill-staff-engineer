@@ -85,7 +85,11 @@ function userPromptSubmit(config, session, root, payload) {
     session = { ...session, autonomy: { ...session.autonomy, mode: session.autonomy?.mode ?? "final-approval", paused: true } };
     writeSession(root, session);
   }
-  if (!session && !hasPendingToolkitSave(root)) return null;
+  if (!session && !hasPendingToolkitSave(root)) {
+    const completed = readSession(root);
+    if (completed?.status === "synced" && completed.releaseOffer) return { hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: `The previous task is complete. A release process was offered for ${completed.releaseOffer.commit}. If this reply clearly accepts that offer, read .agents/skills/staff-engineer/release.md and execute the project's playbook with its approval rules. Otherwise address the current request. Do not repeat the offer or treat silence as consent.` } };
+    return null;
+  }
   const next = nextStep({ cwd: root, config, session, quick: true });
   const lines = [session ? `staff-engineer: concern "${session.concern}" (${session.lane ?? "standard"} lane).` : "staff-engineer: toolkit save pending.", renderNext(next)];
   if (next.waitFor === "operator") lines.push("This message is the operator's reply: decide whether it is clear approval, a change request, or a question before acting.");

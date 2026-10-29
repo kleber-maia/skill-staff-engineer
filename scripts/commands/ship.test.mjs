@@ -52,6 +52,7 @@ test("failed push leaves a saved session that sync-only can recover", async () =
     assert.equal(result.code, 2, result.stderr || result.stdout);
     const session = JSON.parse(readFileSync(join(dir, ".git", "staff-engineer", "session.json"), "utf8"));
     assert.equal(session.status, "saved");
+    assert.equal(session.releaseOffer, undefined, "failed delivery does not offer a release");
     assert.equal(session.savedCommit, git(dir, "rev-parse", "HEAD"));
 
     git(remote, "init", "--bare", "--quiet");
@@ -59,6 +60,8 @@ test("failed push leaves a saved session that sync-only can recover", async () =
     result = await runCli(["ship", "--sync-only", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr || result.stdout);
     assert.equal(result.json.data.status, "synced");
+    assert.equal(result.json.data.releaseOffer.commit, session.savedCommit);
+    assert.ok(result.json.operator.includes(result.json.data.releaseOffer.question));
   } finally {
     cleanup(dir);
     cleanup(remote);

@@ -106,3 +106,8 @@ If delivery fails, keep the save pending and run `ship --sync-only` when the des
 
 When `ship` reports deployment pending, run `deploy` and verify the live revision
 before reporting the task complete. Git delivery alone is not deployment.
+
+Once delivery is complete, include the optional release question returned by `ship`
+or `deploy`. Silence or no leaves the task complete; do not remind the operator.
+For a clear yes, follow the main skill's [release playbook guidance](../staff-engineer/release.md).
+Publication is included only as described by that playbook and its approval rules.

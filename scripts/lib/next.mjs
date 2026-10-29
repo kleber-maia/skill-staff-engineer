@@ -27,6 +27,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
     return step("begin", {
       command: `${CLI} begin "<short concern>" --lane <trivial|standard|large>`,
       guidance: [
+        session?.releaseOffer ? "The last task is complete. If the operator clearly said yes to its release question, follow .agents/skills/staff-engineer/release.md instead of opening a product concern. Otherwise continue with the new request; never repeat the release question or wait for its answer." : "",
         "Pick the lane from the request:",
         `- trivial: an obvious, low-risk change (copy, a style tweak, a one-line fix) within ${config.rules.lanes.trivial.maxSourceFiles} source files and ${config.rules.lanes.trivial.maxAddedLines} added lines, no data or security impact. One review with the operator.`,
         "- standard: anything else of normal size.",

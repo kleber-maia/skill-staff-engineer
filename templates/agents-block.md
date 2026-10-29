@@ -34,6 +34,9 @@ skills guide the work between them. Before changing anything, read `.agents/skil
   and recorded autonomy authorization to `ship` without another question.
 - Follow `next` through confirmed delivery and any configured `deploy`. Verify the
   delivered revision is live before reporting deployment complete.
+- After completed delivery, relay the optional release question once. Ignoring it or
+  saying no leaves the task complete. A clear yes starts the project's release playbook;
+  read `.agents/skills/staff-engineer/release.md` and retain any separate approvals.
 - Test value is a contract: name the failure, prove state transitions, and inventory unique
   coverage before removing tests. Follow the `solid` skill; never pad tests to satisfy a gate.
 - Never bypass a failed gate. Never stage secrets, environment files, logs, or generated output.
