@@ -1,6 +1,6 @@
 {
   "name": "staff-engineer",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "description": "A cooperative staff-engineer workflow: clarify, build, visually verify, review sized to risk, and deliver with conversational autonomy and final approval by default. Stack-agnostic, zero dependencies.",
   "author": {
     "name": "Kleber Maia"

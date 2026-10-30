@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chmodSync, readFileSync, symlinkSync } from "node:fs";
+import { readFileSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 
 import { readJson } from "../lib/fs-safe.mjs";
@@ -72,7 +72,9 @@ test("renaming source into documentation and executable or symbolic-link prose r
       if (kind === "rename") git(dir, "mv", "src/app.mjs", "docs/app.md");
       if (kind === "mode") {
         writeFiles(dir, { "docs/guide.md": "# Updated\n" });
-        chmodSync(join(dir, "docs/guide.md"), 0o755);
+        git(dir, "add", "docs/guide.md");
+        git(dir, "update-index", "--chmod=+x", "--", "docs/guide.md");
+        assert.match(git(dir, "ls-files", "--stage", "--", "docs/guide.md"), /^100755 /);
       }
       if (kind === "symlink") symlinkSync("../src/app.mjs", join(dir, "docs/linked.md"));
       if (kind === "dangling symlink") symlinkSync("missing.md", join(dir, "docs/linked.md"));
