@@ -1,5 +1,7 @@
 # Changelog
 
+- **0.11.1** Pure documentation changes receive built-in whitespace, newline, local-link and source-line checks without running app tests or builds. Documentation receipts bind to the checked text; mixed, executable, configuration, security and workflow changes retain normal gates. Renames, unstaged changes and symlinks cannot turn code changes into documentation-only verification. Approval controls are unchanged.
+
 - **0.11.0** Completed tasks offer the project’s release process once, after confirmed delivery and any configured deployment. Ignoring or declining leaves the task complete; a clear yes routes the agent through the project’s release playbook, retaining separate publication approvals. Failed deliveries never offer a release.
 
 - **0.10.0** **breaking:** Final approval now defaults on new and existing installs.

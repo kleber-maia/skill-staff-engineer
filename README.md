@@ -61,6 +61,14 @@ to choose again at the start of every task. You can steer whenever you need to.
 
 ### Verification and cost
 
+Pure documentation changes use built-in whitespace, newline, local Markdown-link
+and source-line checks. They do not launch the application, its tests or its build.
+Selection examines the entire index and working tree; code, configuration,
+executable files, agent instructions, security/operational guidance and mixed or
+uncertain changes retain the configured project gates. A documentation receipt
+covers the exact checked text and cannot authorize later code changes. Approval
+and guarded-save requirements stay the same. See [verification](commands/verify.md).
+
 Final approval and Through delivery require the agent to exercise acceptance
 criteria and inspect affected visuals itself. A passing test suite, a reachable
 page, or an uninspected screenshot is not enough. If a required capability is

@@ -14,13 +14,16 @@ export function isDocsFile(config, file) {
   return matchesAny(file, config.paths.docs);
 }
 
-// Full-verification receipts deliberately ignore prose while still fingerprinting
-// executable toolkit assets, rules, markers, and configuration.
+// Only conventional prose is eligible for documentation verification. Instructions,
+// security policy and operational files remain inputs even when written in Markdown.
 export function isVerificationDocumentation(config, file) {
-  return file === "AGENTS.md"
-    || file === "CLAUDE.md"
-    || /^\.agents\/skills\/[^/]+\/agents\/openai\.ya?ml$/i.test(file)
-    || (isDocsFile(config, file) && /\.(?:md|adoc|rst|txt)$/i.test(file));
+  if (!isDocsFile(config, file) || isToolkitPath(file) || isTestFile(config, file) || isProtected(config, file) || isNeverStage(config, file) || isGenerated(config, file)
+      || isDocumentable(config, file) || matchesAny(file, config.paths.source ?? [])
+      || !/\.(?:md|adoc|rst|txt)$/i.test(file)) return false;
+  const parts = file.split("/");
+  if (parts.some(part => part.startsWith(".") || /^(?:agents|claude|skill|security|privacy|policy|workflow|deployment|development|operations|runbook|contributing)(?:[.-]|$)/i.test(part))) return false;
+  return /^(?:docs?|documentation)\//i.test(file)
+    || (parts.length === 1 && /^(?:readme|changelog|changes|history|faq)(?:[.-]|$)/i.test(file));
 }
 
 export function isDocumentable(config, file) {

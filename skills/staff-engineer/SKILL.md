@@ -187,9 +187,11 @@ conditions, negative replies, and later feedback invalidate earlier approval.
   `data-safety`.
 - Never run mutating tests against real data. Never delete data without a dry run and
   explicit confirmation.
-- Run the full check once on the final staged batch. Prose-only documentation and skill
-  edits keep the receipt valid; any executable, test, rule, config, or dependency change
-  needs another run.
+- Run the full check once on the final staged batch. Pure conventional prose gets
+  built-in documentation checks without app tests, builds or runtime. Documentation
+  receipts require rechecking edited text. Code and mixed batches retain project gates;
+  executable, test, rule, config, dependency, agent-instruction, security and workflow
+  changes require their normal verification. Ordinary prose can preserve a full code receipt.
 - A test that fails alone but passes in the suite has a setup or ordering bug. Fix the
   setup; never add retries, sleeps, or skips.
 - Fix failed gates. Never bypass, weaken, or comment them out.

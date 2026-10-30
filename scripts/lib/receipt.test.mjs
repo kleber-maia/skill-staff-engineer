@@ -111,7 +111,7 @@ test("receipt counts executable and configuration files inside documentation pat
   }
 });
 
-test("prose docs and skill guidance preserve a matching receipt", () => {
+test("ordinary prose preserves a full receipt but workflow guidance invalidates it", () => {
   const dir = makeTempRepo({ files: {
     "README.md": "# Demo\n",
     "AGENTS.md": "# Rules\n",
@@ -125,14 +125,16 @@ test("prose docs and skill guidance preserve a matching receipt", () => {
     git(dir, "add", "src/app.mjs");
     const receipt = passedReceipt(dir, config);
 
-    writeFiles(dir, {
-      "README.md": "# Demo updated\n",
-      "AGENTS.md": "# Rules updated\n",
-      ".agents/skills/solid/SKILL.md": "# Solid updated\n",
-      ".agents/skills/solid/agents/openai.yaml": "description: updated solid\n",
-    });
-    git(dir, "add", "README.md", "AGENTS.md", ".agents/skills/solid/SKILL.md", ".agents/skills/solid/agents/openai.yaml");
+    writeFiles(dir, { "README.md": "# Demo updated\n" });
+    git(dir, "add", "README.md");
     assert.equal(receiptMatches(receipt, dir, config, "staged"), true);
+
+    for (const file of ["AGENTS.md", ".agents/skills/solid/SKILL.md", ".agents/skills/solid/agents/openai.yaml"]) {
+      const before = passedReceipt(dir, config);
+      writeFiles(dir, { [file]: "Changed workflow guidance\n" });
+      git(dir, "add", file);
+      assert.equal(receiptMatches(before, dir, config, "staged"), false, file);
+    }
 
     writeFiles(dir, { ".agents/skills/solid/.staff-engineer-owned": "0.2.3\n" });
     git(dir, "add", ".agents/skills/solid/.staff-engineer-owned");

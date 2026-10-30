@@ -7,9 +7,9 @@ import { join } from "node:path";
 
 import { dirtyFiles, head, stagedEntry, stagedFiles, stateDir, workingTreeEntry } from "./git.mjs";
 import { readJson, writeJson } from "./fs-safe.mjs";
-import { isVerificationDocumentation } from "./paths.mjs";
+import { documentationFiles, isPlainDocumentationFile, verificationFiles } from "./documentation.mjs";
 
-export const RECEIPT_VERSION = 2;
+export const RECEIPT_VERSION = 3;
 
 export function receiptPath(cwd, mode = "full") {
   return join(stateDir(cwd), "verify", `latest-${mode}.json`);
@@ -25,10 +25,6 @@ export function writeReceipt(cwd, receipt) {
   return receipt;
 }
 
-function countsForReceipt(config, file) {
-  return !isVerificationDocumentation(config, file);
-}
-
 // "working": fingerprint dirty files as they are on disk (verification time).
 // "staged": fingerprint staged files from the index (ship time).
 export function batchFingerprint(cwd, mode = "working", selectedFiles = null) {
@@ -42,12 +38,25 @@ export function batchFingerprint(cwd, mode = "working", selectedFiles = null) {
 }
 
 export function codeTreeFingerprint(cwd, config, mode = "working") {
-  const files = (mode === "staged" ? stagedFiles(cwd) : dirtyFiles(cwd)).filter((file) => countsForReceipt(config, file));
+  const files = verificationFiles(cwd, mode).filter(file => !isPlainDocumentationFile(cwd, config, file));
   return batchFingerprint(cwd, mode, files);
 }
 
 export function receiptMatches(receipt, cwd, config, mode = "staged") {
   if (!receipt || receipt.version !== RECEIPT_VERSION || receipt.status !== "passed") return false;
   if (receipt.headCommit !== head(cwd)) return false;
-  return codeTreeFingerprint(cwd, config, mode).digest === receipt.codeTree;
+  if (receipt.scope === "documentation") {
+    const files = documentationFiles(cwd, config);
+    if (!files || batchFingerprint(cwd, "working", files).digest !== receipt.documentationTree) return false;
+    const selected = mode === "staged" ? stagedFiles(cwd) : files;
+    if (batchFingerprint(cwd, mode, selected).digest !== batchFingerprint(cwd, "working", selected).digest) return false;
+  }
+  return checkedCodeTreeMatches(cwd, config, receipt.codeTree, mode);
+}
+
+// A receipt covers the full working context and the exact bytes staged to save.
+export function checkedCodeTreeMatches(cwd, config, checkedDigest, mode = "staged") {
+  if (codeTreeFingerprint(cwd, config, "working").digest !== checkedDigest) return false;
+  const batch = codeTreeFingerprint(cwd, config, mode);
+  return batch.digest === batchFingerprint(cwd, "working", batch.files).digest;
 }

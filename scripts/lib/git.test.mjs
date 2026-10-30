@@ -25,7 +25,7 @@ test("git paths with spaces and Unicode remain exact in status, diffs, and recei
 
     const fingerprint = codeTreeFingerprint(dir, config, "staged");
     const receipt = { version: RECEIPT_VERSION, status: "passed", headCommit: git(dir, "rev-parse", "HEAD"), codeTree: fingerprint.digest };
-    assert.deepEqual(fingerprint.files, [renamed]);
+    assert.deepEqual(fingerprint.files, [original, renamed].sort(), "verification retains the removed side of a rename");
     assert.equal(receiptMatches(receipt, dir, config, "staged"), true);
 
     writeFiles(dir, { [renamed]: "export const value = 'broken';\n" });

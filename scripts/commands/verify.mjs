@@ -9,7 +9,8 @@ import { ensureDir, readJson, timestamp, writeJson } from "../lib/fs-safe.mjs";
 import { head, stateDir } from "../lib/git.mjs";
 import { failed, ok, refused, tooling } from "../lib/output.mjs";
 import { classify } from "../lib/paths.mjs";
-import { codeTreeFingerprint, RECEIPT_VERSION, writeReceipt } from "../lib/receipt.mjs";
+import { batchFingerprint, codeTreeFingerprint, RECEIPT_VERSION, writeReceipt } from "../lib/receipt.mjs";
+import { checkDocumentation, documentationFiles } from "../lib/documentation.mjs";
 import { CLI, readSession, requireFinalizing, sessionConcernFiles } from "../lib/session.mjs";
 import { estimateSentence, recordTimings, slownessWarnings, typicalDurations } from "../lib/timings.mjs";
 
@@ -35,9 +36,13 @@ export default async function run({ cwd, flags, env = process.env }) {
     const startedAt = Date.now();
     const concernFiles = active ? sessionConcernFiles(active, cwd) : [];
     const results = [];
-    const pendingReceipt = { version: RECEIPT_VERSION, mode, status: "running", at: new Date().toISOString(), headCommit: head(cwd), gates: [] };
+    const docs = documentationFiles(cwd, config);
+    const scope = docs ? "documentation" : "code";
+    const gates = docs ? [] : MODES[mode].gates;
+    const initialDocs = docs ? batchFingerprint(cwd, "working", docs) : null;
+    const pendingReceipt = { version: RECEIPT_VERSION, mode, scope, status: "running", at: new Date().toISOString(), headCommit: head(cwd), gates: [] };
     writeJson(join(verifyDir, `latest-${mode}.json`), pendingReceipt);
-    const unknown = MODES[mode].gates.filter((name) => gateStatus(config, name) === "unknown");
+    const unknown = gates.filter((name) => gateStatus(config, name) === "unknown");
     if (unknown.length) {
       throw tooling(`Some checks are not configured yet: ${unknown.join(", ")}.`, {
         agent: `Run ${CLI} doctor, ask the operator the listed questions, and record answers with ${CLI} config set gates.<name>.cmd "..." (or null when not applicable).`,
@@ -46,7 +51,8 @@ export default async function run({ cwd, flags, env = process.env }) {
     const initialFingerprint = codeTreeFingerprint(cwd, config, "working");
     const initialHead = head(cwd);
     let inputChange = null;
-    for (const name of MODES[mode].gates) {
+    if (docs) results.push(checkDocumentation(cwd, docs, config));
+    for (const name of gates) {
       const gate = config.gates[name];
       if (gate === null) {
         results.push({ name, status: "skipped", reason: "not applicable", durationMs: 0 });
@@ -92,7 +98,9 @@ export default async function run({ cwd, flags, env = process.env }) {
     }
 
     const finalFingerprint = codeTreeFingerprint(cwd, config, "working");
-    if (head(cwd) !== initialHead || finalFingerprint.digest !== initialFingerprint.digest) {
+    const finalDocs = docs ? documentationFiles(cwd, config) : null;
+    if (head(cwd) !== initialHead || finalFingerprint.digest !== initialFingerprint.digest
+        || (docs && (!finalDocs || batchFingerprint(cwd, "working", finalDocs).digest !== initialDocs.digest))) {
       writeJson(join(verifyDir, `latest-${mode}.json`), { ...pendingReceipt, status: "failed", at: new Date().toISOString(), reason: "inputs-changed", gates: strip(results), log: logPath });
       throw failed("A verification command changed the files being checked.", {
         errors: ["Verification inputs changed while the checks were running."],
@@ -100,12 +108,12 @@ export default async function run({ cwd, flags, env = process.env }) {
         data: { mode, before: initialFingerprint.files, after: finalFingerprint.files, results: strip(results), log: logPath },
       });
     }
-    const receipt = { version: RECEIPT_VERSION, mode, status: "passed", at: new Date().toISOString(), headCommit: head(cwd), codeTree: initialFingerprint.digest, codeFiles: initialFingerprint.files, gates: strip(results), durationMs, log: logPath, slow };
+    const receipt = { version: RECEIPT_VERSION, mode, scope, documentationTree: initialDocs?.digest, status: "passed", at: new Date().toISOString(), headCommit: head(cwd), codeTree: initialFingerprint.digest, codeFiles: initialFingerprint.files, gates: strip(results), durationMs, log: logPath, slow };
     writeReceipt(cwd, receipt);
     const ran = results.filter((entry) => entry.status === "passed").length;
     return ok({
       operator: `All checks passed (${ran} check${ran === 1 ? "" : "s"}, ${formatDuration(durationMs)}).`,
-      agent: [summary, ...slow.map((warning) => `Slower than usual: ${warning}`), estimateSentence(typical, mode) ?? "", mode === "full" ? "Receipt written; prose-only edits keep it valid, while executable, rule, dependency, or configuration edits require one more full check." : "Fast check only; run --mode full once on the final staged batch."].filter(Boolean).join("\n"),
+      agent: [summary, ...slow.map((warning) => `Slower than usual: ${warning}`), estimateSentence(typical, mode) ?? "", mode === "full" ? docs ? "Documentation receipt written. Recheck changed documentation; code, configuration and workflow changes require their normal gates." : "Receipt written; ordinary prose edits keep it valid, while executable, rule, dependency, configuration and workflow edits require one more full check." : "Fast check only; run --mode full once on the final staged batch."].filter(Boolean).join("\n"),
       data: receipt,
     });
   } catch (error) {

@@ -16,19 +16,32 @@ test("documentable paths take precedence over fallback and explicit source globs
   assert.equal(isProductSource(config, "src/app.mjs"), true);
 });
 
+test("configured source and operational overlaps never become verification documentation", () => {
+  const config = defaultConfig();
+  config.paths.source = ["docs/source.md"];
+  config.paths.documentable.push("docs/release.md");
+  assert.equal(isVerificationDocumentation(config, "docs/source.md"), false);
+  assert.equal(isVerificationDocumentation(config, "docs/release.md"), false);
+  assert.equal(isVerificationDocumentation(config, "docs/guide.md"), true);
+});
+
 test("verification documentation excludes prose without exempting toolkit runtime or metadata", () => {
   const config = defaultConfig();
   for (const file of [
     "README.md",
     "docs/lifecycle.md",
+  ]) assert.equal(isVerificationDocumentation(config, file), true, file);
+
+  for (const file of [
     "AGENTS.md",
     "CLAUDE.md",
     ".agents/skills/solid/SKILL.md",
     ".agents/skills/solid/agents/openai.yaml",
     ".staff-engineer/templates/agents-block.md",
-  ]) assert.equal(isVerificationDocumentation(config, file), true, file);
-
-  for (const file of [
+    "docs/security.md",
+    "docs/development.md",
+    ".github/workflows/README.md",
+    "src/README.md",
     ".staff-engineer/cli.mjs",
     ".staff-engineer/lib/session.mjs",
     ".staff-engineer/config.json",

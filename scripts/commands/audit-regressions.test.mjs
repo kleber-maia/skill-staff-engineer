@@ -259,16 +259,18 @@ test("a plain negative reply withdraws pending delivery while retry requests pre
   } finally { cleanup(cwd); }
 });
 
-test("changing trivial prose invalidates approval; changing handoff prose needs a new handoff without rerunning tests", async () => {
+test("changing prose needs fresh documentation checks and retains preview or handoff approval", async () => {
   for (const lane of ["trivial", "standard"]) {
     const cwd = await setup();
     try {
       await acceptedDocs(cwd, lane);
       writeFiles(cwd, { "README.md": "# A different result\n" }); git(cwd, "add", "README.md");
-      assert.equal(receiptMatches(readReceipt(cwd), cwd, loadConfig(cwd)), true);
+      assert.equal(receiptMatches(readReceipt(cwd), cwd, loadConfig(cwd)), false);
       const result = await runCli(["ship", "Replace the project note", "--approval-quote", "ship it", "--json"], { cwd });
       assert.equal(result.code, 1);
       if (lane === "standard") {
+        await cli(cwd, "verify", "--mode", "full");
+        assert.equal(readReceipt(cwd).scope, "documentation");
         assert.equal((await cli(cwd, "next")).data.step, "handoff");
         await cli(cwd, "handoff");
         await cli(cwd, "ship", "Replace the project note", "--approval-quote", "ship it");
