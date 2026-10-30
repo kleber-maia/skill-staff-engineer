@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { chmodSync, readFileSync, renameSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 
 import { cleanup, commitAll, git, installInto, makeTempDir, makeTempRepo, runCli, writeFiles } from "../lib/test-helpers.mjs";
@@ -310,8 +310,11 @@ test("shell guards cover Git global options and ordinary mutations while feedbac
 });
 
 test("installed hooks run from a nested working directory", async () => {
-  const cwd = await setup({ "README.md": "# Demo\n", "src/app.mjs": "export const a = 1;\n" });
+  let cwd = await setup({ "README.md": "# Demo\n", "src/app.mjs": "export const a = 1;\n" });
   try {
+    const moved = `${cwd} with spaces`;
+    renameSync(cwd, moved);
+    cwd = moved;
     await cli(cwd, "begin", "Guard nested directory");
     const command = withClaudeHooks({}).hooks.PreToolUse[0].hooks[0].command;
     const result = spawnSync(command, { cwd: join(cwd, "src"), shell: true, env: { ...process.env, CLAUDE_PROJECT_DIR: cwd }, input: JSON.stringify({ cwd: join(cwd, "src"), tool_name: "Bash", tool_input: { command: "git -C .. commit -m example" } }), encoding: "utf8" });
@@ -340,7 +343,9 @@ test("mode changes invalidate verification and symlinks hash their link text", a
   try {
     writeFiles(cwd, { "scripts/run.mjs": "export const value = 1;\n" }); git(cwd, "add", "scripts/run.mjs");
     await cli(cwd, "verify", "--mode", "full");
-    chmodSync(join(cwd, "scripts/run.mjs"), 0o755); git(cwd, "add", "scripts/run.mjs");
+    git(cwd, "update-index", "--chmod=+x", "--", "scripts/run.mjs");
+    chmodSync(join(cwd, "scripts/run.mjs"), 0o755);
+    assert.equal(stagedEntry("scripts/run.mjs", cwd).mode, "100755");
     assert.equal(receiptMatches(readReceipt(cwd), cwd, loadConfig(cwd)), false);
     symlinkSync("README.md", join(cwd, "link.mjs")); git(cwd, "add", "link.mjs");
     assert.equal(batchFingerprint(cwd, "working").digest, batchFingerprint(cwd, "staged").digest);
@@ -368,7 +373,8 @@ test("toolkit saves only managed portions while preserving unrelated staged and 
     const original = readFileSync(path, "utf8");
     const changed = upsertBlock(original.replace("Operator original", "Operator staged"), "staff-engineer", "Updated toolkit instructions.").text;
     writeFiles(cwd, { "AGENTS.md": changed }); git(cwd, "add", "AGENTS.md");
-    chmodSync(path, 0o755); git(cwd, "add", "AGENTS.md");
+    git(cwd, "update-index", "--chmod=+x", "--", "AGENTS.md");
+    assert.equal(stagedEntry("AGENTS.md", cwd).mode, "100755");
     writeFiles(cwd, { "AGENTS.md": `${changed}\nOperator unstaged instructions.\n`, "other.md": "unrelated staged work\n" }); git(cwd, "add", "other.md");
     const saved = saveToolkit(cwd, "Update toolkit instructions");
     const committed = git(cwd, "show", "HEAD:AGENTS.md");

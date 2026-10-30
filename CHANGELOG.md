@@ -1,6 +1,6 @@
 # Changelog
 
-- **0.11.2** Check executable documentation test cases through Git's index mode so the regression test works on Windows, where filesystem chmod does not set Git's executable bit.
+- **0.11.2** Run installed Claude hooks from nested directories across Windows and POSIX shells, safely copy ignored dependencies on Windows Node 20, and check executable test cases through Git's index mode where filesystem chmod does not set Git's executable bit.
 
 - **0.11.1** Pure documentation changes receive built-in whitespace, newline, local-link and source-line checks without running app tests or builds. Documentation receipts bind to the checked text; mixed, executable, configuration, security and workflow changes retain normal gates. Renames, unstaged changes and symlinks cannot turn code changes into documentation-only verification. Approval controls are unchanged.
 

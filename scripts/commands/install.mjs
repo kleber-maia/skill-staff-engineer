@@ -262,14 +262,16 @@ function missingGateQuestions(config) {
 export function withClaudeHooks(settings) {
   const next = structuredClone(settings);
   next.hooks ??= {};
+  // Resolve the project path inside Node so the same command works in POSIX shells and cmd.exe.
+  const hook = (file) => `node -e "import(require('node:url').pathToFileURL(require('node:path').join(process.env.CLAUDE_PROJECT_DIR,'${TOOLKIT_DIR}/hooks/${file}')).href)"`;
   const entries = {
-    SessionStart: [{ hooks: [{ type: "command", command: `node "\${CLAUDE_PROJECT_DIR}/${TOOLKIT_DIR}/hooks/session-start.mjs"`, timeout: 10 }] }],
-    UserPromptSubmit: [{ hooks: [{ type: "command", command: `node "\${CLAUDE_PROJECT_DIR}/${TOOLKIT_DIR}/hooks/user-prompt-submit.mjs"`, timeout: 10 }] }],
+    SessionStart: [{ hooks: [{ type: "command", command: hook("session-start.mjs"), timeout: 10 }] }],
+    UserPromptSubmit: [{ hooks: [{ type: "command", command: hook("user-prompt-submit.mjs"), timeout: 10 }] }],
     PreToolUse: [
-      { matcher: "Bash", hooks: [{ type: "command", command: `node "\${CLAUDE_PROJECT_DIR}/${TOOLKIT_DIR}/hooks/pre-tool-use.mjs"`, timeout: 10 }] },
-      { matcher: "Edit|Write|MultiEdit|NotebookEdit", hooks: [{ type: "command", command: `node "\${CLAUDE_PROJECT_DIR}/${TOOLKIT_DIR}/hooks/pre-tool-use.mjs"`, timeout: 10 }] },
+      { matcher: "Bash", hooks: [{ type: "command", command: hook("pre-tool-use.mjs"), timeout: 10 }] },
+      { matcher: "Edit|Write|MultiEdit|NotebookEdit", hooks: [{ type: "command", command: hook("pre-tool-use.mjs"), timeout: 10 }] },
     ],
-    Stop: [{ hooks: [{ type: "command", command: `node "\${CLAUDE_PROJECT_DIR}/${TOOLKIT_DIR}/hooks/stop.mjs"`, timeout: 10 }] }],
+    Stop: [{ hooks: [{ type: "command", command: hook("stop.mjs"), timeout: 10 }] }],
   };
   for (const [event, ours] of Object.entries(entries)) {
     const existing = Array.isArray(next.hooks[event]) ? next.hooks[event] : [];

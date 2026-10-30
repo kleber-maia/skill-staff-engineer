@@ -57,11 +57,11 @@ function copyDependencies(cwd, dir, config) {
     const source = join(cwd, name);
     if (!existsSync(source) || lstatSync(source).isSymbolicLink() || !lstatSync(source).isDirectory()) continue;
     if (!output("git", ["check-ignore", "--", name], { cwd, allowFailure: true })) continue;
-    const canonicalSource = realpathSync(source);
+    const canonicalSource = realpathSync.native(source);
     cpSync(source, join(dir, name), { recursive: true, dereference: true, filter: (path) => {
       const rel = relative(cwd, path).replaceAll("\\", "/");
       let canonical;
-      try { canonical = realpathSync(path); } catch (error) { if (error.code === "ENOENT") return false; throw error; }
+      try { canonical = realpathSync.native(path); } catch (error) { if (error.code === "ENOENT") return false; throw error; }
       const target = relative(canonicalSource, canonical);
       return !target.startsWith("..") && !isAbsolute(target) && !isProtected(config, rel) && !isNeverStage(config, rel);
     } });
