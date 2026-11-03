@@ -1,6 +1,6 @@
 // Toolkit maintenance (install, update, uninstall) is not a concern: it never runs
 // the lifecycle, and it is saved as its own commit touching only toolkit-owned paths.
-import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { loadConfig, TOOLKIT_DIR } from "./config.mjs";
@@ -12,6 +12,17 @@ import { refused } from "./output.mjs";
 import { commitMatches, deliver, shippingTarget } from "./shipping.mjs";
 
 const SHARED = new Set(["AGENTS.md", "CLAUDE.md", ".gitignore", ".claude/settings.json"]);
+
+// The installer leaves this alias alone; AGENTS.md is already protected by the
+// update transaction. Do not include the same instructions twice through a link.
+export function sharesAgentInstructions(cwd) {
+  const claude = resolve(cwd, "CLAUDE.md");
+  const agents = resolve(cwd, "AGENTS.md");
+  return existsSync(claude) && existsSync(agents)
+    && lstatSync(claude).isSymbolicLink()
+    && !lstatSync(agents).isSymbolicLink()
+    && realpathSync(claude) === realpathSync(agents);
+}
 
 function committedText(cwd, file) {
   const hash = output("git", ["rev-parse", "--verify", `HEAD:${file}`], { cwd, allowFailure: true });

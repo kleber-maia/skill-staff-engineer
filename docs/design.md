@@ -7,7 +7,7 @@
    Optional Claude Code hooks provide earlier feedback but fail open and are not a security boundary.
 2. **One concern, one batch.** Mixed batches are how unrelated breakage ships. The session baseline
    makes sweeping in pre-existing work impossible without noticing.
-3. **Regression tests during implementation, preview before completion.** See `docs/lifecycle.md`.
+3. **Verify the working result before acceptance; prepare regression tests after acceptance.** See `docs/lifecycle.md`.
 4. **Verification and authorization are separate.** Final approval is the default for
    new and existing installs: agent acceptance evidence precedes one final operator
    approval. Autonomous delivery uses the same evidence and the selected mode's

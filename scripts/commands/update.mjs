@@ -8,7 +8,7 @@ import { loadConfig, TOOLKIT_DIR } from "../lib/config.mjs";
 import { output } from "../lib/exec.mjs";
 import { readJson, readText, writeJson } from "../lib/fs-safe.mjs";
 import { ok, refused, tooling } from "../lib/output.mjs";
-import { pendingToolkitFiles, resumeToolkitSave, saveToolkit, toolkitPaths } from "../lib/maintenance.mjs";
+import { pendingToolkitFiles, resumeToolkitSave, saveToolkit, sharesAgentInstructions, toolkitPaths } from "../lib/maintenance.mjs";
 import { readSession } from "../lib/session.mjs";
 import { getSetting } from "../lib/settings.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
@@ -119,7 +119,10 @@ export async function updateToolkit({ cwd, flags = {}, services = {} }) {
       if (!flags["dry-run"]) stabilizeRecordedSource(cwd, manifest, { explicit, injected, from, resolvedCommit });
     };
     if (flags["dry-run"]) executeInstaller();
-    else withInstallTransaction(cwd, toolkitPaths(cwd, sourceDir), executeInstaller);
+    else {
+      const targets = toolkitPaths(cwd, sourceDir).filter((path) => path !== "CLAUDE.md" || !sharesAgentInstructions(cwd));
+      withInstallTransaction(cwd, targets, executeInstaller);
+    }
     const newVersion = payload.data?.version ?? "?";
     const changed = payload.data?.changed ?? [];
     const updated = !flags["dry-run"] && (newVersion !== previousVersion || changed.length > 0);

@@ -29,7 +29,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
       guidance: [
         session?.releaseOffer ? "The last task is complete. If the operator clearly said yes to its release question, follow .agents/skills/staff-engineer/release.md instead of opening a product concern. Otherwise continue with the new request; never repeat the release question or wait for its answer." : "",
         "Pick the lane from the request:",
-        `- trivial: an obvious, low-risk change (copy, a style tweak, a one-line fix) within ${config.rules.lanes.trivial.maxSourceFiles} source files and ${config.rules.lanes.trivial.maxAddedLines} added lines, no data or security impact. One review with the operator.`,
+        `- trivial: an obvious, low-risk change (copy, a style tweak, a one-line fix) within ${config.rules.lanes.trivial.maxSourceFiles} source files and ${config.rules.lanes.trivial.maxAddedLines} added lines, no data or security impact. Review depth follows risk; approval points follow delegation.`,
         "- standard: anything else of normal size.",
         "- large: more than two areas, new data shapes, or more than a day of work.",
         "When unsure, choose standard. The lane can change later with the lane command.",
@@ -66,11 +66,9 @@ export function nextStep({ cwd, config, session, quick = false }) {
       command: `${CLI} preview`,
       skills: lane === "trivial" ? [] : readContext(cwd)?.phases?.build ?? ["solid"],
       guidance: [
-        "Build the smallest working version that satisfies the brief. Run the relevant existing checks and add a focused regression test where it helps.",
-        guided && lane === "trivial"
-          ? `For trivial work, finish tests and docs now, then run the minimum review (${CLI} review, then review done): the preview doubles as the save question, and the source must not change after the operator approves it.`
-          : guided ? "Do not review, finish docs, or run the full check yet." : "Finish focused coverage and documentation before the preview; code review and the final full check follow acceptance evidence.",
-        guided ? "Then run preview and share it with the operator." : "Then run preview, exercise the acceptance criteria, inspect affected visuals, and record acceptance evidence yourself.",
+        "Implement the smallest working version, exercise the affected behavior, and inspect actual UI evidence where applicable. Use a build or a relevant existing check when needed to establish that it works.",
+        "Show concrete evidence before investing in new regression coverage, simplification, code review, or full-suite checks. Those belong to merge preparation after acceptance in every lane.",
+        guided ? "Then run preview, share the verified evidence, ask for the operator's approval, and stop. Do not prepare for merging until they accept." : "Then run preview and record acceptance evidence yourself: the operator delegated this checkpoint. Keep the evidence available in the progress update and continue to merge preparation.",
       ].join("\n"),
     });
   }
@@ -82,8 +80,8 @@ export function nextStep({ cwd, config, session, quick = false }) {
       command: `${CLI} finalize ${QUOTE}`,
       guidance: [
         "Stop and wait for the operator's reply.",
-        `Clear acceptance ("looks good"${lane === "trivial" ? ', "ship it"' : ""}): run finalize with their words.`,
-        lane === "trivial" ? "In the trivial lane that acceptance also approves saving, as long as the entire batch stays exactly as presented." : "",
+        `Clear acceptance ("looks good"${open.presentedSource ? ', "ship it"' : ""}): run finalize with their words.`,
+        open.presentedSource ? "This legacy preview also approved saving while the entire batch stays exactly as presented." : "Feature acceptance unlocks merge preparation; approval to save follows the final handoff.",
         `A change request, question, or partial praise: run ${CLI} revise and keep building.`,
       ].filter(Boolean).join("\n"),
     });
@@ -92,6 +90,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
   // Finalizing.
   if (!guided && !quick && !acceptanceIsCurrent(cwd, config, open)) return step("revise", { command: `${CLI} revise`, guidance: "The result changed or agent evidence is missing. Refresh the preview and acceptance evidence before finishing." });
   const staged = stagedFiles(cwd);
+  // Compatibility for a preview approved before the separate preparation checkpoint.
   if (guided && lane === "trivial" && open.presentedSource && open.acceptance) {
     if (!sameFingerprint(open.presentedSource, sourceFingerprint(cwd, config, open))) {
       return step("revise", { command: `${CLI} revise`, guidance: "The source changed after the operator approved it. Return to the preview so they see the final version." });
@@ -104,7 +103,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
     }
     return step("ship", { command: `${CLI} ship "<imperative message>"`, guidance: "The operator already approved this exact version at the preview. Save it and tell them it is saved, in plain language." });
   }
-  if (quick) return step("finish", { skills: ["code-review", "handoff"], guidance: `Finish tests and docs, run the code review, stage everything, run lifecycle and verify --mode full, then handoff. Run ${CLI} next for the exact step.` });
+  if (quick) return step("finish", { skills: ["code-review", "handoff"], guidance: `Simplify the accepted implementation, add meaningful tests and affected docs, review the prepared code, stage everything, run lifecycle and verify --mode full once, then handoff. Run ${CLI} next for the exact step.` });
   if (needsReview(cwd, config, open)) return reviewStep(requiredReview(cwd, config, open).level, Boolean(open.review));
   if (open.kind === "bug" && !reproIsCurrent(cwd, config, open)) return reproStep();
   const receipt = readReceipt(cwd, "full");
@@ -112,7 +111,7 @@ export function nextStep({ cwd, config, session, quick = false }) {
     return step("finish", {
       command: `${CLI} lifecycle && ${CLI} verify --mode full`,
       guidance: [
-        "Stage the entire concern, run lifecycle and fix every finding, then run the full check once.",
+        "Stage the entire prepared concern, run lifecycle and fix every finding, then verify the final batch once, including required CI checks before merging.",
         `If fixes change code after the review, run ${CLI} review again for the delta. If they change anything the operator can see, run ${CLI} revise and preview again.`,
       ].join("\n"),
     });
@@ -148,9 +147,9 @@ function reproStep() {
 function reviewStep(level, delta = false) {
   return step("review", {
     command: `${CLI} review`,
-    skills: ["code-review"],
+    skills: ["simplify", "solid", "code-review"],
     guidance: [
-      delta ? "Code changed after the last review: review only the delta the packet shows." : "Complete the remaining test coverage and the docs that describe the change first; the review checks them too.",
+      delta ? "Code changed after the last review: review only the delta the packet shows." : "Prepare for merging: simplify the accepted implementation without changing behavior, add meaningful regression tests, and update affected docs. Then review the prepared code at the required level.",
       `Expected level: ${level}. The review command prints the packet and who reviews it. Act on the findings, then record them with review done.`,
     ].join("\n"),
   });

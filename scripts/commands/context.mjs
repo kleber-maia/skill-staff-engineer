@@ -65,7 +65,7 @@ export function buildPacket(root, config, files, { now = new Date().toISOString(
   if (new Set(files.filter((file) => kinds.get(file) === "source").map((file) => areaOf(file))).size > 2) skills.push("spec-and-plan");
   skills.push("code-review", "simplify", "handoff");
 
-  const phases = { before: ["grill-me"], build: skills.filter((name) => !["grill-me", "code-review", "simplify", "handoff", "staff-engineer"].includes(name)), finish: ["code-review"], end: ["handoff"], always: ["staff-engineer"] };
+  const phases = { before: ["grill-me"], build: skills.filter((name) => !["grill-me", "code-review", "simplify", "handoff", "staff-engineer"].includes(name)), finish: ["simplify", "solid", "code-review"], end: ["handoff"], always: ["staff-engineer"] };
   const skillEntries = skills.map((name) => {
     const path = skillPath(root, name);
     return { name, path, digest: path ? digestOf(readFileSync(join(root, path), "utf8")) : null, missing: !path };

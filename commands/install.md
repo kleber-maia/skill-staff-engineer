@@ -10,6 +10,6 @@ Read the `install` skill first. Installing is maintenance, not a concern: never 
 3. Run it for real: `node "${CLAUDE_PLUGIN_ROOT}/scripts/cli.mjs" install --target . --yes --json`
 4. Run `node .staff-engineer/cli.mjs doctor --json` and ask the operator the listed questions one at a time, in plain language. Record each answer with `node .staff-engineer/cli.mjs config set ...`. Repeat until doctor reports no questions.
 5. Ask whether to save the setup, then run `node .staff-engineer/cli.mjs save-toolkit --json`.
-6. Tell the operator in plain language what was set up and what changes for them: you will ask a few questions before building, show a working preview before finishing, review the work, and ask before saving. They never need to run anything; small fixes get a single check-in.
+6. Tell the operator in plain language what was set up and what changes for them: you will ask a few questions before building, show a working preview before finishing, review the work, and ask before saving. They never need to run anything; approval checkpoints follow their delegation preference in every lane.
 
 Arguments: $ARGUMENTS (for example `--reconfigure`, `--with-claude-hooks`, `--uninstall`).

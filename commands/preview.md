@@ -10,4 +10,4 @@ In Final approval and Through delivery, exercise the result and inspect affected
 visuals, then record `acceptance <evidence.json>` and continue with `next`; do not
 wait for operator preview acceptance.
 
-In Guided mode, send the operator line as-is (plain language, no file names or commands). Then STOP and wait for feedback. Do not continue editing while feedback is open. On change requests run `/staff-engineer:revise`, update code and regression tests, and preview again; on clear acceptance run `/staff-engineer:finalize`.
+In Guided mode, send the operator line as-is (plain language, no file names or commands). Then STOP and wait for feedback. Do not continue editing while feedback is open. On change requests run `/staff-engineer:revise`, update the working implementation and verify its behavior, and preview again; on clear acceptance run `/staff-engineer:finalize`.

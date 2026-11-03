@@ -198,16 +198,16 @@ autonomous mode as permission to start an optional release.
 
 - **Understand.** Open one concern, display its autonomy mode, read context, and record
   the outcome and acceptance criteria. Clarify material unknowns.
-- **Build and inspect.** Implement the smallest complete solution with useful tests.
+- **Build and inspect.** Implement the smallest complete solution; verify behavior and UI.
   For bugs, prove failure before the fix. Exercise the working preview and inspect
   affected visuals; record evidence for every acceptance criterion.
-- **Finish.** Review at the required level, fix findings, update docs, and run the
+- **Prepare for merging.** After acceptance, simplify, add meaningful tests, review at the required level, fix findings, update docs, and run the
   lifecycle gate and full checks. Changed work invalidates relevant evidence.
 - **Deliver.** Present one handoff for final approval, or continue under the chosen
   autonomous mode. Confirm Git delivery and any configured deployment.
 
 Each step is a CLI command the agent runs; `next` determines the next step and
-whether to wait. Guided mode preserves the earlier preview-acceptance workflow.
+whether to wait. Guided mode shows verified evidence and waits for owner approval before merge preparation in every lane. Other modes delegate that checkpoint to agent evidence. Final checks include required CI before merging; PR merges and publication still need the appropriate authority.
 Lanes control scope and review depth independently of autonomy.
 
 **Done includes delivery.** Once authorized, the agent commits the verified batch

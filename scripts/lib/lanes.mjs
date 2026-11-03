@@ -1,7 +1,7 @@
 // Lanes size the process to the work. Every lane keeps the brief, a working
 // preview, the lifecycle gate, the full check, and operator approval.
-//   trivial:  one operator touchpoint (the preview doubles as the save question),
-//             no interview, no context packet, no simplify pass; capped in size.
+//   trivial:  no interview or context packet; capped in size.
+// Approval points follow autonomy, never lane size.
 //   standard: interview, context packet, preview, finishing work, handoff.
 //   large:    standard plus an agreed spec and plan before the first preview.
 import { existsSync, readFileSync } from "node:fs";

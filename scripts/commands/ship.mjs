@@ -16,8 +16,8 @@ import { matchesAny } from "../lib/glob.mjs";
 import { isProductSource } from "../lib/paths.mjs";
 import { laneOf, sameFingerprint, sourceFingerprint } from "../lib/lanes.mjs";
 import { failed, ok, refused } from "../lib/output.mjs";
-import { batchFingerprint, codeTreeFingerprint, readReceipt, receiptMatches } from "../lib/receipt.mjs";
-import { commitMatches, deliver, shippingTarget } from "../lib/shipping.mjs";
+import { batchFingerprint, checkedCodeTreeMatches, readReceipt, receiptMatches } from "../lib/receipt.mjs";
+import { commitMatches, deliver, pendingCommitParents, shippingTarget } from "../lib/shipping.mjs";
 import { rank, requiredReview } from "../lib/review.mjs";
 import { CLI, markRevising, markSaved, markSynced, readSession, requireBrief, requireFinalizing, requireOpenSession, sessionConcernFiles, sessionTouchesSource, writeSession } from "../lib/session.mjs";
 import { assetPath } from "../lib/toolkit.mjs";
@@ -50,6 +50,10 @@ async function runShip({ cwd, positional, flags, env = process.env }) {
     approvalStillCurrent(cwd, approval);
     const shipping = { ...existing.shipping, approval, trailers: { ...existing.shipping.trailers, ...approvalTrailers(approval) } };
     writeSession(cwd, { ...existing, shipping });
+    const parents = shipping.expectedParents ?? (shipping.baseCommit ? [shipping.baseCommit] : []);
+    if (pendingCommitParents(cwd, shipping.baseCommit).join(" ") !== parents.join(" ")) {
+      throw refused("The commit parents changed during an interrupted save.", { agent: "Inspect the pending merge and run ship --recover before reviewing the changed batch again." });
+    }
     const savedCommit = commit(shipping.message, { cwd, trailers: shipping.trailers });
     writeSession(cwd, markSaved({ ...existing, shipping }, savedCommit));
     return completeDelivery(cwd, config, readSession(cwd));
@@ -124,7 +128,7 @@ async function runShip({ cwd, positional, flags, env = process.env }) {
   const issuesFile = applyIssues(cwd, session);
   if (issuesFile) output("git", ["add", "--", issuesFile], { cwd });
 
-  const shipping = { deployment: config.deployment, baseCommit: session.baseCommit, expectedTree: output("git", ["write-tree"], { cwd }), target, approval, trailers, message };
+  const shipping = { deployment: config.deployment, baseCommit: session.baseCommit, expectedParents: pendingCommitParents(cwd, session.baseCommit), expectedTree: output("git", ["write-tree"], { cwd }), target, approval, trailers, message };
   // Durable before Git runs: a crash after commit can recover from HEAD + tree.
   writeSession(cwd, { ...session, shipping });
   const savedCommit = commit(message, { cwd, trailers });
@@ -171,7 +175,7 @@ function requireReview(cwd, config, session) {
   const required = requiredReview(cwd, config, session);
   if (!required.level) return null;
   const review = session.review;
-  if (!review || review.codeTree !== codeTreeFingerprint(cwd, config, "staged").digest) {
+  if (!review || !checkedCodeTreeMatches(cwd, config, review.codeTree, "staged")) {
     throw refused("The code has not been reviewed in its current form.", {
       agent: `Run ${CLI} review${review ? " (it prepares only the changes since the last review)" : ""}, act on the findings, and record it with review done.`,
     });
@@ -211,7 +215,7 @@ function syncOnly(cwd, config, flags = {}) {
     const savedCommit = head(cwd);
     if (savedCommit === session.baseCommit) throw refused("No commit was created yet.", { agent: "Fix the commit failure, then rerun ship with approval; or run ship --recover to return to review." });
     // A crash may have occurred before the saved state was persisted.
-    if (output("git", ["show", "-s", "--format=%P", savedCommit], { cwd }) !== (session.baseCommit ?? "")) throw refused("The checkout changed during an interrupted save. Inspect it before recovery.");
+    if (!commitMatches(cwd, savedCommit, session.shipping)) throw refused("The checkout changed during an interrupted save. Inspect it before recovery.");
     session = markSaved(session, savedCommit);
     writeSession(cwd, session);
   }

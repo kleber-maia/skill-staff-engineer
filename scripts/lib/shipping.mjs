@@ -1,5 +1,8 @@
 // Resolve one destination and prove that it contains the saved commit. Never let
 // push.default, matching refs, tags, or a mirror setting expand the approved batch.
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { output } from "./exec.mjs";
 import { currentBranch, lines } from "./git.mjs";
 import { failed, refused, tooling } from "./output.mjs";
@@ -29,9 +32,19 @@ export function committedTree(cwd, revision) {
   return output("git", ["rev-parse", `${revision}^{tree}`], { cwd });
 }
 
+// Capture before committing: Git removes MERGE_HEAD after a successful merge save.
+export function pendingCommitParents(cwd, baseCommit) {
+  const mergeHead = resolve(cwd, output("git", ["rev-parse", "--git-path", "MERGE_HEAD"], { cwd }));
+  const merging = existsSync(mergeHead) ? readFileSync(mergeHead, "utf8").trim().split(/\s+/).filter(Boolean) : [];
+  return [...(baseCommit ? [baseCommit] : []), ...merging];
+}
+
 export function commitMatches(cwd, revision, journal) {
+  const parents = journal.expectedParents ?? (journal.baseCommit ? [journal.baseCommit] : []);
+  if (!Array.isArray(parents) || parents.some((parent) => !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(parent))
+    || (parents[0] ?? null) !== (journal.baseCommit ?? null)) return false;
   return committedTree(cwd, revision) === journal.expectedTree
-    && output("git", ["show", "-s", "--format=%P", revision], { cwd }) === (journal.baseCommit ?? "");
+    && output("git", ["show", "-s", "--format=%P", revision], { cwd }) === parents.join(" ");
 }
 
 function delivered(cwd, commit, target) {

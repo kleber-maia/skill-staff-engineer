@@ -13,8 +13,8 @@ an autonomy record also follows Final approval.
 
 | Mode | Flow |
 | --- | --- |
-| `guided` | Brief/interview → build → preview → operator acceptance → review/checks → handoff → operator approval → ship |
-| `final-approval` | Brief/plan → build → preview → agent acceptance evidence → review/checks → handoff → one operator approval → ship |
+| `guided` | Brief/interview → build → preview → operator acceptance → simplify/tests/review/final checks → handoff → operator approval → ship |
+| `final-approval` | Brief/plan → build → preview → agent acceptance evidence → simplify/tests/review/final checks → handoff → one operator approval → ship |
 | `autonomous` | Same agent verification → handoff summary → ship → configured deployment verification |
 
 Every task starts with the prominent autonomy notice returned by `begin`. The agent
@@ -23,6 +23,17 @@ through it”, “ask before shipping”, and “handle delivery” steer the cu
 “from now on” changes the default. “Hold” pauses further actions; it cannot undo a
 completed action. No special phrase or user-run command is required. See the
 [autonomy contract](../skills/staff-engineer/autonomy.md) for interpretation and evidence examples.
+
+The complete sequence is implement, verify behavior/UI, show evidence and obtain
+acceptance, prepare for merging (simplify, tests, docs, code review, final verification
+and required CI), then commit/push and any separately authorized PR merge. Guided
+mode retains owner acceptance before preparation in every lane. Delegated modes
+record evidence instead and continue; explicit delivery limits always prevail.
+New regression coverage and broad suites wait for acceptance. Necessary builds,
+existing focused checks and narrow diagnostic bug reproductions may establish the
+working result first. Final preparation that changes the batch refreshes agent
+evidence; changes to accepted behavior also require renewed owner acceptance where
+that checkpoint is retained. Documentation updates belong inside preparation.
 
 ## Commands and guarantees
 
@@ -33,7 +44,7 @@ completed action. No special phrase or user-run command is required. See the
 | `autonomy [mode\|hold\|resume] --instruction "words" [--remember]` | Records operator steering. The quote must match the latest harness-recorded message when available; otherwise it is agent-reported. Default changes require `--remember`; ordinary changes are task-only. A switch never converts prior acceptance into save approval. |
 | `brief --outcome --accept ...` | Records the outcome and numbered acceptance criteria, non-goals, surfaces, and optional decisions/probes. Routine assumptions need no acknowledgment outside Guided mode. |
 | `decisions [--for "words"]` | Finds earlier operator decisions relevant to this concern. |
-| `lane <lane>` | Changes engineering scope independently of autonomy; leaving trivial drops its combined approval. |
+| `lane <lane>` | Changes engineering scope independently of autonomy; every lane prepares tests and review after acceptance. |
 | `plan <path>` | Records the written plan, required for large work. Guided mode asks for agreement; other modes derive it and ask only for material unknowns. |
 | `context <files>` | Builds a packet of skills, related docs/tests, and imports. Blocking-session projects require current coverage. Trivial work needs no packet. |
 | `preview` | Requires a nonempty, in-scope concern and any required plan/reproduction. Checks web reachability or command exit status, runs configured acceptance probes, and captures screenshots when available. Records the preview fingerprint. Guided mode waits for feedback; other modes proceed to inspection. |
@@ -65,7 +76,7 @@ freshness, not the truth of the agent's observations.
 
 | Lane | Engineering requirements |
 | --- | --- |
-| `trivial` | Default cap: 3 source files, 40 added lines, no data/security impact. No interview/context packet; minimum review. Only Guided mode combines preview and save approval. |
+| `trivial` | Default cap: 3 source files, 40 added lines, no data/security impact. No interview/context packet; minimum review after acceptance. Approval points follow delegation. |
 | `standard` | Brief, context packet, working preview, standard review, lifecycle and full checks. |
 | `large` | Standard plus a written plan and detailed review. |
 

@@ -64,7 +64,7 @@ test("the lane sets the level, risky paths raise it, and the local setting caps 
   }
 });
 
-test("reviews wait for acceptance outside the trivial lane, and documentation needs none", async () => {
+test("reviews wait for acceptance in every lane, and accepted documentation needs none", async () => {
   const dir = await setup();
   try {
     await runCli(["begin", "Discounted cart totals"], { cwd: dir });
@@ -77,6 +77,8 @@ test("reviews wait for acceptance outside the trivial lane, and documentation ne
     await runCli(["begin", "Explain the cart in docs", "--lane", "trivial"], { cwd: dir });
     await runCli(["brief", "--outcome", "The readme explains the cart total.", "--accept", "Read the readme"], { cwd: dir });
     appendFileSync(join(dir, "README.md"), "The cart sums prices.\n");
+    await runCli(["preview"], { cwd: dir });
+    await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     const result = await runCli(["review", "--json"], { cwd: dir });
     assert.equal(result.code, 0);
     assert.equal(result.json.data.required.level, null);

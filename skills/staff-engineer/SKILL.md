@@ -36,6 +36,12 @@ changes modes by talking; you record their words with `autonomy`.
 4. Repeat until saving, delivery, and any configured deployment are verified. If a command refuses, its message says how to
    recover; `next` always says where you are.
 
+Change toolkit implementation only in its source repository: verify, commit, push,
+then run each client's `update`. Never hand-edit the vendored toolkit, installed managed
+skills, or managed instruction blocks in client projects. Upstream unique client fixes
+before distribution; do not bypass an active-session guard. Project configuration uses
+supported configuration commands, and project extensions stay outside managed files.
+
 A concern is a product change the operator asked for. Installing, updating, configuring,
 or removing the toolkit is maintenance, not a concern: use `install`, `update`, `config`,
 `settings`, and `save-toolkit` directly, and never run the lifecycle for toolkit files.
@@ -47,13 +53,27 @@ clean upgrade as its own change, and continues on the refreshed toolkit. Only wh
 toolkit files had unsaved edits does it stop: save the upgrade separately, then run
 `begin` again.
 
+## Delivery sequence
+
+Follow this sequence, with approval checkpoints controlled by the owner's delegation:
+
+1. **Implement** the smallest complete solution to the agreed outcome.
+2. **Verify it works** by exercising the affected behavior and inspecting actual UI where applicable. Use the necessary build, smoke check, or existing focused check; do not build a feature's regression suite before its direction is accepted.
+3. **Show evidence and ask for owner approval.** In Guided mode, present the verified result and stop before merge preparation. In Final approval or Through delivery, this checkpoint is delegated: record agent acceptance evidence, share meaningful progress, and continue. Never infer delegation from silence or lane size.
+4. **Prepare for merging:** simplify without changing the accepted behavior, add meaningful tests, update affected documentation, and review the prepared code. Verify the final batch once, including required CI checks. Fix findings and repeat only checks invalidated by changes. Behavior changes return to verification and evidence; obtain renewed approval where the owner retained that checkpoint.
+5. **Merge and deliver** within the owner's authorized scope: commit and push the prepared batch using `ship`, and perform any repository-specific PR merge only when authorized. Confirm delivery. Final approval asks for the exact prepared batch after handoff; Through delivery uses its recorded authorization. A request to implement alone does not grant permission to push, merge a PR, publish, or deploy.
+
+The stages stay the same across lanes. Delegation changes who accepts the result and
+where to wait, not the need for working evidence or final verification. Keep an explicit
+scope limitation (for example, “do not push”) even when a remembered mode is broader.
+
 ## Choose the lane
 
 Pass `--lane` to `begin`; it sizes the process to the work.
 
 | Lane | Use for | What changes |
 | --- | --- | --- |
-| `trivial` | Obvious, low-risk edits: copy, a style tweak, a one-line fix, no data or security impact | No interview or context packet. In Guided mode the preview doubles as the save question. In other modes verify it yourself before final approval or delivery. Capped in size (`rules.lanes.trivial`) |
+| `trivial` | Obvious, low-risk edits: copy, a style tweak, a one-line fix, no data or security impact | No interview or context packet. Approval checkpoints follow delegation, with merge preparation after acceptance in every mode. Capped in size (`rules.lanes.trivial`) |
 | `standard` | Everything else of normal size (default) | Context packet, preview, finishing work, handoff; interaction follows the selected autonomy mode |
 | `large` | More than two areas, new data shapes, or more than a day | Standard plus a written spec and plan (operator agreement in Guided mode) (`spec-and-plan`, then `plan <path>`) before the first preview |
 
@@ -91,6 +111,8 @@ and approval steps in their existing order. The existing `code-review` and four
 
 ## Bug fixes
 
+A narrow bug reproduction is diagnostic verification, not feature-suite preparation. Keep it limited to establishing the reported failure; broader coverage still waits for acceptance.
+
 When the operator reports something broken, open it with `begin "..." --bug`. Before
 fixing, write a test that shows the bug and run `repro "<command that runs it>"`: it must
 fail on the original code for the bug's reason. Fix, then run `repro` again until it
@@ -100,7 +122,7 @@ use `repro --waiver "reason"` and repeat the reason in the handoff.
 ## Code review
 
 Every change to code is reviewed before it is saved, at a level the toolkit sets:
-trivial work gets **minimum** (your own checklist pass, before its preview), standard
+trivial work gets **minimum** (your own checklist pass, after acceptance), standard
 work gets **standard** (one fresh-context reviewer), large work gets **detailed**
 (parallel specialists plus refutation). Stored data, sign-in, money, public interfaces,
 background work, and large diffs raise the level. Follow the `code-review` skill when
@@ -116,9 +138,8 @@ In **Guided mode**, two approvals exist, and neither can be given for the operat
 
 - **Preview acceptance** ("looks good"): `finalize --approval-quote "<their words>"`.
 - **Approval to save** ("ship it") after the handoff:
-  `ship "Imperative message" --approval-quote "<their words>"`. In the trivial
-  lane, the preview acceptance is also the save approval, and it holds only while the
-  whole batch stays exactly as presented.
+  `ship "Imperative message" --approval-quote "<their words>"`.
+  This also applies to trivial work: feature acceptance comes before preparing the batch.
 
 In **Final approval**, use agent acceptance evidence, then obtain one approval after
 the final handoff. In **Through delivery**, use the same evidence and continue
@@ -210,7 +231,7 @@ conditions, negative replies, and later feedback invalidate earlier approval.
 - [ ] Documentation describing the changed behavior is updated, or a waiver says why.
 - [ ] `lifecycle` passes and `verify --mode full` passed once on the final staged batch.
 - [ ] Delivery is authorized by the selected autonomous mode or the operator’s approval
-      of the exact batch (Guided trivial work can use its unchanged preview).
+      of the exact prepared batch after its handoff.
 - [ ] The save used `ship` with an imperative message and confirmed delivery (or intentional local work), plus verified deployment when configured.
 
 ## After delivery: offer a release

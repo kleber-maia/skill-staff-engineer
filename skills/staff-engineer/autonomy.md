@@ -5,8 +5,8 @@ engineering work; autonomy controls interaction. Never lower checks to avoid a p
 
 | Mode | Agent behavior | Operator touchpoints |
 | --- | --- | --- |
-| `guided` | Brief/interview, build, preview acceptance, review and full checks, approval to save | Current guided workflow; trivial preview combines acceptance and save approval |
-| `final-approval` | Derive brief/plan, build, exercise and visually inspect the result, review/fix, full checks | One final approval of the verified batch before shipping |
+| `guided` | Implement, verify behavior/UI, show evidence and obtain approval, simplify/test/review/verify, approval to save | Approval of working direction before merge preparation; approval of prepared batch before delivery |
+| `final-approval` | Implement, exercise and visually inspect, record evidence, simplify/test/review, final checks | One final approval of the verified batch before shipping |
 | `autonomous` | Same verification, then ship and finish configured deployment | Only missing material decisions, authority, or capabilities |
 
 ## Start every task visibly
@@ -28,7 +28,7 @@ Interpret the user's request in context, then run the command yourself:
   within the stated delivery destination.
 - “Handle it” without explicit delivery permission: `final-approval`, with fewer check-ins.
 - “Let me see it before you ship” / “ask before shipping”: `final-approval`.
-- “Walk me through this one”: `guided`.
+- “Walk me through this one” / “show me evidence before adding tests” / “let me approve the feature before preparing it for merging”: `guided`.
 - “Hold” / “stop”: `autonomy hold --instruction "..."`; pause further actions.
 - “Continue”: `autonomy resume --instruction "..."`; retain the selected mode.
 - “From now on” / “remember this”: add `--remember`. Otherwise change only this
@@ -87,7 +87,7 @@ more than actually inspected. Evidence covers the preview configuration, brief,
 and complete batch; changes require a fresh preview and evidence. Review fixes
 loop through `revise` and `preview`, with delta review and reusable test receipts.
 
-`next` drives review, lifecycle, and full verification after acceptance. In Final
+`next` drives simplification, test coverage, review, lifecycle, and final verification after acceptance. All modes verify behavior and visuals before this preparation. Refresh agent evidence after preparation changes the batch; ask the owner again only at their retained checkpoints or when accepted behavior changes. In Final
 approval it requests one handoff approval; in autonomous mode the handoff is a
 summary and `ship` continues without a fabricated approval quote. Keep reporting
 meaningful progress; autonomy does not mean silence.

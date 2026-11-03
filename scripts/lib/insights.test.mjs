@@ -66,7 +66,8 @@ test("finished and abandoned concerns are recorded locally and surface at the ne
       await runCli(["finalize", "--approval-quote", "ship it"], { cwd: dir });
       git(dir, "add", "-A");
       await runCli(["verify", "--mode", "full"], { cwd: dir });
-      const result = await runCli(["ship", `Add readme note ${index}`, "--json"], { cwd: dir });
+      await runCli(["handoff"], { cwd: dir });
+      const result = await runCli(["ship", `Add readme note ${index}`, "--approval-quote", "ship it", "--json"], { cwd: dir });
       assert.equal(result.code, 0, result.stderr || result.stdout);
     }
     const history = readHistory(dir);

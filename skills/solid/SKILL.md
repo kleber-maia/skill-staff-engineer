@@ -8,7 +8,7 @@ metadata:
     source: ramziddin/solid-skills
     path: skills/solid/SKILL.md
     adapted: true
-    reason: Rewritten as a language-neutral design contract; focused regression tests may run during implementation, and value objects or fixed method-length limits are not mandated.
+    reason: Rewritten as a language-neutral design contract; focused regression tests belong to merge preparation after acceptance; necessary diagnostic checks may run during implementation, and value objects or fixed method-length limits are not mandated.
 ---
 
 # SOLID Engineering Contract

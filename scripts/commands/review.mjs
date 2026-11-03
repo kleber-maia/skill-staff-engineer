@@ -1,5 +1,4 @@
 import { loadConfig } from "../lib/config.mjs";
-import { laneOf } from "../lib/lanes.mjs";
 import { ok, refused } from "../lib/output.mjs";
 import { codeTreeFingerprint } from "../lib/receipt.mjs";
 import { buildPacket, rank, REVIEW_LEVELS, requiredReview, snapshot } from "../lib/review.mjs";
@@ -24,8 +23,8 @@ function assertReviewPhase(session) {
   if (session.phase === PHASES.AWAITING_FEEDBACK) {
     throw refused("The preview is waiting for the operator's feedback.", { agent: `Wait for the reply, or run ${CLI} revise first.` });
   }
-  if (session.phase === PHASES.IMPLEMENTATION && laneOf(session) !== "trivial") {
-    throw refused("The code review waits until the operator accepted the working result, so it covers the final version once.", { agent: `Run ${CLI} preview and wait for acceptance.` });
+  if (session.phase === PHASES.IMPLEMENTATION) {
+    throw refused("Code review follows acceptance of the verified working result in every lane.", { agent: `Run ${CLI} preview, then record operator acceptance in Guided mode or agent evidence in delegated modes.` });
   }
 }
 

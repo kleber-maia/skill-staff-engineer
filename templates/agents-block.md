@@ -6,6 +6,10 @@ skills guide the work between them. Before changing anything, read `.agents/skil
 - **Toolkit maintenance is not a concern.** Installing, updating, configuring, or removing the
   toolkit uses `install`, `update`, `config`, `settings`, `autonomy`, and `save-toolkit` only; never `begin`,
   a brief, a preview, a review, or `ship` for toolkit files.
+- **Toolkit implementation changes belong in its source project.** Verify, commit, and
+  push there, then run the client `update`. Never hand-edit the installed toolkit,
+  managed skills, or instruction blocks. Upstream unique fixes before updating clients;
+  preserve open product sessions and unrelated work. Configure through supported commands.
 - **You run every command; the operator never does.** Run `node .staff-engineer/cli.mjs next`
   whenever unsure: it prints the one next step, the skills to read now, and whether to wait for
   the operator.
@@ -21,9 +25,13 @@ skills guide the work between them. Before changing anything, read `.agents/skil
   prominent autonomy notice before working. Read the autonomy reference in the main
   skill. Interpret steering conversationally and record it with `autonomy --instruction`;
   use `--remember` only when asked to change the default. “Hold” pauses further actions.
-- Build, run `preview`, exercise every acceptance criterion, inspect affected visuals,
-  and record `acceptance <evidence.json>`. Then review, finish docs, run lifecycle and
-  full verification. Guided mode instead waits for operator preview acceptance.
+- **Implement → verify behavior/UI → show evidence and obtain acceptance → prepare for
+  merging (simplify, tests, docs, code review, final verification/required CI) → commit and
+  push within authorized scope.** Guided mode waits for owner acceptance before preparation
+  in every lane. Other modes use delegated `acceptance <evidence.json>` and continue.
+  New regression coverage and broad suites wait for that checkpoint; a necessary build,
+  existing focused check, or narrow bug reproduction can establish that it works first.
+  Delegation changes waiting points, never explicit limits on pushing, merging, or deployment.
 - Bug reports open with `begin "..." --bug`; the fix needs `repro`: a test that fails on the original
   code and passes on the fixed code.
 - Every code change is reviewed at the level `review` prints (minimum, standard, detailed; follow

@@ -2,6 +2,16 @@
 
 ## Maintaining this repository
 
+The source repository is the only place to change toolkit implementation. Fix and
+verify it here, commit and push, then distribute with each client's
+`node .staff-engineer/cli.mjs update`. Never hand-edit `.staff-engineer/`, installed
+managed skills, or managed instruction blocks in a client project. Upstream needed
+client fixes here before an update can overwrite them. Project-specific configuration
+uses the supported `config`/`settings` commands; extensions belong outside toolkit-owned
+implementation. Respect open-session guards and report update conflicts instead of
+aborting product work or reapplying patches inside clients.
+
+
 When working on the staff-engineer source repository itself, toolkit maintenance does not run
 the product lifecycle below. Run the repository's own tests and lint instead.
 For implementation tasks, completion includes a cohesive commit and confirmed push.
@@ -92,8 +102,9 @@ operator's first product request after installation.
 
 ## Upgrading, removing
 
-- Upgrade: `node .staff-engineer/cli.mjs update` (or pull the toolkit and rerun step 4, then
-  `save-toolkit`). Only toolkit-owned files change, and `update` saves them as its own change.
+- Upgrade: `node .staff-engineer/cli.mjs update`. Change implementation in the source
+  project, commit and push it first; never patch the client copy. Only toolkit-owned
+  files change, and `update` saves them as its own change.
   New concerns also check for updates on their own at `begin`.
 - Remove: `node <toolkit>/scripts/cli.mjs install --target . --uninstall`.
 

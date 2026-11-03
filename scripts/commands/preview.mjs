@@ -7,7 +7,7 @@ import { stateDir } from "../lib/git.mjs";
 import { captureScreenshots, shouldCapture } from "../lib/screenshots.mjs";
 import { runProbes, screenshotChanges, selfCheckPlan } from "../lib/self-check.mjs";
 import { getSetting } from "../lib/settings.mjs";
-import { laneOf, laneOverflow, sourceFingerprint } from "../lib/lanes.mjs";
+import { laneOf, laneOverflow } from "../lib/lanes.mjs";
 import { CLI, markAwaitingFeedback, requireBrief, requireOpenSession, sessionConcernFiles, writeSession } from "../lib/session.mjs";
 import { join } from "node:path";
 
@@ -42,8 +42,7 @@ export default async function run({ cwd }) {
       agent: "Fix what these checks found, then run preview again. Only the failing behavior needs attention.",
     });
   }
-  const combined = guided && lane === "trivial";
-  const updated = markAwaitingFeedback({ ...session, selfCheck }, files, { presentedSource: combined ? sourceFingerprint(cwd, config, session) : undefined });
+  const updated = markAwaitingFeedback({ ...session, selfCheck }, files);
   updated.previewFingerprint = acceptanceFingerprint(cwd, config, session);
   const shots = preview.kind === "web" && shouldCapture(config)
     ? captureScreenshots(cwd, { url: preview.url, paths: preview.screenshotPaths ?? ["/"], outDir: join(stateDir(cwd), "preview", `round-${updated.reviewRound}`) })
@@ -57,7 +56,7 @@ export default async function run({ cwd }) {
     "Please check:",
     checks,
     brief.nonGoals.length ? `Left alone on purpose: ${brief.nonGoals.join("; ")}.` : "",
-    combined ? "If it is right, say \"ship it\" and I will run the checks and save it as it is. Otherwise tell me what to change." : "Tell me what to change, or say it looks good.",
+    "Tell me what to change, or say it looks good.",
   ].filter(Boolean).join("\n");
 
   return ok({
@@ -66,7 +65,6 @@ export default async function run({ cwd }) {
       `Round ${updated.reviewRound}. ${guided ? "Stop now and wait for the operator’s feedback." : "Exercise every acceptance criterion and inspect affected visuals yourself. Record acceptance <evidence.json>; do not wait for operator preview acceptance."}`,
       `Change requests: run ${CLI} revise, update, then preview again.`,
       guided ? `Clear acceptance: ${CLI} finalize --approval-quote "<the operator's exact words>"` : "Use the harness browser or screenshot tools if project screenshot capture is unavailable. A missing capability is blocked evidence, never a pass.",
-      combined ? "Trivial lane: that acceptance also approves the save, as long as the entire batch stays exactly as presented. Tests and docs should already be done." : "",
       where.agent ?? "",
       probes ? `Self-check: ${probes.cached ? "unchanged since the last passing run" : `${probes.results.length} automatic check${probes.results.length === 1 ? "" : "s"} passed`}.` : "",
       plan.screenshots && shotChanges.changed.length ? `Look at these changed screenshots before presenting:\n${shotChanges.changed.map((file) => `- ${file}`).join("\n")}` : "",
@@ -74,7 +72,7 @@ export default async function run({ cwd }) {
       shots.skipped === false && !shots.ok ? `Screenshots failed (preview still presented): ${shots.reason}` : "",
       isNonTechnical(config) ? "Keep the message free of file names, commands, and tool output." : "",
     ].filter(Boolean).join("\n"),
-    data: { round: updated.reviewRound, lane, combinedApproval: combined, files, preview: where, brief, screenshots: shots.files },
+    data: { round: updated.reviewRound, lane, combinedApproval: false, files, preview: where, brief, screenshots: shots.files },
   });
 }
 

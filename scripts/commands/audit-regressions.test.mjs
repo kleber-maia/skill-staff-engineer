@@ -43,7 +43,7 @@ async function acceptedDocs(cwd, lane = "standard") {
   await cli(cwd, "finalize", "--approval-quote", "looks good");
   git(cwd, "add", "README.md");
   await cli(cwd, "verify", "--mode", "full");
-  if (lane !== "trivial") await cli(cwd, "handoff");
+  await cli(cwd, "handoff");
 }
 function bareRemote() { const remote = makeTempDir(); git(remote, "init", "--bare", "--quiet"); return remote; }
 const bash = (cwd, command) => decide("PreToolUse", { cwd, tool_name: "Bash", tool_input: { command } }, cwd);
@@ -284,7 +284,10 @@ test("review counts require every finding to have a disposition and refutations 
   try {
     await cli(cwd, "begin", "Improve application value", "--lane", "trivial");
     await cli(cwd, "brief", "--outcome", "People can see the corrected value.", "--accept", "See the value");
-    writeFiles(cwd, { "src/app.mjs": "export const a = 2;\n" }); await cli(cwd, "review");
+    writeFiles(cwd, { "src/app.mjs": "export const a = 2;\n" });
+    await cli(cwd, "preview");
+    await cli(cwd, "finalize", "--approval-quote", "looks good");
+    await cli(cwd, "review");
     assert.equal((await runCli(["review", "done", "--found", "3", "--fixed", "0", "--reported", "0", "--json"], { cwd })).code, 1);
     assert.equal((await runCli(["review", "done", "--found", "1", "--refuted", "1", "--json"], { cwd })).code, 1);
     const result = await cli(cwd, "review", "done", "--found", "1", "--refuted", "1", "--refutation", "The caller already checks this input and the existing regression test proves that the proposed failure cannot occur.");

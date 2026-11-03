@@ -8,6 +8,7 @@ import { commandExists } from "../lib/exec.mjs";
 import { readJson, readText } from "../lib/fs-safe.mjs";
 import { isRepo } from "../lib/git.mjs";
 import { hasBlock, HTML } from "../lib/managed-block.mjs";
+import { sharesAgentInstructions } from "../lib/maintenance.mjs";
 import { EXIT, ok } from "../lib/output.mjs";
 import { readSession } from "../lib/session.mjs";
 import { toolkitVersion } from "../lib/toolkit.mjs";
@@ -90,7 +91,9 @@ export default async function run({ cwd, flags }) {
   const agents = readText(resolve(cwd, "AGENTS.md"));
   add("AGENTS.md", agents && hasBlock(agents, BLOCK, HTML) ? "ok" : "fail", agents && hasBlock(agents, BLOCK, HTML) ? "managed block present" : "managed block missing; run install");
   const claude = readText(resolve(cwd, "CLAUDE.md"));
-  add("CLAUDE.md", claude && /@AGENTS\.md/.test(claude) ? "ok" : "warn", claude && /@AGENTS\.md/.test(claude) ? "imports AGENTS.md" : "does not import AGENTS.md (Claude Code will not read the contract)");
+  const sharedInstructions = sharesAgentInstructions(cwd);
+  const importsInstructions = claude && /@AGENTS\.md/.test(claude);
+  add("CLAUDE.md", sharedInstructions || importsInstructions ? "ok" : "warn", sharedInstructions ? "shares AGENTS.md through a symbolic link" : importsInstructions ? "imports AGENTS.md" : "does not import AGENTS.md (Claude Code will not read the contract)");
   const claudeSkills = resolve(cwd, ".claude", "skills");
   if (existsSync(claudeSkills) && lstatSync(claudeSkills).isSymbolicLink()) add(".claude/skills", "ok", "symbolic link left in place");
 

@@ -9,4 +9,4 @@ Only when the operator clearly accepted the preview (for example "looks good"). 
 
 `node .staff-engineer/cli.mjs finalize --approval-quote "<the operator's exact words>" --json`
 
-Then follow the printed next step. In the trivial lane that acceptance also approves the save while the source stays unchanged. If finishing work changes anything the operator can see, run `/staff-engineer:revise` and return to the preview loop.
+Then follow the printed next step. In every lane, this unlocks merge preparation: simplify, add meaningful tests, update affected docs, review, and verify the final batch. Save approval follows the handoff unless delivery is delegated. If finishing work changes anything the operator can see, run `/staff-engineer:revise` and return to the preview loop.

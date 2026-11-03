@@ -88,7 +88,7 @@ Tell the operator, in plain language, what was installed and what changes for th
   Every task begins with a visible autonomy notice; the operator can steer by talking.
 - In Guided mode, the agent asks a few questions before building and shows a preview
   before finishing, and asks before saving anything. Nothing is saved without a
-  "ship it". Small, obvious fixes get a single check-in instead of two. They never
+  "ship it". Small fixes reduce review depth; approval points still follow delegation. They never
   need to run anything themselves.
 
 Do not list file paths or commands to a non-technical operator.
@@ -102,6 +102,13 @@ and save with `node .staff-engineer/cli.mjs save-toolkit`; it commits only toolk
 files and refuses while a concern is open.
 
 ## Upgrade
+
+Change toolkit implementation only in its source project. Verify, commit, and push
+there before running the client updater; never patch the installed runtime, managed
+skills, or instruction blocks inside clients. If a client has unique implementation
+fixes, upstream them first and verify they survive the resulting update. Keep unrelated
+work and active concerns intact. Use supported configuration commands for project settings.
+
 
 Every new concern starts with `begin`, which (at most once a day by default, local setting
 `updates.checkEveryHours`) checks the recorded repository's latest published stable GitHub

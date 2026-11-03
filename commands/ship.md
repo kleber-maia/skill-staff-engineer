@@ -3,7 +3,7 @@ description: Save the verified batch as one commit after the operator replied "s
 ---
 
 In Through delivery mode, run `ship` without an approval quote after current
-acceptance evidence, review, checks, and handoff. Otherwise, only after the operator explicitly approved the handoff (or, in the trivial lane, the unchanged preview). Quote their reply verbatim:
+acceptance evidence, review, checks, and handoff. Otherwise, only after the operator explicitly approved the handoff. Quote their reply verbatim:
 
 `node .staff-engineer/cli.mjs ship "$ARGUMENTS" --approval-quote "<the operator's exact words>" --json`
 

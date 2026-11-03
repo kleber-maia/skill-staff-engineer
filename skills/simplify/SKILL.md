@@ -15,7 +15,7 @@ metadata:
 
 These lenses run inside the `code-review` skill at every level: as a quick self-pass at
 **minimum**, inside the single reviewer at **standard**, and as four dedicated
-reviewers at **detailed**. Never simplify an unreviewed first pass. This is a cleanup of code that already works: make
+reviewers at **detailed**. Simplify only after the working result is verified and accepted under the selected delegation mode. This is a cleanup of code that already works: make
 the change smaller, clearer, and easier to maintain without changing the visible
 outcome. It is not a bug hunt. If a lens finds a real bug, report it separately and
 prominently.

@@ -26,66 +26,45 @@ async function setup() {
 
 const next = async (dir) => (await runCli(["next", "--json"], { cwd: dir })).json.data;
 
-test("trivial lane: one operator touchpoint approves the preview and the save", async () => {
-  const dir = await setup();
-  try {
-    assert.equal((await next(dir)).step, "begin");
-    let result = await runCli(["begin", "Fix the title typo", "--lane", "trivial", "--json"], { cwd: dir });
-    assert.equal(result.code, 0, result.stderr);
-    assert.equal(result.json.data.lane, "trivial");
-    assert.deepEqual((await next(dir)).skills, [], "trivial briefs skip the interview");
-
-    await runCli(["brief", "--outcome", "The home page title is spelled correctly.", "--accept", "Open the home page and read Welcome"], { cwd: dir });
-    writeFileSync(join(dir, "src/copy.mjs"), "export const title = \"Welcome\";\n");
-    appendFileSync(join(dir, "tests/copy.test.mjs"), 'test("spelling", () => assert.equal(title, "Welcome"));\n');
-    appendFileSync(join(dir, "README.md"), "The title reads Welcome.\n");
-    assert.equal((await next(dir)).step, "build", "no context packet is needed in the trivial lane");
-    let review = await runCli(["review", "--json"], { cwd: dir });
-    assert.equal(review.json.data.required.level, "minimum");
-    await runCli(["review", "done", "--found", "0", "--fixed", "0"], { cwd: dir });
-
-    result = await runCli(["preview", "--json"], { cwd: dir });
-    assert.equal(result.code, 0, result.stderr);
-    assert.match(result.json.operator, /ship it/);
-    assert.equal((await next(dir)).waitFor, "operator");
-
-    result = await runCli(["finalize", "--approval-quote", "ship it", "--json"], { cwd: dir });
-    assert.equal(result.code, 0, result.stderr);
-    assert.equal(result.json.data.combinedApproval, true);
-    git(dir, "add", "-A");
-    assert.equal((await next(dir)).step, "check");
-
-    result = await runCli(["lifecycle", "--json"], { cwd: dir });
-    assert.equal(result.code, 0, JSON.stringify(result.json?.errors));
-    result = await runCli(["verify", "--mode", "full", "--json"], { cwd: dir });
-    assert.equal(result.code, 0, result.stderr || result.stdout);
-    assert.equal((await next(dir)).step, "ship");
-
-    result = await runCli(["ship", "Fix the home page title typo", "--json"], { cwd: dir });
-    assert.equal(result.code, 0, result.stderr || result.stdout);
-    const message = git(dir, "log", "-1", "--format=%B");
-    assert.match(message, /Operator-Approval: ship it/);
-  } finally {
-    cleanup(dir);
-  }
-});
-
-test("trivial lane: editing the source after approval needs another preview", async () => {
+test("guided trivial work presents evidence before tests and requires approval of the prepared batch", async () => {
   const dir = await setup();
   try {
     await runCli(["begin", "Fix the title typo", "--lane", "trivial"], { cwd: dir });
-    await runCli(["brief", "--outcome", "The home page title is spelled correctly.", "--accept", "Read Welcome"], { cwd: dir });
+    assert.deepEqual((await next(dir)).skills, [], "trivial briefs skip the interview");
+    await runCli(["brief", "--outcome", "The home page title is spelled correctly.", "--accept", "Open the home page and read Welcome"], { cwd: dir });
     writeFileSync(join(dir, "src/copy.mjs"), "export const title = \"Welcome\";\n");
-    await runCli(["preview"], { cwd: dir });
-    await runCli(["finalize", "--approval-quote", "ship it"], { cwd: dir });
-    writeFileSync(join(dir, "src/copy.mjs"), "export const title = \"Welcome!\";\n");
-    assert.equal((await next(dir)).step, "revise");
-    const result = await runCli(["ship", "Fix the home page title typo", "--json"], { cwd: dir });
-    assert.equal(result.code, 1);
-    assert.match(result.json.errors.join(" ") + result.json.operator + result.json.agent, /revise/);
-  } finally {
-    cleanup(dir);
-  }
+    assert.equal((await next(dir)).step, "build");
+    assert.equal((await runCli(["review", "--json"], { cwd: dir })).code, 1, "review cannot precede acceptance even for trivial work");
+    assert.equal((await runCli(["verify", "--mode", "full"], { cwd: dir })).code, 1);
+
+    let result = await runCli(["preview", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(result.json.data.combinedApproval, false);
+    assert.equal((await next(dir)).waitFor, "operator");
+    assert.equal((await runCli(["review"], { cwd: dir })).code, 1, "feedback is still pending");
+    result = await runCli(["finalize", "--approval-quote", "looks good", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(result.json.data.combinedApproval, false);
+
+    // Coverage and documentation are deliberately added only after acceptance.
+    appendFileSync(join(dir, "tests/copy.test.mjs"), 'test("spelling", () => assert.equal(title, "Welcome"));\n');
+    appendFileSync(join(dir, "README.md"), "The title reads Welcome.\n");
+    assert.equal((await next(dir)).step, "review");
+    result = await runCli(["review", "--json"], { cwd: dir });
+    assert.equal(result.json.data.required.level, "minimum");
+    await runCli(["review", "done", "--found", "0", "--fixed", "0"], { cwd: dir });
+    git(dir, "add", "-A");
+    assert.equal((await runCli(["lifecycle", "--json"], { cwd: dir })).code, 0);
+    result = await runCli(["verify", "--mode", "full", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    assert.equal((await next(dir)).step, "handoff");
+    assert.equal((await runCli(["ship", "Fix the home page title typo", "--json"], { cwd: dir })).code, 1, "feature acceptance never grants save approval");
+    await runCli(["handoff"], { cwd: dir });
+    assert.equal((await next(dir)).step, "await-approval");
+    result = await runCli(["ship", "Fix the home page title typo", "--approval-quote", "ship it", "--json"], { cwd: dir });
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    assert.match(git(dir, "log", "-1", "--format=%B"), /Operator-Approval: ship it/);
+  } finally { cleanup(dir); }
 });
 
 test("trivial lane: work that outgrows the lane must move to standard", async () => {

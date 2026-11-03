@@ -1,10 +1,14 @@
 # FAQ
 
 **Can the agent write and run tests before I review the preview?**
-Yes. Existing checks, bug reproductions, and focused regression tests can run during implementation.
-Final approval (the default) has the agent exercise and visually inspect the preview
-before review and full checks, then ask once to ship. Guided mode also asks you to
-accept the preview; Through delivery performs the same checks and ships autonomously.
+Necessary builds, existing focused checks, and narrow bug reproductions may establish
+that the implementation works. New regression coverage, simplification, code review,
+and broad suites belong to merge preparation after acceptance. In Guided mode the
+agent first exercises behavior, inspects UI, shows evidence, and waits for your approval,
+even for trivial work. Final approval (the default) and Through delivery delegate
+that acceptance checkpoint to agent evidence; the former asks once before delivery.
+Say “show me evidence before adding tests” to retain early approval. Explicit limits
+on pushing, merging, publication, and deployment always take precedence.
 
 **Do I ever need to run a command or type a special phrase?**
 No. The agent runs every toolkit command. You answer in your own words; the agent quotes your reply
@@ -19,8 +23,9 @@ without pretending you approved a handoff.
 
 **Small fixes feel slow. Is there a faster path?**
 Yes: the `trivial` lane. The agent picks it for obvious, low-risk changes within
-`rules.lanes.trivial` (default 3 source files and 40 added lines). In Guided mode you get one preview that asks
-"ship it?". In Final approval the agent checks it first, then asks once. Through
+`rules.lanes.trivial` (default 3 source files and 40 added lines). It skips the interview and context packet, with minimum review after acceptance.
+Guided mode keeps the early evidence/approval checkpoint and later save approval.
+In Final approval the agent checks it first, then asks once. Through
 delivery needs no routine approval. Anything that grows past the cap moves
 to the normal path automatically.
 

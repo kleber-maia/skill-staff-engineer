@@ -47,13 +47,14 @@ test("a bug fix is proven by a test that fails before and passes after", async (
     assert.equal(git(dir, "worktree", "list").split("\n").length, 1, "the temporary worktree is removed");
 
     appendFileSync(join(dir, "README.md"), "Totals start at zero.\n");
+    await runCli(["preview"], { cwd: dir });
+    await runCli(["finalize", "--approval-quote", "looks good"], { cwd: dir });
     await runCli(["review"], { cwd: dir });
     await runCli(["review", "done", "--found", "0", "--fixed", "0"], { cwd: dir });
-    await runCli(["preview"], { cwd: dir });
-    await runCli(["finalize", "--approval-quote", "ship it"], { cwd: dir });
     git(dir, "add", "-A");
     await runCli(["verify", "--mode", "full"], { cwd: dir });
-    result = await runCli(["ship", "Fix the off-by-one cart total", "--json"], { cwd: dir });
+    await runCli(["handoff"], { cwd: dir });
+    result = await runCli(["ship", "Fix the off-by-one cart total", "--approval-quote", "ship it", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr || result.stdout);
     assert.match(git(dir, "log", "-1", "--format=%B"), /Repro: node tests\/cart\.check\.mjs \(fails before the fix, passes after\)/);
   } finally {
