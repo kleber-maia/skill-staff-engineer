@@ -69,6 +69,12 @@ through the items.
 
   Gate names: `install`, `format`, `lint`, `typecheck`, `test`, `e2e`, `build`.
   Setting a gate to `null` means "this project has no such step"; be honest about it.
+- For shared integration suites that cannot be linked through file imports, colocated
+  tests, or filename stems, use `config set rules.testAssociations` with entries
+  `{ "source": "<source glob>", "tests": ["<test glob>"], "reason": "<actual exercised contract>" }`.
+  Inspect the assertions before declaring a relationship. A matching test must still
+  be changed or added and staged in the same batch; this is association, not a waiver
+  or a claim that all relevant behavior passed. Prefer exact paths or narrow globs.
 - Keep the upgrade-safe `rules.testQuality.scope` default (`changed`) unless the
   existing test tree is clean and the project wants whole-tree enforcement (`all`).
   Use `paths.documentable` for tooling, configuration, CI, and skill surfaces that

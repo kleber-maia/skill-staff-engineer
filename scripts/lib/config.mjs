@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { validateBoundaryRules } from "./boundaries.mjs";
+import { validateTestAssociations } from "./test-coverage.mjs";
 import { validateAffectedCommandTemplate } from "./command-template.mjs";
 import { readJson, writeJson } from "./fs-safe.mjs";
 import { tooling } from "./output.mjs";
@@ -69,6 +70,7 @@ export function defaultConfig() {
       requireSession: "warn",
       disable: [],
       testQuality: { scope: "changed" },
+      testAssociations: [],
       ui: { enabled: "auto" },
       boundaries: [],
       importAliases: { "@/": "src/", "~/": "src/" },
@@ -146,6 +148,7 @@ export function validateConfig(config) {
   const trivial = config.rules?.lanes?.trivial;
   if (!Number.isInteger(trivial?.maxSourceFiles) || trivial.maxSourceFiles < 1) errors.push("rules.lanes.trivial.maxSourceFiles must be a positive integer");
   if (!Number.isInteger(trivial?.maxAddedLines) || trivial.maxAddedLines < 1) errors.push("rules.lanes.trivial.maxAddedLines must be a positive integer");
+  if (config.rules?.testAssociations !== undefined) errors.push(...validateTestAssociations(config.rules.testAssociations));
   if (config.rules?.boundaries !== undefined) errors.push(...validateBoundaryRules(config.rules.boundaries));
   if (config.preview?.screenshotPaths !== undefined && !Array.isArray(config.preview.screenshotPaths)) errors.push("preview.screenshotPaths must be an array of paths");
   if (!UPDATE_OFFLINE_POLICIES.includes(config.updates?.offline)) errors.push(`updates.offline must be one of ${UPDATE_OFFLINE_POLICIES.join(", ")}`);

@@ -124,7 +124,7 @@ export function runLifecycle(cwd, config, env = process.env) {
   const uncoveredAreas = touchesSource && config.rules.requireTestPerSourceChange ? uncoveredSourceAreas(cwd, config, staged) : [];
   if (uncoveredAreas.length) {
     const waiver = validateWaiver(env.STAFF_ENGINEER_TEST_WAIVER, "STAFF_ENGINEER_TEST_WAIVER");
-    if (!waiver.ok) findings.push({ rule: "test-coverage", severity: "block", file: uncoveredAreas.join(", "), line: 0, message: `Source areas have no related changed or added test in the same batch (${uncoveredAreas.join(", ")}). Add coverage, or set STAFF_ENGINEER_TEST_WAIVER="one-line reason". ${waiver.error ?? ""}`.trim() });
+    if (!waiver.ok) findings.push({ rule: "test-coverage", severity: "block", file: uncoveredAreas.join(", "), line: 0, message: `Source areas have no related changed or added test in the same batch (${uncoveredAreas.join(", ")}). Add coverage, or configure reviewed rules.testAssociations when shared integration tests cannot be discovered automatically. An association still requires a changed or added staged test. For an honest exception, set STAFF_ENGINEER_TEST_WAIVER="one-line reason". ${waiver.error ?? ""}`.trim() });
   }
 
   // Task-context packet: required sessions need a current packet that covers the

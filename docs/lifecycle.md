@@ -80,6 +80,13 @@ freshness, not the truth of the agent's observations.
 | `standard` | Brief, context packet, working preview, standard review, lifecycle and full checks. |
 | `large` | Standard plus a written plan and detailed review. |
 
+When static source/test pairing cannot follow module imports or shared integration
+suites, `rules.testAssociations` can declare the reviewed relationship. Each entry
+has a source glob, test globs, and a reason naming the actual exercised contract.
+Only related changed or added staged tests count. The gate remains on, and all
+other lifecycle, review, verification and release checks remain required. See the
+[configuration example](faq.md).
+
 Every code change has review: minimum is an author checklist; standard is one
 fresh-context reviewer; detailed uses specialists and refutation. Data, sign-in,
 secrets, and money raise the level to detailed; public interfaces/background work

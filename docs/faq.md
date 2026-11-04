@@ -71,6 +71,24 @@ nothing applies, and `ship` still requires the lifecycle gate and authorization 
 Set `preview.kind` to `command` (a demo command whose output the operator can read) or `manual`
 (explain how the operator sees the result).
 
+**Our shared integration tests do not match the changed source filenames. How do we associate them?**
+Static pairing follows local imports, colocated tests, and matching filename stems.
+Module-level imports such as Swift's `@testable import App` do not identify source
+files. Declare the real relationship with `rules.testAssociations`, using the
+supported configuration command:
+
+```bash
+node .staff-engineer/cli.mjs config set rules.testAssociations '[{"source":"src/catalog/**","tests":["tests/CatalogIntegrationTests.swift"],"reason":"Integration tests exercise catalog identity across rename and import."}]'
+```
+
+Use narrow source selectors and actual test paths. Review the assertions and name
+the exercised contract in `reason`; a declaration is not proof of runtime coverage.
+The existing source-area gate still requires a matching test to be changed or added
+and staged in the same batch. An unchanged, deleted, unstaged, unrelated, or
+unrecognized test file does not count. Stage configuration changes and run lifecycle
+and normal verification; do not rename tests, widen `paths.tests`, or disable the gate
+just to make association succeed. Existing projects inherit an empty association list.
+
 **Can test-quality rules cover inherited tests, not only this diff?**
 Yes. Set `rules.testQuality.scope` to `all`. The compatibility default is `changed`, so installing
 the toolkit does not make a legacy repository fail on untouched debt.

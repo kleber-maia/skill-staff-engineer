@@ -1,5 +1,7 @@
 # Changelog
 
+- **0.11.4** Allow reviewed source-to-test associations for shared integration suites and module-level imports. Related tests must still be changed or added and staged in the batch; unchanged, deleted, unstaged, unrelated or non-test files cannot satisfy coverage.
+
 - **0.11.3** Keep implementation changes in the source project and distribute through client updaters. Upstream shared-instruction symlink, review-scope, and exact merge-parent protections so clients do not need local code patches. Verify behavior/UI and present evidence before merge preparation in every lane. Guided preview acceptance no longer doubles as save approval for new trivial work; simplification, new regression coverage, docs, review, and final verification/required CI follow acceptance. Delegated modes retain their chosen checkpoints and explicit delivery limits.
 
 - **0.11.2** Run installed Claude hooks from nested directories across Windows and POSIX shells, safely copy ignored dependencies on Windows Node 20, and check executable test cases through Git's index mode where filesystem chmod does not set Git's executable bit.

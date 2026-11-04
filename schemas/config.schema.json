@@ -284,6 +284,41 @@
           },
           "description": "Test-quality scanning; scope changed (default) checks staged assertions only, all checks the whole test tree."
         },
+        "testAssociations": {
+          "type": "array",
+          "default": [],
+          "description": "Reviewed source-to-test relationships for shared integration suites or module-level imports. Only changed or added staged test files matching paths.tests count; this does not prove runtime coverage or waive tests.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source",
+              "tests",
+              "reason"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Positive repository-relative glob for the source files whose contract is exercised."
+              },
+              "tests": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": "Positive repository-relative globs for actual related test files. At least one matching test must be changed and staged in the batch."
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 12,
+                "description": "Evidence-based explanation of the behavior or shared contract the tests exercise."
+              }
+            }
+          }
+        },
         "disable": {
           "type": "array",
           "items": {
