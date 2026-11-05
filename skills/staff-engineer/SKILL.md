@@ -114,9 +114,22 @@ and approval steps in their existing order. The existing `code-review` and four
 A narrow bug reproduction is diagnostic verification, not feature-suite preparation. Keep it limited to establishing the reported failure; broader coverage still waits for acceptance.
 
 When the operator reports something broken, open it with `begin "..." --bug`. Before
-fixing, write a test that shows the bug and run `repro "<command that runs it>"`: it must
-fail on the original code for the bug's reason. Fix, then run `repro` again until it
-passes. The proof is saved with the change. Only when a test truly cannot show the bug,
+fixing, write a test that shows the bug and run
+`repro "<command that runs it>" --expect-failure "<specific assertion diagnostic>"`.
+The expected diagnostic must occur on original code, and the same test must pass
+on fixed code. Setup/unknown-option errors, unrelated failures, timeouts, signals,
+and execution errors never count as proof. Legacy records must be rerun.
+
+Baselines are independent disposable Git repositories materialized from the base
+commit; the runner never creates or registers a Git worktree. Changed tests are
+copied automatically. If a wrapper/allowlist or other test-launch infrastructure
+changed, explicitly add each necessary changed operational file with
+`--support-file <path>`; inspect its diff and never overlay the product fix. Those
+files must be regular, within the project and `paths.documentable`, and cannot be
+toolkit files, protected files or directories. Ignored data stays out; recognized
+dependencies are disposable copies. Use `--timeout-ms <milliseconds>` to budget
+both build and runtime per run (default five minutes, maximum one hour). The proof
+records the expected diagnostic, drivers, isolation and timeout with the change. Only when a test truly cannot show the bug,
 use `repro --waiver "reason"` and repeat the reason in the handoff.
 
 ## Code review

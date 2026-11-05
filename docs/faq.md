@@ -10,6 +10,21 @@ that acceptance checkpoint to agent evidence; the former asks once before delive
 Say “show me evidence before adding tests” to retain early approval. Explicit limits
 on pushing, merging, publication, and deployment always take precedence.
 
+**Why did a reproduction fail on the original code before reaching my test?**
+The baseline gets the changed tests, not the product fix. When a changed wrapper
+or allowlist is also required to launch them, the agent explicitly includes that
+changed operational file with `repro --support-file <path>` (repeatable). The
+selected file must be inside `paths.documentable`, and never product or toolkit
+implementation. Baseline repositories are independent; no worktree is created.
+
+Every reproduction names a specific expected assertion diagnostic with
+`--expect-failure`. Missing dependencies, unknown wrapper options/methods, unrelated
+failures and interrupted/timed-out commands cannot establish proof. Increase the
+per-run build/runtime budget with `--timeout-ms` when appropriate; a timeout is
+never a failing product assertion. Old proof records need a fresh run. A screenshot
+capture that passes on both versions is useful visual evidence, not an automated
+regression proof; use an assertion-bearing test for that gate.
+
 **Do I ever need to run a command or type a special phrase?**
 No. The agent runs every toolkit command. You answer in your own words; the agent quotes your reply
 when it records acceptance or approval.

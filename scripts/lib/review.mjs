@@ -93,7 +93,7 @@ export function buildPacket(cwd, config, session, required, { now = new Date().t
     ...(brief.acceptance ?? []).map((item, index) => `Acceptance ${index + 1}: ${item}`),
     ...(brief.nonGoals ?? []).map((item) => `Non-goal: ${item}`),
     ...(brief.decisions ?? []).map((item) => `Decision: ${item}`),
-    ...(session.repro?.command ? [`Bug reproduction: ${session.repro.command} (fails on the original code)`] : []),
+    ...(session.repro?.command ? [`Bug reproduction: ${session.repro.command}; expected failure: ${session.repro.expectedFailure ?? "not recorded; legacy proof needs rerun"}`] : []),
     "",
     "## Changed files",
     ...files.map((file) => `- ${file}`),

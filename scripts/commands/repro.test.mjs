@@ -32,19 +32,19 @@ test("a bug fix is proven by a test that fails before and passes after", async (
   try {
     const next = async () => (await runCli(["next", "--json"], { cwd: dir })).json.data.step;
     assert.equal(await next(), "repro");
-    assert.equal((await runCli(["repro", REPRO, "--json"], { cwd: dir })).code, 1, "the reproduction must be a test in this change");
+    assert.equal((await runCli(["repro", REPRO, "--expect-failure", "AssertionError", "--json"], { cwd: dir })).code, 1, "the reproduction must be a test in this change");
 
     appendFileSync(join(dir, "tests/cart.check.mjs"), "assert.equal(total([2, 3]), 5);\n");
-    let result = await runCli(["repro", REPRO, "--json"], { cwd: dir });
+    let result = await runCli(["repro", REPRO, "--expect-failure", "AssertionError", "--json"], { cwd: dir });
     assert.equal(result.code, 0, result.stderr || result.stdout);
     assert.equal(result.json.data.repro.passesNow, false);
     assert.match(result.json.agent, /Reproduction confirmed/);
 
     writeFileSync(join(dir, "src/cart.mjs"), "export const total = (items) => items.reduce((sum, item) => sum + item, 0);\n");
-    result = await runCli(["repro", REPRO, "--json"], { cwd: dir });
+    result = await runCli(["repro", REPRO, "--expect-failure", "AssertionError", "--json"], { cwd: dir });
     assert.equal(result.json.data.repro.passesNow, true);
     assert.match(result.json.agent, /Proof complete/);
-    assert.equal(git(dir, "worktree", "list").split("\n").length, 1, "the temporary worktree is removed");
+    assert.equal(git(dir, "worktree", "list").split("\n").length, 1, "no worktree was registered");
 
     appendFileSync(join(dir, "README.md"), "Totals start at zero.\n");
     await runCli(["preview"], { cwd: dir });
@@ -66,7 +66,7 @@ test("a test that already passes on the original code proves nothing", async () 
   const dir = await bugSession();
   try {
     appendFileSync(join(dir, "tests/cart.check.mjs"), "assert.ok(total([]) >= 0);\n");
-    const result = await runCli(["repro", REPRO, "--json"], { cwd: dir });
+    const result = await runCli(["repro", REPRO, "--expect-failure", "AssertionError", "--json"], { cwd: dir });
     assert.equal(result.code, 1);
     assert.match(result.json.operator, /passes on the original code/);
     assert.equal((await runCli(["preview", "--json"], { cwd: dir })).code, 1, "no preview without proof");
@@ -79,7 +79,7 @@ test("a failure caused by missing setup is not accepted as proof", async () => {
   const dir = await bugSession();
   try {
     writeFiles(dir, { "tests/new.check.mjs": 'import "../src/helper-that-does-not-exist-yet.mjs";\n', "src/helper-that-does-not-exist-yet.mjs": "export {};\n" });
-    const result = await runCli(["repro", "node tests/new.check.mjs", "--json"], { cwd: dir });
+    const result = await runCli(["repro", "node tests/new.check.mjs", "--expect-failure", "AssertionError", "--json"], { cwd: dir });
     assert.equal(result.code, 1);
     assert.match(result.json.operator, /setup reason/);
   } finally {

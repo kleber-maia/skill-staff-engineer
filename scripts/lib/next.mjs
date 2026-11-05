@@ -8,6 +8,7 @@ import { laneOf, laneOverflow, sameFingerprint, sourceFingerprint } from "./lane
 import { batchFingerprint, readReceipt, receiptMatches } from "./receipt.mjs";
 import { requiredReview, reviewIsCurrent } from "./review.mjs";
 import { reproIsCurrent } from "../commands/repro.mjs";
+import { hasBaseProof } from "./repro.mjs";
 import { hasPendingToolkitSave } from "./maintenance.mjs";
 import { CLI, PHASES, STATUSES, sessionConcernFiles } from "./session.mjs";
 
@@ -53,10 +54,10 @@ export function nextStep({ cwd, config, session, quick = false }) {
   if (open.phase === PHASES.IMPLEMENTATION) {
     const overflow = laneOverflow(cwd, config, open);
     if (overflow) return step("lane", { command: `${CLI} lane standard`, guidance: overflow });
-    if (open.kind === "bug" && !open.repro?.failsAtBase && !open.repro?.waiver) {
+    if (open.kind === "bug" && !hasBaseProof(open.repro)) {
       return step("repro", {
-        command: `${CLI} repro "<command that runs the reproducing test>"`,
-        guidance: "Bug fix: first write a test that shows the reported bug, and run repro before fixing. It must fail on the original code for the bug's reason. Then fix it and run repro again until it passes. Only when a test truly cannot show the bug, use repro --waiver \"reason\".",
+        command: `${CLI} repro "<command that runs the reproducing test>" --expect-failure "<specific bug diagnostic>"`,
+        guidance: "Bug fix: first write a test that shows the reported bug, and run repro before fixing. It must fail on the original code for the bug's reason. Then fix it and run repro again with the same --expect-failure until it passes. Declare changed test drivers with --support-file; budget build and runtime with --timeout-ms. Baselines use independent repositories, never Git worktrees. Only when a test truly cannot show the bug, use repro --waiver \"reason\".",
       });
     }
     if (lane !== "trivial" && !contextIsCurrent(cwd, open)) {
@@ -141,7 +142,7 @@ function needsReview(cwd, config, session) {
 }
 
 function reproStep() {
-  return step("repro", { command: `${CLI} repro "<the same test command>"`, guidance: "The code changed since the last passing reproduction (or it has not passed yet). Run repro again: it must still fail on the original code and pass now." });
+  return step("repro", { command: `${CLI} repro "<the same test command>" --expect-failure "<the same bug diagnostic>"`, guidance: "The code changed since the last passing reproduction (or it has not passed yet). Run repro again: it must still fail on the original code and pass now." });
 }
 
 function reviewStep(level, delta = false) {

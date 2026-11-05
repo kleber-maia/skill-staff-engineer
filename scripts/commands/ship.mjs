@@ -92,7 +92,7 @@ async function runShip({ cwd, positional, flags, env = process.env }) {
   const review = requireReview(cwd, config, session);
   if (session.kind === "bug" && !reproIsCurrent(cwd, config, session, "staged")) {
     throw refused("This bug fix has no current proof that its test fails without the fix and passes with it.", {
-      agent: `Run ${CLI} repro "<test command>" on the final code, then ship again.`,
+      agent: `Run ${CLI} repro "<test command>" --expect-failure "<specific bug diagnostic>" on the final code, then ship again.`,
     });
   }
 

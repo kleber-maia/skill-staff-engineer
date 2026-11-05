@@ -1,5 +1,7 @@
 # Changelog
 
+- **0.12.0** **breaking:** reproduction proof requires a specific expected failure diagnostic and rejects setup errors, unrelated failures, timeouts, signals and execution errors. Legacy proof must be refreshed; rejected attempts cannot reuse earlier evidence. Baselines now use independent disposable repositories instead of Git worktrees. Explicit changed test drivers and per-run timeout budgets are supported and recorded.
+
 - **0.11.4** Allow reviewed source-to-test associations for shared integration suites and module-level imports. Related tests must still be changed or added and staged in the batch; unchanged, deleted, unstaged, unrelated or non-test files cannot satisfy coverage.
 
 - **0.11.3** Keep implementation changes in the source project and distribute through client updaters. Upstream shared-instruction symlink, review-scope, and exact merge-parent protections so clients do not need local code patches. Verify behavior/UI and present evidence before merge preparation in every lane. Guided preview acceptance no longer doubles as save approval for new trivial work; simplification, new regression coverage, docs, review, and final verification/required CI follow acceptance. Delegated modes retain their chosen checkpoints and explicit delivery limits.

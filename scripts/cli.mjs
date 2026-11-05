@@ -28,7 +28,7 @@ export const COMMANDS = {
   revise: { module: "./commands/revise.mjs" },
   finalize: { module: "./commands/finalize.mjs" },
   review: { module: "./commands/review.mjs", multi: ["issue", "refutation"] },
-  repro: { module: "./commands/repro.mjs" },
+  repro: { module: "./commands/repro.mjs", multi: ["support-file"] },
   issues: { module: "./commands/issues.mjs" },
   lifecycle: { module: "./commands/lifecycle.mjs" },
   verify: { module: "./commands/verify.mjs" },
@@ -120,7 +120,7 @@ Lifecycle (one concern at a time; run next whenever unsure)
   review | review done --found <n> --fixed <n> [--reported <n> --issue "file:line problem"]
                       [--refuted <n> --refutation "evidence"] [--level ...] [--reason "..."]
                                       Code review at the level the change needs
-  repro "<test command>" | repro --waiver "..."
+  repro "<test command>" --expect-failure "<diagnostic>" [--support-file <driver>] [--timeout-ms <ms>] | repro --waiver "..."
                                       Bug fixes: the test must fail on the original code and pass now
   issues [--for "<files>"] | issues resolve <id>
                                       Known issues reported but not fixed

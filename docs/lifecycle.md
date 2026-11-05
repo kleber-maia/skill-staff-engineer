@@ -52,7 +52,7 @@ that checkpoint is retained. Documentation updates belong inside preparation.
 | `finalize --approval-quote "..."` | Guided mode only: validates operator preview acceptance after presentation and unlocks finishing. |
 | `revise` | Returns to implementation and invalidates acceptance/handoff evidence so changed work can be previewed again. |
 | `review` / `review done` | Prepares risk-sized review and binds the result to the exact reviewed code. Each finding has a disposition. A downgrade needs a reason. Later changes need delta review. |
-| `repro "command"` | For `begin --bug`, requires failure on original code for the bug's reason and success on current code. Isolates original-code execution in a disposable worktree. Honest waivers are recorded. |
+| `repro "command" --expect-failure "diagnostic"` | For `begin --bug`, requires the specific expected bug diagnostic on original code and a pass on current code. Uses an independent disposable repository, never a Git worktree. Repeat `--support-file <changed operational driver>` when test launch infrastructure changed; never copy the product fix. `--timeout-ms` budgets build plus runtime per run. Setup errors, unknown options, timeouts, signals and unrelated failures are not proof; legacy proof needs rerun. Honest waivers are recorded. |
 | `issues` / `issues resolve <id>` | Shows or resolves known issues; reported findings travel with the saved concern. |
 | `exception add --rule --path --reason` | Records a justified permanent exception. Stale exceptions are blocked by lifecycle. |
 | `lifecycle` | Checks staged rules, whole-concern staging, protected paths, source tests/docs or justified waivers, and (when configured) finalized-session/context coverage. |
