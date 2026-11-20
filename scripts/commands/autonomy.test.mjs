@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
+import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { cleanup, commitAll, git, installInto, makeTempRepo, runCli, writeFiles } from "../lib/test-helpers.mjs";
 import { loadConfig, saveConfig } from "../lib/config.mjs";
@@ -229,4 +230,85 @@ test("a request about stop controls does not pause work, while a direct stop doe
 test("plain withdrawal and deployment-specific stops are recognized without treating negated stops as pauses", () => {
   for (const text of ["No", "Nope.", "Please stop", "Don't deploy yet", "Do not push this"]) assert.equal(isInterruption(text), true, text);
   for (const text of ["Add a stop button", "Do not stop", "No changes needed"]) assert.equal(isInterruption(text), false, text);
+});
+
+test("remote cleanup gates handoff, delivery and abort; local retains only interactive previews", async () => {
+  const cwd = await setup();
+  try {
+    const started = await build(cwd);
+    assert.match(started.operator, /Preview mode: remote/);
+    await finish(cwd);
+    const track = (...args) => cli(cwd, "resources", "track", ...args);
+    const blocked = async (...args) => {
+      const result = await runCli([...args, "--json"], { cwd });
+      assert.equal(result.code, 1);
+      return result.json;
+    };
+    const sim = await track("sim", "--handle", "Simulator device A", "--preview", "Try the app in simulator A");
+    const scratch = await track("scratch", "--handle", "Disposable task directory A");
+    await track("scratch", "--handle", "Disposable task directory A");
+    assert.equal((await cli(cwd, "next")).data.step, "cleanup");
+    assert.equal((await blocked("handoff")).data.pending.length, 2);
+    assert.match(decide("Stop", {}, cwd).hookSpecificOutput.additionalContext, /resources list/);
+    const before = git(cwd, "rev-parse", "HEAD");
+    assert.equal((await blocked("ship", "Document the helpful note", "--approval-quote", "ship it")).data.pending.length, 2);
+    assert.equal(git(cwd, "rev-parse", "HEAD"), before);
+    await cli(cwd, "resources", "mode", "local");
+    assert.deepEqual((await blocked("abort", "--discard-confirmed")).data.pending.map(item => item.name), ["scratch"]);
+    await blocked("resources", "track", "scratch", "--handle", "Another directory");
+    await blocked("resources", "released", scratch.data.id);
+    await cli(cwd, "resources", "released", scratch.data.id, "--proof", "Confirmed the disposable directory is gone");
+    assert.match((await cli(cwd, "handoff")).operator, /Try the app in simulator A/);
+    await blocked("ship", "Document the helpful note"); // Local preview grants no approval.
+    await cli(cwd, "resources", "mode", "remote");
+    assert.equal((await blocked("ship", "Document the helpful note", "--approval-quote", "ship it")).data.pending[0].name, "sim");
+    await cli(cwd, "resources", "mode", "local");
+    const shipped = await cli(cwd, "ship", "Document the helpful note", "--approval-quote", "ship it");
+    assert.match(shipped.operator, /Kept open for you: sim/);
+    assert.match((await cli(cwd, "begin", "Start a follow-up task")).operator, /Preview mode: remote/);
+    await cli(cwd, "abort");
+    const list = await cli(cwd, "resources", "list");
+    assert.match(list.agent, /Retained: sim/);
+    await cli(cwd, "resources", "released", sim.data.id, "--proof", "Device A reports shutdown");
+    assert.deepEqual((await cli(cwd, "resources", "list")).data.entries, []);
+  } finally { cleanup(cwd); }
+});
+
+test("Guided web review keeps a local server available and presents durable proof in remote mode", async () => {
+  const cwd = await setup();
+  const server = createServer((_req, response) => response.end("A helpful note."));
+  try {
+    await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+    const url = `http://127.0.0.1:${server.address().port}`;
+    const config = loadConfig(cwd);
+    config.preview = { kind: "web", url, screenshots: false };
+    saveConfig(cwd, config);
+    commitAll(cwd, "Configure preview");
+    await cli(cwd, "settings", "set", "preview.mode", "local");
+    await cli(cwd, "autonomy", "guided", "--remember", "--instruction", "Check with me along the way");
+    assert.match((await build(cwd)).operator, /Preview mode: local/);
+    const app = await cli(cwd, "resources", "track", "app", "--handle", "Test HTTP server instance", "--preview", url);
+    assert.equal((await cli(cwd, "next")).data.step, "await-feedback");
+    assert.equal(await (await fetch(url)).text(), "A helpful note.");
+
+    await cli(cwd, "resources", "mode", "remote");
+    await cli(cwd, "revise");
+    const preview = await cli(cwd, "preview");
+    assert.ok(!preview.operator.includes(url));
+    assert.match(preview.agent, /durable proof/);
+    assert.equal((await cli(cwd, "next")).data.step, "cleanup");
+    const proof = await (await fetch(url)).text();
+    writeFiles(cwd, { ".git/staff-engineer/proof.txt": proof });
+    await new Promise(resolve => server.close(resolve));
+    assert.equal(server.listening, false);
+    assert.equal(readFileSync(join(cwd, ".git/staff-engineer/proof.txt"), "utf8"), "A helpful note.");
+    await cli(cwd, "resources", "released", app.data.id, "--proof", "The owned HTTP server closed and the captured response remains available");
+    assert.equal((await cli(cwd, "next")).data.step, "await-feedback");
+    await cli(cwd, "abort", "--discard-confirmed");
+    assert.equal((await cli(cwd, "resources", "list")).data.mode, "local");
+    assert.equal((await runCli(["settings", "set", "preview.mode", "sometimes"], { cwd })).code, 1);
+  } finally {
+    if (server.listening) await new Promise(resolve => server.close(resolve));
+    cleanup(cwd);
+  }
 });

@@ -2,6 +2,7 @@ import { acceptanceIsCurrent } from "./acceptance.mjs";
 import { isGuided, modeOf } from "./autonomy.mjs";
 // The single source of "what now". Commands, status, and hooks all ask this
 // module, so the lifecycle order lives in code instead of in the agent's memory.
+import { resourceReport, CLEANUP_GUIDANCE } from "./resources.mjs";
 import { readContext } from "../commands/context.mjs";
 import { stagedFiles } from "./git.mjs";
 import { laneOf, laneOverflow, sameFingerprint, sourceFingerprint } from "./lanes.mjs";
@@ -16,7 +17,16 @@ const QUOTE = `--approval-quote "<the operator's exact words>"`;
 
 // Returns { step, waitFor: "agent" | "operator", command, skills, guidance }.
 // quick: skip the receipt fingerprint (hooks run on every prompt).
-export function nextStep({ cwd, config, session, quick = false }) {
+export function nextStep(options) {
+  const next = workflowStep(options);
+  if (["await-feedback", "handoff", "ship", "await-approval", "resume-save", "sync", "deploy"].includes(next.step)
+      && resourceReport(options.cwd, options.session).pending.length) {
+    return step("cleanup", { command: `${CLI} resources list`, guidance: `Preserve proof before releasing the preview. ${CLEANUP_GUIDANCE}` });
+  }
+  return next;
+}
+
+function workflowStep({ cwd, config, session, quick = false }) {
   if (!config) return step("install", { guidance: "The toolkit is not installed. Follow the install skill." });
   if (session?.autonomy?.paused) return step("paused", { waitFor: "operator", guidance: "Work is paused. Wait for the operator, then record autonomy resume --instruction with their words." });
   if (hasPendingToolkitSave(cwd)) return step("resume-toolkit-save", { command: `${CLI} save-toolkit`, guidance: "Finish the pending toolkit save and delivery before opening product work." });

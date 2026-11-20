@@ -41,6 +41,8 @@ that checkpoint is retained. Documentation updates belong inside preparation.
 | --- | --- |
 | `next` | Reads state and returns the next step and whether to wait. Does not mutate it. |
 | `begin "concern" --lane trivial\|standard\|large` | Checks for stable toolkit updates when due, saves a clean upgrade separately, snapshots existing dirty files, opens one concern, and prints its autonomy notice. Pending saves/deployments block new concerns. |
+| `resources list` / `track "<name>" --handle "<handle>" [--preview "<access>"]` / `released <id> --proof "<observation>"` | Tracks owned resources in checkout-local Git state. Release them using the originating tool and verify the result before recording cleanup. Handoff, ship, deploy and abort refuse outstanding task resources. Local previews stay listed, including after the task ends. |
+| `resources mode remote\|local` | Overrides the current task’s preview preference. Remote is the default and shares durable proof. Local keeps only previews and essential dependencies for hands-on use. A remembered preference uses `settings set preview.mode local` or `remote`. |
 | `autonomy [mode\|hold\|resume] --instruction "words" [--remember]` | Records operator steering. The quote must match the latest harness-recorded message when available; otherwise it is agent-reported. Default changes require `--remember`; ordinary changes are task-only. A switch never converts prior acceptance into save approval. |
 | `brief --outcome --accept ...` | Records the outcome and numbered acceptance criteria, non-goals, surfaces, and optional decisions/probes. Routine assumptions need no acknowledgment outside Guided mode. |
 | `decisions [--for "words"]` | Finds earlier operator decisions relevant to this concern. |

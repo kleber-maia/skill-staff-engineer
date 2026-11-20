@@ -1,3 +1,4 @@
+import { requireResourceCleanup, retainedNotice } from "../lib/resources.mjs";
 import { isGuided, modeOf } from "../lib/autonomy.mjs";
 import { requireAcceptance } from "../lib/acceptance.mjs";
 import { isNonTechnical, loadConfig } from "../lib/config.mjs";
@@ -14,6 +15,7 @@ export default async function run({ cwd }) {
   const session = requireOpenSession(cwd);
   const brief = requireBrief(session);
   if (!isGuided(session)) requireAcceptance(cwd, config, session);
+  const { kept, mode } = requireResourceCleanup(cwd, session);
   const receipt = readReceipt(cwd);
   const current = receipt ? receiptMatches(receipt, cwd, config, "working") : false;
   // Only a handoff of the verified batch can be answered with approval to save.
@@ -22,21 +24,21 @@ export default async function run({ cwd }) {
     updated.handoff.batch = batchFingerprint(cwd, "working", sessionConcernFiles(session, cwd)).digest;
     writeSession(cwd, updated);
   }
-  const preview = config.preview?.kind === "web" ? (config.operator?.previewPublicUrl ?? config.preview.url) : null;
+  const preview = mode === "local" && config.preview?.kind === "web" ? (config.operator?.previewPublicUrl ?? config.preview.url) : null;
   const checked = describeChecks(receipt, current, config, session.review, session.acceptanceEvidence);
   const files = sessionConcernFiles(session, cwd);
   const weakSpots = openIssuesFor(cwd, files, { pending: (session.review?.issues ?? []).map((issue) => ({ ...issue, status: "open" })), resolved: session.resolvedIssues ?? [] });
-  const text = renderHandoff({ deployment: config.deployment, autonomous: modeOf(session) === "autonomous", brief, preview, checked, technical: !isNonTechnical(config), files, weakSpots: weakSpots.length });
+  const text = renderHandoff({ deployment: config.deployment, autonomous: modeOf(session) === "autonomous", brief, preview, kept, checked, technical: !isNonTechnical(config), files, weakSpots: weakSpots.length });
   return ok({
     operator: text,
     agent: current
       ? modeOf(session) === "autonomous" ? "Summarize the verified result and continue to ship; the selected mode authorizes delivery." : "Fill the placeholders, send it, and stop. Only an explicit approval to save sent after this handoff counts; pass the operator's words to ship with --approval-quote."
       : "No current full verification receipt: run lifecycle and verify --mode full before sending this.",
-    data: { brief, receiptCurrent: current, preview },
+    data: { brief, receiptCurrent: current, preview, previewMode: mode, kept },
   });
 }
 
-export function renderHandoff({ deployment = null, autonomous = false, brief, preview, checked, technical, files = [], weakSpots = 0 }) {
+export function renderHandoff({ deployment = null, autonomous = false, brief, preview, kept = [], checked, technical, files = [], weakSpots = 0 }) {
   const lines = [
     `What changed: ${brief.outcome}`,
     `What to look at: ${preview ? `${preview}, then ` : ""}${brief.surfaces.length ? brief.surfaces.join(", ") : "<where to see it>"}; check ${brief.acceptance.join("; ")}.`,
@@ -44,6 +46,7 @@ export function renderHandoff({ deployment = null, autonomous = false, brief, pr
     `Left out on purpose: ${brief.nonGoals.length ? brief.nonGoals.join("; ") : "nothing"}.`,
     autonomous ? `Verification is complete. I will save and deliver this result${deployment ? ` to ${deployment.environment}` : ""}.` : deployment ? `Is this finished and approved to save and deploy to ${deployment.environment}?` : `Is this finished and approved to save? Reply "ship it" to save it, or "hold" to keep reviewing.`,
   ];
+  if (kept.length) lines.splice(4, 0, retainedNotice(kept));
   if (weakSpots) lines.splice(4, 0, `Also noticed: ${weakSpots === 1 ? "one known weak spot" : `${weakSpots} known weak spots`} near this change, left as they were. I can fix ${weakSpots === 1 ? "it" : "them"} next if you like.`);
   if (technical && files.length) lines.splice(4, 0, `Files: ${files.join(", ")}`);
   return lines.join("\n");

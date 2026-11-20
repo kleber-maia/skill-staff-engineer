@@ -13,6 +13,7 @@ export const COMMANDS = {
   install: { module: "./commands/install.mjs", multi: ["skip"] },
   doctor: { module: "./commands/doctor.mjs" },
   config: { module: "./commands/config.mjs" },
+  resources: { module: "./commands/resources.mjs" },
   settings: { module: "./commands/settings.mjs" },
   status: { module: "./commands/status.mjs" },
   stats: { module: "./commands/stats.mjs" },
@@ -107,6 +108,7 @@ Lifecycle (one concern at a time; run next whenever unsure)
                                       Check upstream, then open exactly one work session
   autonomy [guided|final-approval|autonomous|hold|resume] --instruction "..." [--remember]
                                       Record conversational steering; no user commands required
+  resources list|track|released|mode  Track owned handles, record cleanup, or steer preview retention
   acceptance <evidence.json>          Record agent verification of every acceptance criterion
   lane trivial|standard|large         Move the open concern to another lane
   plan <path>                         Record the agreed plan (large lane, before preview)

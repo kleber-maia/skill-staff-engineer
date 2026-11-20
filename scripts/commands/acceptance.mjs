@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { readJson } from "../lib/fs-safe.mjs";
 import { acceptanceFingerprint, validateEvidence } from "../lib/acceptance.mjs";
+import { previewMode } from "../lib/resources.mjs";
 import { isGuided } from "../lib/autonomy.mjs";
 import { loadConfig } from "../lib/config.mjs";
 import { ok, refused } from "../lib/output.mjs";
@@ -21,5 +22,5 @@ export default async function run({ cwd, positional }) {
   const acceptanceEvidence = { ...evidence, fingerprint, at: new Date().toISOString(), evidence: "agent-verification" };
   const updated = session.phase === PHASES.AWAITING_FEEDBACK ? markFinalizing(session, { evidence: "agent-verification" }) : session;
   writeSession(cwd, { ...updated, acceptanceEvidence });
-  return ok({ operator: "", agent: "Acceptance evidence recorded. Continue with next; this is verification, not operator approval.", data: acceptanceEvidence });
+  return ok({ operator: "", agent: `Acceptance evidence recorded. ${previewMode(cwd, session) === "remote" ? "Release owned previews now that proof is available." : "Keep the local preview accessible."} Continue with next.`, data: acceptanceEvidence });
 }

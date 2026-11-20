@@ -1,3 +1,4 @@
+import { previewMode } from "../lib/resources.mjs";
 import { acceptanceFingerprint } from "../lib/acceptance.mjs";
 import { hasBaseProof } from "../lib/repro.mjs";
 import { isGuided } from "../lib/autonomy.mjs";
@@ -52,8 +53,10 @@ export default async function run({ cwd }) {
   writeSession(cwd, shots.files?.length ? { ...updated, screenshots: shotChanges.hashes } : updated);
 
   const checks = brief.acceptance.map((item, index) => `${index + 1}. ${item}`).join("\n");
+  const mode = previewMode(cwd, session);
+  const location = mode === "local" ? where.operator : "";
   const operator = [
-    `The working result is ready to review${where.operator ? ` ${where.operator}` : ""}.`,
+    `The working result is ready to review${location ? ` ${location}` : ""}.`,
     "Please check:",
     checks,
     brief.nonGoals.length ? `Left alone on purpose: ${brief.nonGoals.join("; ")}.` : "",
@@ -63,9 +66,12 @@ export default async function run({ cwd }) {
   return ok({
     operator: guided ? operator : "The working result is ready for my acceptance checks.",
     agent: [
-      `Round ${updated.reviewRound}. ${guided ? "Stop now and wait for the operator’s feedback." : "Exercise every acceptance criterion and inspect affected visuals yourself. Record acceptance <evidence.json>; do not wait for operator preview acceptance."}`,
+      `Round ${updated.reviewRound}. ${guided ? "Share the evidence, then wait for the operator’s feedback." : "Exercise every acceptance criterion and inspect affected visuals yourself. Record acceptance <evidence.json>; do not wait for operator preview acceptance."}`,
       `Change requests: run ${CLI} revise, update, then preview again.`,
       guided ? `Clear acceptance: ${CLI} finalize --approval-quote "<the operator's exact words>"` : "Use the harness browser or screenshot tools if project screenshot capture is unavailable. A missing capability is blocked evidence, never a pass.",
+      mode === "remote"
+        ? "Collect and share durable proof before waiting for feedback. Release owned previews after proof and record their cleanup. Share evidence the operator can open."
+        : "Leave the working preview and its required dependencies open for the operator. Share how to try it and release all other task resources.",
       where.agent ?? "",
       probes ? `Self-check: ${probes.cached ? "unchanged since the last passing run" : `${probes.results.length} automatic check${probes.results.length === 1 ? "" : "s"} passed`}.` : "",
       plan.screenshots && shotChanges.changed.length ? `Look at these changed screenshots before presenting:\n${shotChanges.changed.map((file) => `- ${file}`).join("\n")}` : "",
@@ -73,7 +79,7 @@ export default async function run({ cwd }) {
       shots.skipped === false && !shots.ok ? `Screenshots failed (preview still presented): ${shots.reason}` : "",
       isNonTechnical(config) ? "Keep the message free of file names, commands, and tool output." : "",
     ].filter(Boolean).join("\n"),
-    data: { round: updated.reviewRound, lane, combinedApproval: false, files, preview: where, brief, screenshots: shots.files },
+    data: { previewMode: mode, round: updated.reviewRound, lane, combinedApproval: false, files, preview: where, brief, screenshots: shots.files },
   });
 }
 
@@ -90,7 +96,7 @@ async function confirmPreview(preview, config, cwd) {
     const reachable = await isReachable(preview.url);
     if (!reachable) {
       throw refused("The preview is not running, so there is nothing to show yet.", {
-        agent: `Start it in the background with: ${preview.cmd ?? "<the project's start command>"}  then wait for ${preview.url} to respond and run preview again. Do not present a localhost address to a non-technical operator; configure operator.previewPublicUrl if the operator needs a different address.`,
+        agent: `Start it with an owned background handle and register it using resources track --handle and --preview. Start command: ${preview.cmd ?? "<the project's start command>"}  then wait for ${preview.url} to respond and run preview again. For a remote operator, share captured evidence.`,
       });
     }
     const shown = config.operator?.previewPublicUrl ?? preview.url;

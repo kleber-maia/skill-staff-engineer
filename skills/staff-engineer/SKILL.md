@@ -204,11 +204,45 @@ conditions, negative replies, and later feedback invalidate earlier approval.
 - Read `operator.mode` in `.staff-engineer/config.json`. When it is `non-technical`,
   write every operator-facing message in plain language: no version control,
   terminal, database, file, or code jargon. Describe outcomes, not steps.
-- Show results where the operator can see them: the preview address for web projects,
-  the output or document otherwise. In Final approval and Through delivery, inspect affected visuals yourself and record evidence, including when toolkit screenshot capture is unavailable.
+- Share durable proof with remote operators. Give local operators the verified preview address, running app, or simulator. In Final approval and Through delivery, inspect affected visuals yourself and record evidence, including when toolkit screenshot capture is unavailable.
 - In Final approval, ask once for the whole verified batch using `handoff`. In Through delivery, summarize and continue without asking.
 - Never ask the operator to run a command, set a variable, or type a special phrase
   into a tool. If a decision is theirs, ask the question in plain language.
+
+## Computer resources and task cleanup
+
+The operator is **remote** by default. Capture durable proof they can open (a screenshot,
+recording, test result, or output), then release task-owned preview resources as soon
+as inspection is complete. In Guided mode attach the proof before waiting for feedback.
+Restart the preview if a later check needs it. Keep evidence referenced by a handoff.
+
+In **local** mode leave the working app, server or simulator and only its essential
+dependencies available for hands-on review. Check it still works and share how to try
+it and how to ask you to close it. “Leave it open for this task” means `resources mode
+local` on the open task. “I usually test locally” means `settings set preview.mode local`
+for this checkout on this machine. Either accepts `remote` to switch back. A task
+override lasts until the task ends and takes precedence over the remembered preference.
+Approval and delivery continue under the selected autonomy mode.
+
+- Reuse an existing suitable server, simulator or build. Bound parallel jobs to
+  available RAM, CPU and disk. Check available space before large builds or downloads.
+  Stop idle workers and watchers, close task-only tabs and agent sessions, and release
+  temporary directories, scratch checkouts, logs and duplicate build output when done.
+- At creation, record each resource that can outlive its command with
+  `resources track "<name>" --handle "<original tool, unique handle or owned path>"`.
+  Add `--preview "<how to try it or which preview needs it>"` only for hands-on review.
+  Keep secrets out of descriptions. Run these commands via the installed toolkit CLI.
+- Inspect `resources list` after interruption and before handoff, delivery or abort.
+  Check for anything you created but missed. Use the originating tool and confirm
+  ownership before stopping a process or removing disposable files. Preserve existing
+  services, user edits, shared caches, deliverables and proof. A port, process name or
+  reused PID alone cannot establish ownership. For uncertain ownership, report the
+  specific item and leave it intact.
+- Verify each release (for example, the owning terminal reports exit or the scratch
+  directory is gone), then use the ID from `resources list` to record `resources released <id> --proof "<observation>"`.
+  If cleanup fails, keep the entry and report the blocker. Retained local previews
+  stay listed across tasks. Release them when the operator asks or closes them.
+  Rechecking a previous preview uses its original handle.
 
 ## Work safely
 
@@ -219,7 +253,7 @@ conditions, negative replies, and later feedback invalidate earlier approval.
 - Never stage env files, secrets, uploads, backups, logs, or generated output. The
   `paths.protected` and `paths.neverStage` lists are the floor, not the ceiling. See
   `data-safety`.
-- Never run mutating tests against real data. Never delete data without a dry run and
+- Never run mutating tests against real data. Never delete project or operator data without a dry run and
   explicit confirmation.
 - Run the full check once on the final staged batch. Pure conventional prose gets
   built-in documentation checks without app tests, builds or runtime. Documentation
@@ -245,6 +279,7 @@ conditions, negative replies, and later feedback invalidate earlier approval.
 - [ ] `lifecycle` passes and `verify --mode full` passed once on the final staged batch.
 - [ ] Delivery is authorized by the selected autonomous mode or the operator’s approval
       of the exact prepared batch after its handoff.
+- [ ] Task-owned resources were released and checked. Any retained local preview has working access details.
 - [ ] The save used `ship` with an imperative message and confirmed delivery (or intentional local work), plus verified deployment when configured.
 
 ## After delivery: offer a release

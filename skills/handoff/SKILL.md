@@ -40,6 +40,7 @@ configured, name its environment in the summary and approval question.
   approval for the batch.
 - Approval must follow a described change. Ask only after the operator has read
   what changed, what was checked, and what was left out.
+- Attach durable proof in remote preview mode. In local mode, verify each retained preview is usable and share access details and how to close it.
 - Ask once. Do not split approval into separate save and deploy prompts unless the
   project has a real deploy step; then name both in the same question.
 - If a waiver was used (tests, docs, or a broad change), say so in plain words and

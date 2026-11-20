@@ -36,6 +36,7 @@ skills guide the work between them. Before changing anything, read `.agents/skil
   code and passes on the fixed code.
 - Every code change is reviewed at the level `review` prints (minimum, standard, detailed; follow
   the `code-review` skill). Fixes after a review need only a delta review.
+- Track task-owned processes and temporary files with `resources track`. Release them through their original handles and verify cleanup. Remote previews close after proof. Local mode keeps only the working preview and its required dependencies available for the operator.
 - In Final approval, ask once after the final handoff. In Guided mode, obtain preview
   acceptance with `finalize` and save approval. Quote actual operator words with
   `--approval-quote`; never invent them. Through delivery uses the same verification

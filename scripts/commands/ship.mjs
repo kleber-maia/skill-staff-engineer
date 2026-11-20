@@ -1,3 +1,4 @@
+import { requireResourceCleanup, resourceReport, retainedNotice } from "../lib/resources.mjs";
 import { releaseFollowup, RELEASE_GUIDANCE } from "../lib/release-followup.mjs";
 import { assertActive, isGuided, modeOf } from "../lib/autonomy.mjs";
 import { requireAcceptance } from "../lib/acceptance.mjs";
@@ -36,10 +37,11 @@ export default async function run(options) {
 
 async function runShip({ cwd, positional, flags, env = process.env }) {
   const config = loadConfig(cwd);
-  assertActive(cwd, readSession(cwd));
-  if (flags.recover) return recover(cwd);
-  if (flags["sync-only"]) return syncOnly(cwd, config, flags);
   const existing = readSession(cwd);
+  assertActive(cwd, existing);
+  if (flags.recover) return recover(cwd);
+  requireResourceCleanup(cwd, existing);
+  if (flags["sync-only"]) return syncOnly(cwd, config, flags);
   if (existing?.status === "saved" || existing?.status === "open" && existing.shipping && head(cwd) !== existing.baseCommit) return syncOnly(cwd, config, flags);
   if (existing?.status === "open" && existing.shipping) {
     if (output("git", ["write-tree"], { cwd }) !== existing.shipping.expectedTree) throw refused("The batch changed during an interrupted save.", { agent: "Run ship --recover and review the changed batch again." });
@@ -156,12 +158,14 @@ function completeDelivery(cwd, config, session, categories = [], decisionsRecord
   writeSession(cwd, updated);
   const milestone = operatorInsight(cwd);
 
+  const { kept } = resourceReport(cwd, updated);
   const plain = isNonTechnical(config);
   return ok({
     operator: [
       plain
         ? pushed ? "Saved and sent to the shared copy of the project." : "Saved locally."
         : `Committed ${savedCommit.slice(0, 10)} on ${branchName(cwd)}${pushed ? " and confirmed delivery." : " (local work)."}`,
+      retainedNotice(kept),
       milestone?.message ?? "",
       offer?.question ?? "",
     ].filter(Boolean).join(" "),

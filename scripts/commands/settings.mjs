@@ -1,4 +1,6 @@
 import { loadConfig } from "../lib/config.mjs";
+import { acquireSaveLock } from "../lib/fs-safe.mjs";
+import { stateDir } from "../lib/git.mjs";
 import { ok, refused } from "../lib/output.mjs";
 import { allSettings, getSetting, setSetting, unsetSetting } from "../lib/settings.mjs";
 
@@ -17,13 +19,15 @@ export default async function run({ cwd, positional }) {
     });
   }
   if (action === "get") return ok({ operator: "", agent: JSON.stringify(getSetting(cwd, key)), data: { key, value: getSetting(cwd, key) } });
-  if (action === "set") {
-    const stored = setSetting(cwd, key, value);
-    return ok({ operator: "Done, I changed that preference for this computer.", agent: `${key} = ${JSON.stringify(stored)} (local to this machine).`, data: { key, value: stored } });
-  }
-  if (action === "unset") {
+  if (!["set", "unset"].includes(action)) throw refused(`Unknown settings action "${action}".`, { agent: `Usage: ${usage}` });
+  // A preview preference cannot change halfway through a guarded delivery or abort.
+  const unlock = acquireSaveLock(stateDir(cwd));
+  try {
+    if (action === "set") {
+      const stored = setSetting(cwd, key, value);
+      return ok({ operator: "Done, I changed that preference for this computer.", agent: `${key} = ${JSON.stringify(stored)} (local to this machine).`, data: { key, value: stored } });
+    }
     const fallback = unsetSetting(cwd, key);
     return ok({ operator: "Done, that preference is back to its default.", agent: `${key} reset to ${JSON.stringify(fallback)}.`, data: { key, value: fallback } });
-  }
-  throw refused(`Unknown settings action "${action}".`, { agent: `Usage: ${usage}` });
+  } finally { unlock(); }
 }

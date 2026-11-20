@@ -37,6 +37,14 @@ export const SETTINGS = {
       return value;
     },
   },
+  "preview.mode": {
+    default: "remote",
+    description: "Remote releases task previews after proof. Local keeps the preview available for hands-on review.",
+    parse: (value) => {
+      if (!["remote", "local"].includes(value)) throw new Error("must be remote or local");
+      return value;
+    },
+  },
   "preview.selfCheck": {
     default: "auto",
     description: "Guided mode preview checks (other modes always require agent verification): off, auto (free probes outside the trivial lane), thorough (probes in every lane plus a look at changed screenshots).",

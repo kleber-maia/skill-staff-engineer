@@ -1,5 +1,7 @@
 # Changelog
 
+- **0.13.0** Track task-owned resources and verify cleanup before handoff, delivery or abort. Remote previews close after proof by default. Local previews stay available for hands-on review, with per-task and remembered preferences independent of approval mode.
+
 - **0.12.0** **breaking:** reproduction proof requires a specific expected failure diagnostic and rejects setup errors, unrelated failures, timeouts, signals and execution errors. Legacy proof must be refreshed; rejected attempts cannot reuse earlier evidence. Baselines now use independent disposable repositories instead of Git worktrees. Explicit changed test drivers and per-run timeout budgets are supported and recorded.
 
 - **0.11.4** Allow reviewed source-to-test associations for shared integration suites and module-level imports. Related tests must still be changed or added and staged in the batch; unchanged, deleted, unstaged, unrelated or non-test files cannot satisfy coverage.

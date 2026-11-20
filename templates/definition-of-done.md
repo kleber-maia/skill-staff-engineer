@@ -14,4 +14,5 @@ A concern is done only when every line below is true.
 - [ ] The lifecycle gate passes on the whole staged concern.
 - [ ] The full verification passed once on this exact staged code (receipt is current).
 - [ ] The handoff was sent in plain language and the operator replied "ship it".
+- [ ] Task-owned resources were released and cleanup verified. In local mode the operator has access to the retained working preview and its dependencies.
 - [ ] The batch is saved as one commit; nothing unrelated was swept in.

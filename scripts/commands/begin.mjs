@@ -1,3 +1,4 @@
+import { previewMode } from "../lib/resources.mjs";
 import { autonomyNotice, preference } from "../lib/autonomy.mjs";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -57,9 +58,10 @@ export default async function run({ cwd, positional, flags = {}, env = process.e
   const decisions = relevantDecisions(cwd, { text: session.concern });
   const insights = agentInsights(cwd, { webPreview: config.preview?.kind === "web", selfCheck: getSetting(cwd, "preview.selfCheck") });
   return ok({
-    operator: `${autonomyNotice(session, config.deployment)}\nStarted working on: ${session.concern}.`,
+    operator: `${autonomyNotice(session, config.deployment)}\nPreview mode: ${previewMode(cwd, session)}.\nStarted working on: ${session.concern}.`,
     agent: [
       "Display the autonomy notice prominently before working. Interpret later steering conversationally and record it with autonomy.",
+      'Record task-owned background processes and disposable files with resources track as you create them. Reuse existing services where possible.',
       "All changes for this concern must be staged and saved together as one batch.",
       session.baseline.files.length ? `Pre-existing pending files are protected and must stay out of this batch: ${summarize(session.baseline.files)}` : "",
       `Lane: ${lane}.${flags.bug ? " Bug fix: prove it with a test that fails on the original code (repro)." : ""}`,

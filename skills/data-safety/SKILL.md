@@ -48,9 +48,19 @@ Describe: what records, how many, what changes, whether it is reversible, and ho
 the operator can check the result. Then wait. Perform exactly the approved write
 and report the outcome.
 
+## Task-owned scratch space
+
+Dispose of temporary files you created solely for this task once their purpose is
+complete. Check the exact owned path and contents before removal, including for
+user edits, symlinks, deliverables and referenced evidence. Use the original tool
+or that exact path, confirm removal and record the result with `resources released`.
+This routine disposal requires no additional operator approval. If ownership or the
+contents are uncertain, preserve the item and report it. Bulk cleanup and changes
+to existing project or operator data follow the rules below.
+
 ## Destructive actions
 
-- Every delete, reset, truncate, bulk update, or history rewrite needs a dry run
+- Deleting existing project or operator data, resets, truncation, bulk updates and history rewrites need a dry run
   first: show exactly what would be affected and how many items, then get explicit
   confirmation of that list, then run it.
 - Prefer reversible steps (archive, soft delete, rename) over irreversible ones.
@@ -61,7 +71,7 @@ and report the outcome.
 
 ## Cleanup scripts
 
-Any script or command that removes files must:
+Project cleanup scripts that remove files must:
 
 - be pinned to known generated directories (the `paths.generated` list in config or
   an explicit allowlist), never to a pattern that could match source, docs, or data;

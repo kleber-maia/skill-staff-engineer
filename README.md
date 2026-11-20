@@ -61,6 +61,14 @@ to choose again at the start of every task. You can steer whenever you need to.
 
 ### Verification and cost
 
+By default the agent assumes you’re **remote**. It shares proof you can review and
+closes the server, simulator, or app it started once it has that proof. Say **“Leave
+the preview open for this task”** to try it on your computer, or **“I usually test
+locally”** to remember that preference for this checkout. Say **“I’m remote for this
+task”** to switch back for one task. Approval and deployment choices are separate.
+In either mode the agent releases its other background jobs and temporary files.
+You can ask it to close a retained preview later.
+
 Pure documentation changes use built-in whitespace, newline, local Markdown-link
 and source-line checks. They do not launch the application, its tests or its build.
 Selection examines the entire index and working tree; code, configuration,

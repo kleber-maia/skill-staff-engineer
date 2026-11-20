@@ -1,3 +1,6 @@
+import { requireResourceCleanup, retainedNotice } from "../lib/resources.mjs";
+import { acquireSaveLock } from "../lib/fs-safe.mjs";
+import { stateDir } from "../lib/git.mjs";
 import { recordConcern } from "../lib/history.mjs";
 import { ok, refused } from "../lib/output.mjs";
 import { clearSession, readSession, sessionConcernFiles } from "../lib/session.mjs";
@@ -6,6 +9,11 @@ export const description = "Close an abandoned work session. Never deletes or re
 export const usage = "abort [--discard-confirmed]";
 
 export default async function run({ cwd, flags }) {
+  const unlock = acquireSaveLock(stateDir(cwd));
+  try { return abort(cwd, flags); } finally { unlock(); }
+}
+
+function abort(cwd, flags) {
   const session = readSession(cwd);
   if (!session || session.cleared || session.status === "synced") {
     return ok({ operator: "There is no work session to close.", data: {} });
@@ -21,10 +29,11 @@ export default async function run({ cwd, flags }) {
       data: { pending },
     });
   }
+  const { kept } = requireResourceCleanup(cwd, session);
   if (session.status === "open") recordConcern(cwd, session, { outcome: "aborted" });
   clearSession(cwd);
   return ok({
-    operator: `Stopped working on "${session.concern}".`,
+    operator: [`Stopped working on "${session.concern}".`, retainedNotice(kept)].filter(Boolean).join(" "),
     agent: pending.length ? `Session closed. These files are still changed in the working tree: ${pending.join(", ")}` : "Session closed.",
     data: { concern: session.concern, pending },
   });

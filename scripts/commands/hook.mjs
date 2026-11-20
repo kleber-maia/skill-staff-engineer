@@ -1,3 +1,4 @@
+import { resourceReport, CLEANUP_GUIDANCE } from "../lib/resources.mjs";
 import { autonomyNotice, isInterruption, isGuided } from "../lib/autonomy.mjs";
 // Claude Code hook handler. Reads the hook payload from stdin, decides, prints the
 // hook protocol JSON. Fails open: the CLI emits safe failure context, exit 0.
@@ -201,6 +202,7 @@ function stop(config, session, root, payload) {
   if (session.status === "delivered") return stopFeedback(`Deployment is unfinished. Run ${CLI} deploy to verify the delivered revision before reporting completion.`);
   if (session.status === "saved" || session.shipping) return stopFeedback(`The save is unfinished. Run ${CLI} ship${session.status === "saved" ? " --sync-only" : ""} to recover and confirm delivery before reporting completion.`);
   const notes = [];
+  if (resourceReport(root, session).pending.length) notes.push(`When each resource is no longer needed, release it. ${CLEANUP_GUIDANCE}`);
   if (!isGuided(session) && session.phase === PHASES.AWAITING_FEEDBACK) notes.push("Exercise the working result and record acceptance evidence; this mode does not wait for operator preview acceptance.");
   const files = sessionConcernFiles(session, root);
   if (session.phase === PHASES.IMPLEMENTATION && files.length && !session.brief) notes.push("Files changed but no brief is recorded; agree the outcome with the operator and record it.");

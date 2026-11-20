@@ -1,3 +1,4 @@
+import { requireResourceCleanup, retainedNotice } from "../lib/resources.mjs";
 import { releaseFollowup, RELEASE_GUIDANCE } from "../lib/release-followup.mjs";
 import { assertActive, modeOf } from "../lib/autonomy.mjs";
 import { assertDeliveryNotWithdrawn, checkApproval } from "../lib/approval.mjs";
@@ -20,6 +21,7 @@ async function deploy({ cwd, flags = {} }) {
   let session = readSession(cwd);
   assertActive(cwd, session);
   if (session?.status !== "delivered" || !session.deployment) throw refused("There is no delivered batch waiting for deployment.");
+  const { kept } = requireResourceCleanup(cwd, session);
   if (head(cwd) !== session.savedCommit) throw refused("Return to the delivered revision before deploying it.");
   if (dirtyFiles(cwd).length) throw refused("Deployment needs a clean checkout of the delivered revision.", { agent: "Preserve pending work. Resolve the dirty checkout or use the project’s revision-based deployment integration before retrying; never deploy unverified local edits." });
   if (flags["approval-quote"]) {
@@ -34,7 +36,7 @@ async function deploy({ cwd, flags = {} }) {
   // On recovery first check whether the exact revision already went live. Never
   // blindly issue the deploy command again after an interrupted side effect.
   if (deployment.status !== "pending") {
-    if (runShell(config.verifyCmd, options).ok) return finish(cwd, session);
+    if (runShell(config.verifyCmd, options).ok) return finish(cwd, kept);
     if (!flags.retry || String(flags.reason ?? "").trim().length < 12) throw refused("The expected revision is not verified live. Investigate before retrying deployment.", { agent: "Repair the cause, then use deploy --retry --reason explaining why repeating the deployment is safe. The same commit and destination are retained." });
   }
   session = { ...session, deployment: { ...deployment, status: "started", startedAt: new Date().toISOString(), retryReason: flags.reason ?? null } };
@@ -48,14 +50,14 @@ async function deploy({ cwd, flags = {} }) {
   writeSession(cwd, { ...readSession(cwd), deployment: { ...session.deployment, status: "verifying" } });
   assertActive(cwd, readSession(cwd));
   if (!runShell(config.verifyCmd, options).ok) throw refused("Deployment ran, but the expected revision and smoke checks are not verified.", { agent: "Investigate the live result and rerun deploy to verify the same revision. It will not redeploy without --retry and a reason." });
-  return finish(cwd, readSession(cwd));
+  return finish(cwd, kept);
 }
-function finish(cwd, session) {
-  session = readSession(cwd);
+function finish(cwd, kept) {
+  const session = readSession(cwd);
   assertActive(cwd, session);
   assertDeliveryNotWithdrawn(cwd, session.shipping?.approval);
   const completed = { ...markSynced(session), deployment: { ...session.deployment, status: "verified", verifiedAt: new Date().toISOString() } };
   const { session: updated, offer } = releaseFollowup(completed);
   writeSession(cwd, updated);
-  return ok({ operator: `Delivered and verified in ${session.deployment.config.environment}.${offer ? ` ${offer.question}` : ""}`, agent: `The task is complete. ${offer ? RELEASE_GUIDANCE : ""}`, data: { releaseOffer: offer, commit: session.savedCommit, environment: session.deployment.config.environment, status: updated.status } });
+  return ok({ operator: [`Delivered and verified in ${session.deployment.config.environment}.`, retainedNotice(kept), offer?.question].filter(Boolean).join(" "), agent: `The task is complete. ${offer ? RELEASE_GUIDANCE : ""}`, data: { releaseOffer: offer, commit: session.savedCommit, environment: session.deployment.config.environment, status: updated.status } });
 }
